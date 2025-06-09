@@ -1099,3 +1099,229 @@ body.logged-in #login-prompt {
     margin-right: 5px;
     color: #ff6b6b;
 }
+
+/* 推荐区域样式 - 与经典配方协调 */
+#recommendations-section {
+    margin-bottom: 40px;
+    background-color: rgba(15, 22, 46, 0.9); /* 与经典配方区域相同的背景 */
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+}
+
+#recommendations-section h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    color: #00e5ff; /* 与经典配方标题相同的亮青色 */
+    text-align: center;
+    margin-bottom: 25px;
+    position: relative;
+    padding-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+#recommendations-section h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+}
+
+.recommendation-item {
+    background-color: #1a1a2e;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    border: 1px solid #2d4059;
+    position: relative;
+    overflow: hidden;
+}
+
+.recommendation-item::before {
+    content: '推荐';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+    color: #1a1a2e;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    z-index: 2;
+}
+
+.recommendation-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(79, 195, 247, 0.2);
+    border-color: #4fc3f7;
+}
+
+/* 匹配度样式 */
+.match-container {
+    margin: 10px 0;
+}
+
+.match-label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: #a0d2eb;
+}
+
+.match-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #16213e;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.match-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 10px;
+    text-align: center;
+    color: #1a1a2e;
+    font-size: 0.8rem;
+    font-weight: bold;
+    line-height: 20px;
+    transition: width 0.5s ease;
+}
+/* 酒单标题 - 与经典配方完全一致 */
+.recommendation-item h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.recommendation-item h3 a {
+    color: #40c4ff; /* 与经典配方相同的浅蓝色 */
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}
+
+.recommendation-item h3 a:hover {
+    color: #ff4081; /* 悬停时变为粉色 */
+    text-decoration: none;
+}
+
+/* 酒精度信息 - 与经典配方相同 */
+.recommendation-item .recipe-info {
+    color: #a0d2eb; /* 与经典配方相同的浅蓝色 */
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+
+/* 匹配度样式 */
+.match-container {
+    margin: 10px 0;
+}
+
+.match-text {
+    display: inline-block;
+    padding: 5px 12px;
+    background-color: #2d4059;
+    border-radius: 15px;
+    color: #4fc3f7;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+/* 推荐理由样式 */
+.recommendation-reason {
+    padding-top: 10px;
+    margin-top: 10px;
+    color: #a0d2eb;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    border-top: 1px solid #2d4059;
+    font-style: normal;
+}
+
+/* === 响应式设计 === */
+@media (max-width: 768px) {
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #recommendations-section h2,
+    #recipes-list h2 {
+        font-size: 1.6rem;
+    }
+}
+
+/* === 确保经典配方区域样式一致 === */
+#recipes-list {
+    background-color: rgba(15, 22, 46, 0.9);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    margin-bottom: 30px;
+}
+
+#recipes-list h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    color: #00e5ff;
+    text-align: center;
+    margin-bottom: 25px;
+    position: relative;
+    padding-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+#recipes-list h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+}
+
+/* 确保整体一致性 */
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.cocktail {
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+    padding-bottom: 20px;
+    border: 1px solid rgba(15, 52, 96, 0.8);
+    background-color: rgba(15, 52, 96, 0.3);
+    padding: 15px;
+    border-radius: 6px;
+    transition: all 0.3s ease; /* 添加过渡 */
+    position: relative; /* 支持定位 */
+}
+
+.cocktail:last-child {
+    border-bottom: none;
+}
+
+.cocktail:hover {
+    transform: translateY(-3px); /* 向上移动 */
+    box-shadow: 0 6px 20px rgba(79, 195, 247, 0.2); /* 悬停阴影 */
+    border-color: #4fc3f7; /* 悬停边框颜色 */
+}

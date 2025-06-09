@@ -95,6 +95,8 @@
     height: 180px;
     z-index: 2;
     transition: transform 0.3s ease-in-out;
+    /* 添加一个整体背景色，增强视觉连续性 */
+    background-color: transparent;
 }
 
 .pixel-glass-top {
@@ -111,22 +113,66 @@
     z-index: 3;
 }
 
-.pixel-glass-stem {
+/* 添加一个杯身和杯脚之间的连接元素，确保无缝过渡 */
+.pixel-glass-top::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    /* 与连接器宽度一致 */
+    height: 2px;
+    background-color: var(--glass-color);
+    z-index: 3;
+}
+
+.pixel-glass-connector {
     position: absolute;
     top: 100px;
     left: 50%;
     transform: translateX(-50%);
-    width: 12px;
-    height: 50px;
+    width: 16px;
+    height: 4px;
     background-color: var(--glass-color);
     border-left: 2px solid var(--glass-border);
     border-right: 2px solid var(--glass-border);
+    z-index: 3;
+    /* 增加z-index确保在前面 */
+}
+
+.pixel-glass-stem {
+    position: absolute;
+    top: 104px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 46px;
+    background-color: var(--glass-color);
+    border-left: 2px solid var(--glass-border);
+    border-right: 2px solid var(--glass-border);
+    border-bottom: none;
+    border-top: none;
     z-index: 2;
+}
+
+.pixel-glass-stem::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    /* 与连接器底部重叠 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 2px;
+    background-color: var(--glass-color);
+    z-index: 3;
 }
 
 .pixel-glass-base {
     position: absolute;
-    bottom: 0;
+    top: 150px;
+    /* 与杯脚底部对齐 */
     left: 50%;
     transform: translateX(-50%);
     width: 60px;
@@ -134,6 +180,19 @@
     background-color: var(--glass-color);
     border: 2px solid var(--glass-border);
     border-radius: 50%;
+    z-index: 2;
+}
+
+/* 添加杯脚和杯底的连接 */
+.pixel-glass-stem::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 2px;
+    background-color: var(--glass-color);
     z-index: 2;
 }
 

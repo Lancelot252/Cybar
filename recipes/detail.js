@@ -68,6 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleFavorite(recipeId);
         });
     }
+
+    // --- Show interaction buttons container if exists ---
+    if (interactionButtons) {
+        interactionButtons.style.display = 'none';
+    }
 });
 
 function displayRecipeDetail(recipe) {
@@ -97,7 +102,7 @@ function displayRecipeDetail(recipe) {
     likeWrapper.innerHTML = `
         <button id="like-button" class="interaction-btn" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;">
             <i class="far fa-heart" style="transition: color 0.3s ease"></i>
-            <span id="like-count">0</span>
+            <span id="like-count">${recipe.likeCount !== undefined ? recipe.likeCount : 0}</span>
         </button>
     `;
 
@@ -107,7 +112,7 @@ function displayRecipeDetail(recipe) {
     favoriteWrapper.innerHTML = `
         <button id="favorite-button" class="interaction-btn" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;">
             <i class="far fa-bookmark" style="transition: color 0.3s ease"></i>
-            <span id="favorite-count">0</span>
+            <span id="favorite-count">${recipe.favoriteCount !== undefined ? recipe.favoriteCount : 0}</span>
         </button>
     `;
 
@@ -568,3 +573,35 @@ async function toggleFavorite(recipeId) {
         alert('操作失败，请重试');
     }
 }
+
+// --- 新增：处理评论提交的 API 路由 ---
+app.post('/api/recipes/:id/comments', async (req, res) => {
+    const recipeId = req.params.id;
+    const { commentText } = req.body;
+    const userId = req.session.userId;
+    const username = req.session.username;
+
+    if (!userId) {
+        return res.status(401).json({ message: '请先登录' });
+    }
+
+    if (!commentText || commentText.trim() === '') {
+        return res.status(400).json({ message: '评论内容不能为空' });
+    }
+
+    try {
+        // 插入评论
+        await dbPool.query(
+            `INSERT INTO comment (thread_id, user_id, username, text, timestamp) VALUES (?, ?, ?, ?, NOW())`,
+            [recipeId, userId, username, commentText.trim()]
+        );
+        // 查询刚插入的评论
+        const [rows] = await dbPool.query(
+            `SELECT id, user_id, username, text, timestamp FROM comment WHERE thread_id = ? ORDER BY id DESC LIMIT 1`, [recipeId]
+        );
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        console.error('Error inserting comment:', error);
+        res.status(500).json({ message: '提交评论时发生错误' });
+    }
+});

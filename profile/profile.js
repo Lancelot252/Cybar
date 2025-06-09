@@ -44,6 +44,12 @@ async function loadUserInteractions() {
         const favoritesResponse = await fetch('/api/user/favorites');
         const favoritesData = await favoritesResponse.json();
         displayRecipes(favoritesData, 'favorites-list');
+
+        // 加载创建的配方历史
+        const createdRecipesResponse = await fetch('/api/user/created-recipes');
+        const createdRecipesData = await createdRecipesResponse.json();
+        displayRecipes(createdRecipesData, 'created-recipes-list');
+
     } catch (error) {
         console.error('Error loading user interactions:', error);
         showError('加载数据时出错，请稍后重试');
@@ -54,7 +60,13 @@ function displayRecipes(recipes, containerId) {
     const container = document.getElementById(containerId);
     container.innerHTML = ''; // 清除加载提示
 
-    if (!recipes || recipes.length === 0) {
+    // 防御性处理
+    if (!Array.isArray(recipes)) {
+        container.innerHTML = '<p class="no-data">暂无数据</p>';
+        return;
+    }
+
+    if (recipes.length === 0) {
         container.innerHTML = '<p class="no-data">暂无数据</p>';
         return;
     }
@@ -82,4 +94,4 @@ function showError(message) {
     setTimeout(() => {
         errorDiv.remove();
     }, 3000);
-} 
+}

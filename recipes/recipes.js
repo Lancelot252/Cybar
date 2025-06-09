@@ -23,7 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Use recipe.id for the detail link and correct filename
             nameLink.href = `detail.html?id=${recipe.id}`; // Corrected link to detail.html
             // Display name and ABV
-            nameLink.textContent = `${recipe.name} (~${recipe.estimatedAbv ? recipe.estimatedAbv.toFixed(1) : 'N/A'}% ABV)`;
+            nameLink.textContent = `${recipe.name} (~${
+                !isNaN(Number(recipe.estimatedAbv)) ? Number(recipe.estimatedAbv).toFixed(1) : 'N/A'
+            }% ABV)`;
             nameHeading.appendChild(nameLink);
             article.appendChild(nameHeading);
 
@@ -135,4 +137,106 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load of recipes (load page 1)
     fetchRecipes(1);
+
+    // 获取用户推荐
+    async function fetchRecommendations() {
+        try {
+            const response = await fetch('/api/recommendations', {
+                credentials: 'include' // 包含认证信息
+            });
+
+            if (!response.ok) {
+                throw new Error('无法获取推荐');
+            }
+
+            const data = await response.json();
+            displayRecommendations(data.recommendations);
+        } catch (error) {
+            console.error('获取推荐失败:', error);
+            // 可选：显示错误信息或隐藏推荐区域
+            document.getElementById('recommendations-section').style.display = 'none';
+        }
+    }
+
+    function displayRecommendations(recommendations) {
+        const container = document.getElementById('recommendations-container');
+        const section = document.getElementById('recommendations-section');
+
+        if (!recommendations || recommendations.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        container.innerHTML = '';
+
+        recommendations.forEach(recipe => {
+            // 使用与经典配方相同的卡片结构
+            const article = document.createElement('article');
+            article.classList.add('cocktail', 'recommendation-item');
+
+            // 配方名称和ABV（与经典配方相同）
+            const nameHeading = document.createElement('h3');
+            const nameLink = document.createElement('a');
+            nameLink.href = `detail.html?id=${recipe.id}`;
+            nameLink.textContent = `${recipe.name} (~${
+                !isNaN(Number(recipe.estimatedAbv)) ? 
+                Number(recipe.estimatedAbv).toFixed(1) : 'N/A'
+            }% ABV)`;
+            nameHeading.appendChild(nameLink);
+            article.appendChild(nameHeading);
+
+            // 匹配度显示（使用进度条样式）
+            const matchContainer = document.createElement('div');
+            matchContainer.classList.add('match-container');
+
+            const matchLabel = document.createElement('span');
+            matchLabel.textContent = '匹配度:';
+            matchLabel.classList.add('match-label');
+            matchContainer.appendChild(matchLabel);
+
+            const matchBar = document.createElement('div');
+            matchBar.classList.add('match-bar');
+
+            const matchFill = document.createElement('div');
+            matchFill.classList.add('match-fill');
+            matchFill.style.width = `${recipe.matchPercentage}%`;
+            matchFill.textContent = `${recipe.matchPercentage}%`;
+            matchBar.appendChild(matchFill);
+
+            matchContainer.appendChild(matchBar);
+            article.appendChild(matchContainer);
+
+            // 推荐理由
+            if (recipe.reason) {
+                const reason = document.createElement('p');
+                reason.classList.add('recommendation-reason');
+                reason.textContent = recipe.reason;
+                article.appendChild(reason);
+            }
+
+            container.appendChild(article);
+        });
+
+        section.style.display = 'block';
+    }
+
+    // 在初始化时检查用户状态并获取推荐
+    async function initRecommendations() {
+        try {
+            // 检查用户是否登录
+            const authResponse = await fetch('/api/auth/status');
+            const authData = await authResponse.json();
+
+            if (authData.loggedIn) {
+                fetchRecommendations();
+            } else {
+                // 未登录用户不显示推荐
+                document.getElementById('recommendations-section').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('检查认证状态失败:', error);
+            document.getElementById('recommendations-section').style.display = 'none';
+        }
+    }
+    initRecommendations();
 });

@@ -437,5 +437,55 @@
     "estimatedAbv": 13.6,
     "id": "1744911412427",
     "createdBy": "Andrew"
+  },
+  {
+    "id": "1748159358872",
+    "name": "test",
+    "ingredients": [
+      {
+        "name": "咖啡",
+        "volume": 30,
+        "abv": 0
+      },
+      {
+        "name": "蛋白",
+        "volume": 30,
+        "abv": 0
+      }
+    ],
+    "instructions": "这是测试用",
+    "estimatedAbv": 0,
+    "createdBy": "communicate_1",
+    "description": "这是一个测试用例"
+  },
+  {
+    "id": "1748159407084",
+    "name": "1",
+    "ingredients": [
+      {
+        "name": "橙汁",
+        "volume": 30,
+        "abv": 0
+      }
+    ],
+    "instructions": "1",
+    "estimatedAbv": 0,
+    "createdBy": "communicate_1",
+    "description": "2"
+  },
+  {
+    "id": "1748159544789",
+    "name": "test",
+    "ingredients": [
+      {
+        "name": "伏特加",
+        "volume": 30,
+        "abv": 40
+      }
+    ],
+    "instructions": "测试",
+    "estimatedAbv": 40,
+    "createdBy": "communicate_1",
+    "description": "测试"
   }
 ]

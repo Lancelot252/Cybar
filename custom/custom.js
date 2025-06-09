@@ -159,12 +159,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const iconColor = iconColors[category] || '#607D8B';
 
             // 设置原料图标和详细信息
+            const abvDisplay = ingredient.abv > 0 ? `${ingredient.abv}% ABV` : `(${ingredient.unit || '毫升'})`;
+
             ingredientItem.innerHTML = `
                 <div class="ingredient-card">
                     <div class="ingredient-icon" style="background-color: ${iconColor};">${ingredient.name.charAt(0)}</div>
                     <div class="ingredient-details">
                         <div class="ingredient-name">${ingredient.name}</div>
-                        <div class="ingredient-abv">${ingredient.abv}% 酒精度</div>
+                        <div class="ingredient-abv">${abvDisplay}</div>
                     </div>
                     <button class="add-ingredient-btn" title="添加此原料">+</button>
                 </div>
@@ -329,9 +331,25 @@ document.addEventListener('DOMContentLoaded', function () {
         for (const categoryObj of allIngredients.ingredients) {
             const ingredient = categoryObj.items.find(item => item.id === ingredientId);
             if (ingredient) {
+                // 根据单位设置默认数量
+                let defaultVolume = 30; // 默认毫升
+                if (ingredient.unit === '滴') {
+                    defaultVolume = 3;
+                } else if (ingredient.unit === '片') {
+                    defaultVolume = 1;
+                } else if (ingredient.unit === '个') {
+                    defaultVolume = 1;
+                } else if (ingredient.unit === '颗') {
+                    defaultVolume = 2;
+                } else if (ingredient.unit === '根') {
+                    defaultVolume = 1;
+                } else if (ingredient.unit === '茶匙') {
+                    defaultVolume = 1;
+                }
+
                 selectedIngredient = {
                     ...ingredient,
-                    volume: 30, // 默认体积30ml
+                    volume: defaultVolume,
                     category: categoryObj.category // 保存原料分类
                 };
                 found = true;
@@ -438,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="selected-ingredient-name">${ingredient.name}</div>
                         <div class="selected-ingredient-volume">
                             <input type="number" class="volume-input" value="${ingredient.volume}" min="0" step="5">
-                            <span class="volume-unit">ml</span>
+                            <span class="volume-unit">${ingredient.unit || '毫升'}</span>
                         </div>
                         <button class="remove-selected-btn" title="移除此原料">×</button>
                     `;
