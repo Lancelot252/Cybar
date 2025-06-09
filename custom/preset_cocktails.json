@@ -1,0 +1,367 @@
+{
+    "preset_cocktails": [
+        {
+            "id": "preset_moscow_mule",
+            "name": "莫斯科骡子",
+            "description": "清爽的姜味鸡尾酒，以伏特加为基酒，配以姜汁啤酒和青柠汁，口感辛辣清新。",
+            "ingredients": [
+                {
+                    "id": "vodka",
+                    "name": "伏特加",
+                    "volume": 50,
+                    "abv": 40
+                },
+                {
+                    "id": "lime_juice",
+                    "name": "青柠汁",
+                    "volume": 25,
+                    "abv": 0
+                },
+                {
+                    "id": "ginger_beer",
+                    "name": "姜汁啤酒",
+                    "volume": 120,
+                    "abv": 0
+                },
+                {
+                    "id": "lime_wheel",
+                    "name": "青柠圈",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "在杯中加入冰块",
+                "倒入伏特加",
+                "倒入青柠汁",
+                "倒入姜汁啤酒",
+                "轻轻搅拌",
+                "用青柠圈装饰"
+            ],
+            "estimatedAbv": 10.3
+        },
+        {
+            "id": "preset_margarita",
+            "name": "玛格丽特",
+            "description": "经典墨西哥鸡尾酒，以龙舌兰酒为基础，酸甜平衡，杯口撒盐增添风味。",
+            "ingredients": [
+                {
+                    "id": "tequila",
+                    "name": "龙舌兰酒",
+                    "volume": 50,
+                    "abv": 38
+                },
+                {
+                    "id": "lime_juice",
+                    "name": "青柠汁",
+                    "volume": 25,
+                    "abv": 0
+                },
+                {
+                    "id": "simple_syrup",
+                    "name": "简单糖浆",
+                    "volume": 15,
+                    "abv": 0
+                },
+                {
+                    "id": "salt_rim",
+                    "name": "盐边",
+                    "volume": 0,
+                    "abv": 0
+                },
+                {
+                    "id": "lime_wheel",
+                    "name": "青柠圈",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "在杯口抹上青柠汁并蘸盐",
+                "在调酒壶中加入冰块",
+                "倒入龙舌兰酒、青柠汁和糖浆",
+                "摇匀至调酒壶外壁结霜",
+                "过滤倒入杯中",
+                "用青柠圈装饰"
+            ],
+            "estimatedAbv": 21.1
+        },
+        {
+            "id": "preset_old_fashioned",
+            "name": "古典鸡尾酒",
+            "description": "简约而经典的威士忌调酒，加入糖、苦精和柑橘皮，香气和风味丰富。",
+            "ingredients": [
+                {
+                    "id": "bourbon",
+                    "name": "波本威士忌",
+                    "volume": 60,
+                    "abv": 45
+                },
+                {
+                    "id": "simple_syrup",
+                    "name": "简单糖浆",
+                    "volume": 10,
+                    "abv": 0
+                },
+                {
+                    "id": "angostura_bitters",
+                    "name": "安古斯特拉苦精",
+                    "volume": 2,
+                    "abv": 44.7
+                },
+                {
+                    "id": "orange_peel",
+                    "name": "橙皮",
+                    "volume": 0,
+                    "abv": 0
+                },
+                {
+                    "id": "cherry",
+                    "name": "鸡尾酒樱桃",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "在岩石杯中放入一块大冰块",
+                "倒入糖浆",
+                "加入几滴安古斯特拉苦精",
+                "倒入波本威士忌",
+                "轻轻搅拌",
+                "用橙皮挤压精油于酒面并放入杯中",
+                "加入鸡尾酒樱桃装饰"
+            ],
+            "estimatedAbv": 38.1
+        },
+        {
+            "id": "preset_mojito",
+            "name": "莫吉托",
+            "description": "来自古巴的清爽鸡尾酒，以朗姆酒为基础，加入薄荷、青柠和苏打水，口感清新宜人。",
+            "ingredients": [
+                {
+                    "id": "white_rum",
+                    "name": "白朗姆酒",
+                    "volume": 50,
+                    "abv": 35
+                },
+                {
+                    "id": "lime_juice",
+                    "name": "青柠汁",
+                    "volume": 25,
+                    "abv": 0
+                },
+                {
+                    "id": "simple_syrup",
+                    "name": "简单糖浆",
+                    "volume": 15,
+                    "abv": 0
+                },
+                {
+                    "id": "club_soda",
+                    "name": "苏打水",
+                    "volume": 100,
+                    "abv": 0
+                },
+                {
+                    "id": "mint_leaves",
+                    "name": "薄荷叶",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "将薄荷叶放入高球杯中",
+                "加入糖浆和青柠汁",
+                "轻轻捣碎薄荷叶释放香气",
+                "加入冰块和白朗姆酒",
+                "倒入苏打水",
+                "轻轻搅拌",
+                "用薄荷枝装饰"
+            ],
+            "estimatedAbv": 9.2
+        },
+        {
+            "id": "preset_martini",
+            "name": "马提尼",
+            "description": "优雅而强劲的经典鸡尾酒，以金酒和干味美思为主要成分，简洁而不失风味。",
+            "ingredients": [
+                {
+                    "id": "gin",
+                    "name": "金酒",
+                    "volume": 60,
+                    "abv": 38
+                },
+                {
+                    "id": "dry_vermouth",
+                    "name": "干味美思",
+                    "volume": 10,
+                    "abv": 17
+                },
+                {
+                    "id": "olive",
+                    "name": "橄榄",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "在调酒壶中加入冰块",
+                "倒入金酒和干味美思",
+                "搅拌约30秒",
+                "过滤倒入马提尼杯中",
+                "加入橄榄装饰"
+            ],
+            "estimatedAbv": 34.7
+        },
+        {
+            "id": "preset_bloody_mary",
+            "name": "血腥玛丽",
+            "description": "经典早午餐鸡尾酒，以伏特加和番茄汁为基础，加入各种调味料，口感丰富而辛辣。",
+            "ingredients": [
+                {
+                    "id": "vodka",
+                    "name": "伏特加",
+                    "volume": 45,
+                    "abv": 40
+                },
+                {
+                    "id": "tomato_juice",
+                    "name": "番茄汁",
+                    "volume": 120,
+                    "abv": 0
+                },
+                {
+                    "id": "lemon_juice",
+                    "name": "柠檬汁",
+                    "volume": 15,
+                    "abv": 0
+                },
+                {
+                    "id": "worcestershire_sauce",
+                    "name": "伍斯特酱",
+                    "volume": 5,
+                    "abv": 0
+                },
+                {
+                    "id": "hot_sauce",
+                    "name": "辣椒酱",
+                    "volume": 2,
+                    "abv": 0
+                },
+                {
+                    "id": "salt",
+                    "name": "盐",
+                    "volume": 1,
+                    "abv": 0
+                },
+                {
+                    "id": "pepper",
+                    "name": "胡椒",
+                    "volume": 1,
+                    "abv": 0
+                },
+                {
+                    "id": "celery_stick",
+                    "name": "芹菜棒",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "在杯中加入冰块",
+                "倒入伏特加",
+                "倒入番茄汁",
+                "加入柠檬汁",
+                "加入伍斯特酱和辣椒酱",
+                "加入盐和胡椒调味",
+                "搅拌均匀",
+                "用芹菜棒装饰"
+            ],
+            "estimatedAbv": 9.5
+        },
+        {
+            "id": "preset_whiskey_sour",
+            "name": "威士忌酸酒",
+            "description": "平衡的酸甜鸡尾酒，以威士忌为基础，加入柠檬汁和糖浆，有时会添加蛋白增加口感。",
+            "ingredients": [
+                {
+                    "id": "bourbon",
+                    "name": "波本威士忌",
+                    "volume": 60,
+                    "abv": 45
+                },
+                {
+                    "id": "lemon_juice",
+                    "name": "柠檬汁",
+                    "volume": 30,
+                    "abv": 0
+                },
+                {
+                    "id": "simple_syrup",
+                    "name": "简单糖浆",
+                    "volume": 15,
+                    "abv": 0
+                },
+                {
+                    "id": "egg_white",
+                    "name": "蛋白",
+                    "volume": 15,
+                    "abv": 0
+                },
+                {
+                    "id": "cherry",
+                    "name": "鸡尾酒樱桃",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "在调酒壶中加入所有液体配料",
+                "不加冰进行干摇，使蛋白起泡",
+                "加入冰块再次摇匀",
+                "过滤倒入杯中",
+                "用鸡尾酒樱桃装饰"
+            ],
+            "estimatedAbv": 21.8
+        },
+        {
+            "id": "preset_pina_colada",
+            "name": "椰林飘香",
+            "description": "热带风味的椰奶鸡尾酒，以朗姆酒、椰奶和菠萝汁为主要成分，口感顺滑且甜美。",
+            "ingredients": [
+                {
+                    "id": "white_rum",
+                    "name": "白朗姆酒",
+                    "volume": 50,
+                    "abv": 35
+                },
+                {
+                    "id": "coconut_cream",
+                    "name": "椰子奶油",
+                    "volume": 30,
+                    "abv": 0
+                },
+                {
+                    "id": "pineapple_juice",
+                    "name": "菠萝汁",
+                    "volume": 90,
+                    "abv": 0
+                },
+                {
+                    "id": "pineapple_wedge",
+                    "name": "菠萝块",
+                    "volume": 0,
+                    "abv": 0
+                }
+            ],
+            "steps": [
+                "将所有液体配料倒入搅拌机",
+                "加入碎冰",
+                "搅拌直至顺滑",
+                "倒入高球杯中",
+                "用菠萝块和樱桃装饰"
+            ],
+            "estimatedAbv": 10.3
+        }
+    ]
+}

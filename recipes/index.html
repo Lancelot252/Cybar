@@ -28,8 +28,18 @@
             <button id="load-recipes-btn">加载所有配方</button>
         </div>
          -->
+        <!-- 添加推荐区域 -->
+        <section id="recommendations-section" style="display: none;">
+            <h2>推荐配方</h2>
+            <div id="recommendations-container"></div>
+        </section>
         <section id="recipes-list">
             <h2>经典配方</h2>
+            <!-- 搜索区域 -->
+            <div id="search-bar" style="text-align: center; margin-bottom: 20px;">
+                <input type="text" id="search-input" placeholder="请输入关键字（如配方名称或原料）" style="width: 60%; padding: 8px; font-size: 16px;">
+                <button id="search-button" type="button" style="padding: 8px 16px; font-size: 16px;">搜索</button>
+            </div>
             <!-- 配方将由 JavaScript 动态加载到这里 -->
             <div id="recipes-container" style="display: none;"> <!-- Container for recipes, initially hidden -->
                 <!-- Recipe articles will be added here -->

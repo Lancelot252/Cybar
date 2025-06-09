@@ -1,0 +1,217 @@
+/* 原料选择组件嵌入式样式 */
+.ingredients-selector-title {
+    color: #00e5ff;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: left;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.ingredients-selector-container {
+    background-color: rgba(10, 15, 30, 0.6);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    max-width: 100%;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* 搜索框 */
+.ingredient-search-container {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.ingredient-search-input {
+    width: 100%;
+    background-color: rgba(15, 25, 45, 0.8);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    border-radius: 5px;
+    padding: 0.6rem 1rem 0.6rem 2.2rem;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.ingredient-search-input:focus {
+    outline: none;
+    border-color: rgba(0, 229, 255, 0.6);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+}
+
+.ingredient-search-input::placeholder {
+    color: rgba(176, 207, 255, 0.5);
+}
+
+.ingredient-search-icon {
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(0, 229, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+/* 分类标签 */
+.ingredients-category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.category-tab {
+    background-color: rgba(15, 25, 45, 0.6);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    color: rgba(176, 207, 255, 0.8);
+    padding: 0.4rem 0.8rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-tab:hover {
+    background-color: rgba(0, 229, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.4);
+}
+
+.category-tab.active {
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.15) 0%, rgba(22, 74, 138, 0.3) 100%);
+    border-color: rgba(0, 229, 255, 0.6);
+    color: #00e5ff;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+}
+
+/* 原料列表 */
+.ingredients-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.6rem;
+    padding-right: 0.5rem;
+    /* 滚动条样式 */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.3) rgba(15, 25, 45, 0.4);
+}
+
+.ingredients-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ingredients-list-container::-webkit-scrollbar-track {
+    background: rgba(15, 25, 45, 0.4);
+    border-radius: 3px;
+}
+
+.ingredients-list-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 229, 255, 0.3);
+    border-radius: 3px;
+}
+
+.ingredients-list-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 229, 255, 0.5);
+}
+
+/* 原料项 */
+.ingredient-item {
+    background-color: rgba(15, 30, 60, 0.6);
+    border: 1px solid rgba(0, 229, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.ingredient-item:hover {
+    background-color: rgba(15, 40, 80, 0.7);
+    border-color: rgba(0, 229, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ingredient-item.selected {
+    background: linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(0, 78, 146, 0.2) 100%);
+    border-color: #00e5ff;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+}
+
+.ingredient-item.selected::after {
+    content: "✓";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: #00e5ff;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.ingredient-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #164a8a 0%, #0a3058 100%);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0, 229, 255, 0.8);
+}
+
+.ingredient-details {
+    width: 100%;
+}
+
+.ingredient-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ingredient-abv {
+    font-size: 0.7rem;
+    color: rgba(176, 207, 255, 0.9);
+}
+
+/* 空状态提示 */
+.empty-selection-message {
+    grid-column: 1 / -1;
+    padding: 1.5rem;
+    text-align: center;
+    color: rgba(176, 207, 255, 0.5);
+    font-style: italic;
+}
+
+/* 响应式调整 */
+@media (max-width: 600px) {
+    .ingredients-list-container {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+
+    .ingredient-name {
+        font-size: 0.8rem;
+    }
+
+    .ingredient-abv {
+        font-size: 0.65rem;
+    }
+
+    .ingredient-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .category-tab {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+    }
+}

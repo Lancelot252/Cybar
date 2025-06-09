@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原料选择演示 - Cybar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 页面基础样式 */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #0a0e1a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: rgba(15, 25, 45, 0.8);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            color: #00e5ff;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+            font-size: 2rem;
+        }
+
+        header h1 a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        h2 {
+            color: #00e5ff;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        }
+
+        .description {
+            color: #b0cfff;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        /* 创建页面容器 */
+        .creator-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        /* 已选原料区域 */
+        .selected-ingredients-box {
+            background-color: rgba(10, 15, 30, 0.6);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .selected-ingredients-title {
+            color: #00e5ff;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        .selected-count {
+            background-color: rgba(0, 229, 255, 0.2);
+            color: #00e5ff;
+            padding: 0.1rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.8rem;
+        }
+
+        #selected-ingredients-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .selected-ingredient-chip {
+            display: flex;
+            align-items: center;
+            background-color: rgba(15, 40, 80, 0.6);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 2rem;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .selected-ingredient-icon {
+            width: 1.2rem;
+            height: 1.2rem;
+            margin-right: 0.5rem;
+            color: #00e5ff;
+        }
+
+        .selected-ingredient-name {
+            margin-right: 0.5rem;
+        }
+
+        .selected-ingredient-remove {
+            color: #ff3d3d;
+            cursor: pointer;
+            margin-left: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        .empty-selection {
+            color: rgba(176, 207, 255, 0.5);
+            font-style: italic;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        /* 下一步按钮 */
+        .next-step-btn {
+            background: linear-gradient(135deg, #00e5ff 0%, #0068b3 100%);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .next-step-btn:hover {
+            background: linear-gradient(135deg, #33eaff 0%, #0078c9 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+    <link rel="stylesheet" href="/custom/ingredients-selector.css">
+</head>
+
+<body>
+    <header>
+        <h1><a href="/">Cybar</a></h1>
+        <div id="user-status">已登录：用户123</div>
+    </header>
+
+    <main>
+        <h2>创建自定义鸡尾酒</h2>
+        <p class="description">选择您喜欢的原料，创建独一无二的鸡尾酒配方</p>
+
+        <div class="creator-container">
+            <!-- 第一步：选择原料 -->
+            <!-- 引入原料选择组件 -->
+            <div class="ingredients-selector-container">
+                <h2 class="ingredients-selector-title">选择原料</h2>
+
+                <!-- 搜索框 -->
+                <div class="ingredient-search-container">
+                    <i class="fas fa-search ingredient-search-icon"></i>
+                    <input type="text" id="ingredient-search" class="ingredient-search-input" placeholder="搜索原料...">
+                </div>
+
+                <!-- 分类标签 -->
+                <div class="ingredients-category-tabs">
+                    <button class="category-tab active" data-category="base_alcohol">基酒</button>
+                    <button class="category-tab" data-category="juice">果汁</button>
+                    <button class="category-tab" data-category="syrup">糖浆</button>
+                    <button class="category-tab" data-category="soda">碳酸饮料</button>
+                    <button class="category-tab" data-category="garnish">装饰</button>
+                    <button class="category-tab" data-category="other">其他</button>
+                </div>
+
+                <!-- 原料列表 -->
+                <div class="ingredients-list-container" id="ingredients-list">
+                    <!-- 示例原料项，实际会通过JS动态生成 -->
+                    <div class="ingredient-item" data-id="vodka">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">伏特加</div>
+                            <div class="ingredient-abv">40% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item selected" data-id="gin">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">金酒</div>
+                            <div class="ingredient-abv">38% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="whiskey">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">威士忌</div>
+                            <div class="ingredient-abv">40% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="tequila">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">龙舌兰酒</div>
+                            <div class="ingredient-abv">38% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="rum">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">朗姆酒</div>
+                            <div class="ingredient-abv">40% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="brandy">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">白兰地</div>
+                            <div class="ingredient-abv">40% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="bourbon">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">波本威士忌</div>
+                            <div class="ingredient-abv">45% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="cognac">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">干邑白兰地</div>
+                            <div class="ingredient-abv">40% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="baijiu">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">白酒</div>
+                            <div class="ingredient-abv">52% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="mezcal">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">梅斯卡尔酒</div>
+                            <div class="ingredient-abv">40% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="absinthe">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">苦艾酒</div>
+                            <div class="ingredient-abv">60% 酒精度</div>
+                        </div>
+                    </div>
+
+                    <div class="ingredient-item" data-id="campari">
+                        <div class="ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <div class="ingredient-details">
+                            <div class="ingredient-name">金巴利</div>
+                            <div class="ingredient-abv">25% 酒精度</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 已选原料展示区域 -->
+            <div class="selected-ingredients-box">
+                <div class="selected-ingredients-title">
+                    已选择原料 <span class="selected-count" id="selected-count">1</span>
+                </div>
+                <div id="selected-ingredients-list">
+                    <!-- 示例已选原料，实际会由JS动态生成 -->
+                    <div class="selected-ingredient-chip" data-id="gin">
+                        <div class="selected-ingredient-icon">
+                            <i class="fas fa-wine-bottle"></i>
+                        </div>
+                        <span class="selected-ingredient-name">金酒</span>
+                        <span class="selected-ingredient-volume">30ml</span>
+                        <span class="selected-ingredient-remove" title="移除">×</span>
+                    </div>
+
+                    <!-- 没有选择原料时的提示 -->
+                    <!-- <div class="empty-selection">请从上方列表选择原料</div> -->
+                </div>
+            </div>
+
+            <!-- 下一步按钮 -->
+            <button class="next-step-btn">下一步：设置比例</button>
+        </div>
+    </main>
+
+    <script src="/custom/ingredients-selector.js"></script>
+    <script>
+        // 监听原料选择变化的演示代码
+        document.addEventListener('ingredientsChanged', function (e) {
+            const selectedIngredients = e.detail.ingredients;
+
+            // 更新已选计数
+            document.getElementById('selected-count').textContent = selectedIngredients.length;
+
+            // 更新已选原料列表
+            const selectedList = document.getElementById('selected-ingredients-list');
+            selectedList.innerHTML = '';
+
+            if (selectedIngredients.length === 0) {
+                selectedList.innerHTML = '<div class="empty-selection">请从上方列表选择原料</div>';
+                return;
+            }
+
+            selectedIngredients.forEach(ingredient => {
+                const chip = document.createElement('div');
+                chip.className = 'selected-ingredient-chip';
+                chip.dataset.id = ingredient.id;
+
+                chip.innerHTML = `
+                    <div class="selected-ingredient-icon">
+                        <i class="fas fa-wine-bottle"></i>
+                    </div>
+                    <span class="selected-ingredient-name">${ingredient.name}</span>
+                    <span class="selected-ingredient-volume">${ingredient.volume}ml</span>
+                    <span class="selected-ingredient-remove" title="移除">×</span>
+                `;
+
+                // 添加移除事件监听
+                chip.querySelector('.selected-ingredient-remove').addEventListener('click', function () {
+                    // 通过点击原料列表中相应的项来移除（利用已有的切换逻辑）
+                    const ingredientItem = document.querySelector(`.ingredient-item[data-id="${ingredient.id}"]`);
+                    if (ingredientItem) {
+                        ingredientItem.click();
+                    }
+                });
+
+                selectedList.appendChild(chip);
+            });
+        });
+    </script>
+</body>
+
+</html>

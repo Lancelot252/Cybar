@@ -34,6 +34,9 @@
             <button class="tab-button" data-tab="favorites">
                 <i class="fas fa-bookmark"></i> 我的收藏
             </button>
+            <button class="tab-button" data-tab="created-recipes">
+                <i class="fas fa-cocktail"></i> 我的创建
+            </button>
         </div>
 
         <div class="history-content">
@@ -49,6 +52,14 @@
                 <h3>我的收藏历史</h3>
                 <div id="favorites-list" class="recipe-list">
                     <!-- 收藏列表将通过 JavaScript 动态加载 -->
+                    <p class="loading">加载中...</p>
+                </div>
+            </div>
+
+            <div id="created-recipes-content" class="tab-content">
+                <h3>我的创建历史</h3>
+                <div id="created-recipes-list" class="recipe-list">
+                    <!-- 创建列表将通过 JavaScript 动态加载 -->
                     <p class="loading">加载中...</p>
                 </div>
             </div>

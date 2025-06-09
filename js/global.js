@@ -1,13 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
     const userStatusDiv = document.getElementById('user-status');
     const loginPrompt = document.getElementById('login-prompt'); // Get the login prompt element
-    const profileLink = document.querySelector('.profile-link'); // Get the profile link
+    const profileLink = document.querySelector('.profile-link'); // 恢复用户界面入口的引用
+    const customLink = document.querySelector('.custom-link'); // 获取自定义鸡尾酒链接
 
     // Initially hide the prompt
     if (loginPrompt) {
         loginPrompt.style.display = 'none';
     }
     // Profile link is hidden by default via HTML style attribute
+    // 默认隐藏自定义鸡尾酒链接
+    if (customLink) {
+        customLink.style.display = 'none';
+    }
 
     fetch('/api/auth/status')
         .then(response => response.json())
@@ -17,9 +22,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.classList.add('logged-in');
                 document.body.classList.remove('logged-out');
 
-                // Show profile link when logged in
+                // 恢复登录后显示用户界面入口
                 if (profileLink) {
-                    profileLink.style.display = 'block'; // Or 'flex' if your layout requires it
+                    profileLink.style.display = 'block'; // 或 'flex' 如果布局需要
+                }
+                
+                // 登录后显示自定义鸡尾酒链接
+                if (customLink) {
+                    customLink.style.display = 'block';
                 }
 
                 // Hide login prompt when logged in
@@ -75,9 +85,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.classList.remove('is-admin');
                 document.body.classList.remove('is-god'); // Ensure removed
 
-                // Ensure profile link is hidden when logged out
+                // 恢复未登录时隐藏用户界面入口
                 if (profileLink) {
                     profileLink.style.display = 'none';
+                }
+                
+                // 确保未登录时隐藏自定义鸡尾酒链接
+                if (customLink) {
+                    customLink.style.display = 'none';
                 }
 
                 // Show login prompt when logged out
@@ -101,9 +116,14 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.remove('is-admin');
             document.body.classList.remove('is-god'); // Ensure removed
 
-            // Ensure profile link is hidden on error
+            // 恢复出错时隐藏用户界面入口
             if (profileLink) {
                 profileLink.style.display = 'none';
+            }
+            
+            // 确保出错时隐藏自定义鸡尾酒链接
+            if (customLink) {
+                customLink.style.display = 'none';
             }
 
             // Show login prompt in case of error (likely logged out)

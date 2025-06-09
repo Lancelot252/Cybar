@@ -1,0 +1,5 @@
+{
+  "DEEPSEEK_API_KEY": "sk-your-deepseek-api-key-here",
+  "comment": "请将上面的API密钥替换为您从https://platform.deepseek.com获取的真实API密钥",
+  "usage": "将此文件重命名为config.json并配置您的真实API密钥"
+} 

@@ -1,0 +1,126 @@
+{
+  "cocktails": [
+    {
+      "name": "测试",
+      "description": "111",
+      "ingredients": [
+        {
+          "id": "vodka",
+          "name": "伏特加",
+          "abv": 40,
+          "color": "#ff9f1c",
+          "volume": 30
+        },
+        {
+          "id": "gin",
+          "name": "金酒",
+          "abv": 38,
+          "color": "#ff9f1c",
+          "volume": 30
+        }
+      ],
+      "steps": [
+        "1",
+        "2"
+      ],
+      "estimatedAbv": 39,
+      "id": "1745932084200",
+      "createdBy": "252",
+      "createdAt": "2025-04-29T13:08:04.200Z"
+    },
+    {
+      "name": "1",
+      "description": "111",
+      "ingredients": [
+        {
+          "id": "tequila",
+          "name": "龙舌兰酒",
+          "abv": 38,
+          "color": "#ff9f1c",
+          "volume": 30
+        },
+        {
+          "id": "gin",
+          "name": "金酒",
+          "abv": 38,
+          "color": "#ff9f1c",
+          "volume": 30
+        }
+      ],
+      "steps": [
+        "1"
+      ],
+      "estimatedAbv": 38,
+      "id": "1745933409753",
+      "createdBy": "252",
+      "createdAt": "2025-04-29T13:30:09.753Z"
+    },
+    {
+      "name": "test",
+      "description": "这是一个测试用例",
+      "ingredients": [
+        {
+          "id": "coffee",
+          "name": "咖啡",
+          "abv": 0,
+          "color": "#c78dff",
+          "volume": 30
+        },
+        {
+          "id": "egg_white",
+          "name": "蛋白",
+          "abv": 0,
+          "color": "#c78dff",
+          "volume": 30
+        }
+      ],
+      "steps": [
+        "这是测试用"
+      ],
+      "estimatedAbv": 0,
+      "id": "1748159358872",
+      "createdBy": "communicate_1",
+      "createdAt": "2025-05-25T07:49:18.872Z"
+    },
+    {
+      "name": "1",
+      "description": "2",
+      "ingredients": [
+        {
+          "id": "orange_juice",
+          "name": "橙汁",
+          "abv": 0,
+          "color": "#70d143",
+          "volume": 30
+        }
+      ],
+      "steps": [
+        "1"
+      ],
+      "estimatedAbv": 0,
+      "id": "1748159407084",
+      "createdBy": "communicate_1",
+      "createdAt": "2025-05-25T07:50:07.084Z"
+    },
+    {
+      "name": "test",
+      "description": "测试",
+      "ingredients": [
+        {
+          "id": "vodka",
+          "name": "伏特加",
+          "abv": 40,
+          "color": "#ff9f1c",
+          "volume": 30
+        }
+      ],
+      "steps": [
+        "测试"
+      ],
+      "estimatedAbv": 40,
+      "id": "1748159544789",
+      "createdBy": "communicate_1",
+      "createdAt": "2025-05-25T07:52:24.789Z"
+    }
+  ]
+}

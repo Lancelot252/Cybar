@@ -1,7 +1,36 @@
 # Cybar
 
 ## 项目简介
-Cybar是一个鸡尾酒配方管理和酒精度计算工具，帮助用户管理鸡尾酒配方并计算混合酒精饮料的酒精含量。该项目采用现代化的网页界面，提供友好的用户体验。
+Cybar是一个鸡尾酒配方管理和酒精度计算工具，帮助用户管理鸡尾酒配方并计算混合酒精饮料的酒精含量。该项目采用现代化的网页界面，提供友好的用户体验，并集成了AI智能分析功能。
+
+## 🚨 重要：AI密钥配置
+
+**在使用AI功能之前，您需要配置Deepseek API密钥：**
+
+### 快速配置（推荐）
+```bash
+# Windows用户 - 运行配置脚本
+setup-api-key.bat
+
+# 或者使用PowerShell
+powershell -ExecutionPolicy Bypass -File setup-api-key.ps1
+```
+
+### 手动配置
+1. 访问 [Deepseek平台](https://platform.deepseek.com) 获取API密钥
+2. 创建 `config.json` 文件：
+```json
+{
+  "DEEPSEEK_API_KEY": "sk-your-real-api-key-here"
+}
+```
+
+### 验证配置
+运行服务器后查看输出：
+- ✅ `🤖 AI功能: ✅ 已配置` - 配置成功
+- ❌ `🤖 AI功能: ❌ 未配置 (演示模式)` - 需要配置
+
+📖 详细配置指南请查看：[AI_CONFIG_SETUP.md](AI_CONFIG_SETUP.md)
 
 ## 功能特点
 
