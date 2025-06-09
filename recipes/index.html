@@ -32,13 +32,23 @@
         <section id="recommendations-section" style="display: none;">
             <h2>推荐配方</h2>
             <div id="recommendations-container"></div>
-        </section>
-        <section id="recipes-list">
+        </section>        <section id="recipes-list">
             <h2>经典配方</h2>
-            <!-- 搜索区域 -->
+            <!-- 搜索和排序区域 -->
             <div id="search-bar" style="text-align: center; margin-bottom: 20px;">
-                <input type="text" id="search-input" placeholder="请输入关键字（如配方名称或原料）" style="width: 60%; padding: 8px; font-size: 16px;">
-                <button id="search-button" type="button" style="padding: 8px 16px; font-size: 16px;">搜索</button>
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="search-input" placeholder="请输入关键字（如配方名称或原料）" style="width: 50%; padding: 8px; font-size: 16px;">
+                    <button id="search-button" type="button" style="padding: 8px 16px; font-size: 16px;">搜索</button>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label for="sort-select" style="margin-right: 10px; font-weight: bold; color: #00e5ff;">排序方式：</label>
+                    <select id="sort-select" style="padding: 6px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #00e5ff; background-color: rgba(10, 30, 70, 0.8); color: white;">
+                        <option value="default">默认排序（按创建时间）</option>
+                        <option value="likes">按点赞数排序</option>
+                        <option value="favorites">按收藏数排序</option>
+                        <option value="name">按名称排序</option>
+                    </select>
+                </div>
             </div>
             <!-- 配方将由 JavaScript 动态加载到这里 -->
             <div id="recipes-container" style="display: none;"> <!-- Container for recipes, initially hidden -->

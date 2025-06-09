@@ -582,14 +582,33 @@ app.get('/api/recipes', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search ? req.query.search.trim() : '';
+    const sort = req.query.sort || 'default';
     const offset = (page - 1) * limit;
 
     let where = '';
     let params = [];
+    let orderBy = '';
 
     if (search) {
         where = 'WHERE name LIKE ?';
         params.push(`%${search}%`);
+    }
+
+    // 根据排序类型确定ORDER BY子句
+    switch (sort) {
+        case 'likes':
+            orderBy = 'ORDER BY likeCount DESC, c.created_at DESC';
+            break;
+        case 'favorites':
+            orderBy = 'ORDER BY favoriteCount DESC, c.created_at DESC';
+            break;
+        case 'name':
+            orderBy = 'ORDER BY c.name ASC';
+            break;
+        case 'default':
+        default:
+            orderBy = 'ORDER BY c.created_at DESC';
+            break;
     }
 
     try {
@@ -609,7 +628,7 @@ app.get('/api/recipes', async (req, res) => {
                 (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount
             FROM cocktails c
             ${where}
-            ORDER BY c.created_at DESC
+            ${orderBy}
             LIMIT ? OFFSET ?
         `;
         params.push(limit, offset);
@@ -621,7 +640,8 @@ app.get('/api/recipes', async (req, res) => {
                 estimatedAbv: Number(r.estimatedAbv) // 保证是数字
             })),
             totalPages: Math.ceil(total / limit),
-            currentPage: page
+            currentPage: page,
+            sortBy: sort // 返回当前排序方式
         });
     } catch (error) {
         console.error("读取配方时出错:", error);
