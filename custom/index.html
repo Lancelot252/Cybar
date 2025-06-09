@@ -7,98 +7,98 @@
     <title>自定义鸡尾酒创建器 - Cybar</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/custom/cocktail-simulation.css">
-    <style>
-        /* 功能导航区域样式 - 修改为header内部样式 */
+    <!-- 添加Google Fonts以保持与主页一致 -->
+    <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;700&display=swap"
+        rel="stylesheet"><style>        /* 主页样式一致性 - Header样式 */
         header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 15px 20px;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .header-nav-container {
-            display: flex;
-            gap: 15px;
-            flex: 1;
-            justify-content: center;
-            max-width: 600px;
-        }
-
-        .feature-nav-btn {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            color: white;
-            background: linear-gradient(135deg, rgba(40, 40, 80, 0.8), rgba(60, 60, 120, 0.8));
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 2px solid transparent;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-            min-width: 160px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .feature-nav-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+            background: linear-gradient(90deg, #1a1a2e, #0f3460, #1a1a2e);
+            color: #00e5ff;
+            padding: 1.5rem 1rem;
+            text-align: center;
             width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            transition: left 0.6s;
+            box-sizing: border-box;
+            border-bottom: 3px solid #00e5ff;
+            box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .feature-nav-btn:hover::before {
-            left: 100%;
-        }
-
-        .feature-nav-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.4);
-            border-color: rgba(74, 144, 226, 0.6);
-        }
-
-        .feature-nav-btn.active {
-            background: linear-gradient(135deg, rgba(74, 144, 226, 0.8), rgba(100, 170, 255, 0.8));
-            border-color: #4a90e2;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.5);
-        }
-
-        .nav-icon {
-            font-size: 1.8rem;
-            margin-right: 10px;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-        }
-
-        .nav-content h3 {
-            margin: 0 0 3px 0;
-            font-size: 1rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .nav-content p {
+        header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
             margin: 0;
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.2;
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.7), 0 0 15px rgba(0, 229, 255, 0.5);
+            letter-spacing: 3px;
+        }        header h1 a {
+            color: white;
+            text-decoration: none;
         }
 
-        .feature-nav-btn.active .nav-content h3 {
+        /* 用户状态样式 - 与主页一致 */
+        #user-status {
+            font-family: 'Electrolize', sans-serif;
+            color: #00e5ff;
+        }
+
+        #user-status a {
+            color: #00e5ff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        #user-status a:hover {
             color: #ffffff;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.7);
+        }        /* 标题样式 - 与主页一致 */
+        h2, h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00e5ff;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
         }
 
-        .feature-nav-btn.active .nav-content p {
-            color: rgba(255, 255, 255, 0.95);
+        /* 主要标题样式 - 与主菜单h2一致 */
+        main > h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.9rem;
+            color: #00e5ff;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+            padding-bottom: 12px;
+            margin-bottom: 30px;
+            letter-spacing: 1.5px;
+            text-align: center;
         }
 
-        /* AI智能调酒师功能样式 */
+        /* 确保body使用正确的字体 */        /* 表单区域标题样式 */
+        .form-section h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: #00e5ff;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }        /* 子标题样式 */
+        .form-section h4,
+        .recipe-ingredients h4,
+        .recipe-steps h4,
+        .recipe-info h4,
+        .recipe-tips h4 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00e5ff;
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* 确保body使用正确的字体 */
+        body {
+            font-family: 'Electrolize', sans-serif;
+        }/* AI智能调酒师功能样式 */
         .ai-bartender-section {
             background-color: rgba(25, 25, 50, 0.5);
             border: 1px solid rgba(74, 144, 226, 0.3);
@@ -113,8 +113,13 @@
         }
 
         .section-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.9rem;
             margin: 0 0 10px 0;
-            color: #4a90e2;
+            color: #00e5ff;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+            padding-bottom: 12px;
+            letter-spacing: 1.5px;
         }
 
         .section-subtitle {
@@ -290,15 +295,23 @@
         .regenerate-btn:hover {
             background: linear-gradient(135deg, #d97706, #f59e0b);
             transform: translateY(-2px);
-        }
-
-        /* AI分析功能样式 */
+        }        /* AI分析功能样式 */
         .ai-analysis-section {
             background-color: rgba(25, 25, 50, 0.5);
             border: 1px solid rgba(74, 144, 226, 0.3);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
+        }
+
+        .ai-analysis-section h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: #00e5ff;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
         }
 
         .ai-analyze-btn {
@@ -643,42 +656,15 @@
     </style>
 </head>
 
-<body>
-    <header>
+<body>    <header>
         <h1><a href="/">Cybar</a></h1>
-        <!-- 功能导航区域 -->
-        <div class="header-nav-container">
-            <a href="/recipes/" class="feature-nav-btn recipes-btn">
-                <div class="nav-icon">🍹</div>
-                <div class="nav-content">
-                    <h3>查看配方</h3>
-                    <p>浏览经典鸡尾酒配方</p>
-                </div>
-            </a>
-            <a href="/calculator/" class="feature-nav-btn calculator-btn">
-                <div class="nav-icon">🧪</div>
-                <div class="nav-content">
-                    <h3>调酒计算器</h3>
-                    <p>精确计算酒精度</p>
-                </div>
-            </a>
-            <a href="/custom/" class="feature-nav-btn custom-btn active">
-                <div class="nav-icon">✨</div>
-                <div class="nav-content">
-                    <h3>自定义创建</h3>
-                    <p>创建独特配方</p>
-                </div>
-            </a>
-        </div>
         <div id="user-status">
             <a href="/auth/login/">登录</a> |
             <a href="/auth/register/">注册</a>
         </div>
-    </header>
-
-    <div id="login-prompt"
+    </header>    <div id="login-prompt"
         style="display: none; margin-top: 15px; padding: 10px; background-color: #333; border: 1px solid #555; border-radius: 4px; text-align: center;">
-        <h3 style="color: #4a90e2;">需要登录</h3>
+        <h3 style="color: #00e5ff;">需要登录</h3>
         <p>请 <a href="/auth/login/" style="color: #00e5ff; text-decoration: underline;">登录</a> 以保存您的自定义鸡尾酒。</p>
     </div>
 
