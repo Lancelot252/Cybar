@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingMessage = document.getElementById('loading-message');
     const paginationControls = document.getElementById('pagination-controls');
     let currentPage = 1; // Keep track of the current page
-
+    
     const displayRecipes = (data) => {
         recipesContainer.innerHTML = ''; // Clear previous recipes or loading message
         loadingMessage.style.display = 'none'; // Hide loading message
@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', () => {
             recipesContainer.innerHTML = '<p>没有找到配方。</p>';
             return;
         }
+
+        // 获取当前排序方式来调整显示
+        const currentSort = data.sortBy || 'default';
 
         data.recipes.forEach(recipe => {
             const article = document.createElement('article');
@@ -42,7 +45,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Use counts directly from the recipe data
             const likeCount = recipe.likeCount !== undefined ? recipe.likeCount : 0;
             const favoriteCount = recipe.favoriteCount !== undefined ? recipe.favoriteCount : 0;
-            interactionInfo.textContent = `👍 ${likeCount} | ⭐ ${favoriteCount}`;
+            
+            // 根据排序方式高亮显示相应的数据
+            let interactionHTML = '';
+            if (currentSort === 'likes') {
+                interactionHTML = `<strong style="color: #ff4081;">👍 ${likeCount}</strong> | ⭐ ${favoriteCount}`;
+            } else if (currentSort === 'favorites') {
+                interactionHTML = `👍 ${likeCount} | <strong style="color: #ffd700;">⭐ ${favoriteCount}</strong>`;
+            } else {
+                interactionHTML = `👍 ${likeCount} | ⭐ ${favoriteCount}`;
+            }
+            interactionInfo.innerHTML = interactionHTML;
             article.appendChild(interactionInfo);
             // --- End Interaction Counts ---
 
@@ -61,19 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPagination(data.totalPages, data.currentPage);
     };
 
-    // REMOVED: Function to load interaction counts for a recipe (loadInteractionCounts)
-
-    // Function to fetch recipes for a specific page
+    // REMOVED: Function to load interaction counts for a recipe (loadInteractionCounts)    // Function to fetch recipes for a specific page
     const fetchRecipes = async (page = 1) => {
         loadingMessage.style.display = 'block'; // Show loading message
         recipesContainer.style.display = 'none'; // Hide container while loading
         paginationControls.innerHTML = ''; // Clear pagination while loading
 
         try {
-            // Fetch recipes with pagination parameters
+            // Fetch recipes with pagination and sorting parameters
             const searchInput = document.getElementById('search-input').value; // 获取搜索框内容
+            const sortSelect = document.getElementById('sort-select').value; // 获取排序方式
             const encodedSearch = encodeURIComponent(searchInput); // 编码特殊字符
-            const response = await fetch(`/api/recipes?page=${page}&limit=10&search=${encodedSearch}`);
+            const response = await fetch(`/api/recipes?page=${page}&limit=10&search=${encodedSearch}&sort=${sortSelect}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -121,8 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentPage < totalPages) {
                 fetchRecipes(currentPage + 1);
             }
-        });
-        paginationControls.appendChild(nextButton);
+        });        paginationControls.appendChild(nextButton);
     };
 
     document.getElementById('search-button').addEventListener('click', () => {
@@ -133,6 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') {
             fetchRecipes(1);
         }
+    });
+
+    // 添加排序选择器的事件监听器
+    document.getElementById('sort-select').addEventListener('change', () => {
+        fetchRecipes(1); // 排序时强制回到第一页
     });
 
     // Initial load of recipes (load page 1)
