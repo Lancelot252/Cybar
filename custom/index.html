@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="/custom/cocktail-simulation.css">
     <!-- 添加Google Fonts以保持与主页一致 -->
     <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;700&display=swap"
-        rel="stylesheet"><style>        /* 主页样式一致性 - Header样式 */
+        rel="stylesheet">
+    <style>
+        /* 主页样式一致性 - Header样式 */
         header {
             background: linear-gradient(90deg, #1a1a2e, #0f3460, #1a1a2e);
             color: #00e5ff;
@@ -31,7 +33,9 @@
             margin: 0;
             text-shadow: 0 0 8px rgba(0, 229, 255, 0.7), 0 0 15px rgba(0, 229, 255, 0.5);
             letter-spacing: 3px;
-        }        header h1 a {
+        }
+
+        header h1 a {
             color: white;
             text-decoration: none;
         }
@@ -51,8 +55,11 @@
         #user-status a:hover {
             color: #ffffff;
             text-shadow: 0 0 5px rgba(0, 229, 255, 0.7);
-        }        /* 标题样式 - 与主页一致 */
-        h2, h3 {
+        }
+
+        /* 标题样式 - 与主页一致 */
+        h2,
+        h3 {
             font-family: 'Orbitron', sans-serif;
             color: #00e5ff;
             border-bottom: 1px solid rgba(0, 229, 255, 0.5);
@@ -62,7 +69,7 @@
         }
 
         /* 主要标题样式 - 与主菜单h2一致 */
-        main > h2 {
+        main>h2 {
             font-family: 'Orbitron', sans-serif;
             font-size: 1.9rem;
             color: #00e5ff;
@@ -73,7 +80,8 @@
             text-align: center;
         }
 
-        /* 确保body使用正确的字体 */        /* 表单区域标题样式 */
+        /* 确保body使用正确的字体 */
+        /* 表单区域标题样式 */
         .form-section h3 {
             font-family: 'Orbitron', sans-serif;
             font-size: 1.5rem;
@@ -82,7 +90,9 @@
             padding-bottom: 10px;
             margin-bottom: 20px;
             letter-spacing: 1px;
-        }        /* 子标题样式 */
+        }
+
+        /* 子标题样式 */
         .form-section h4,
         .recipe-ingredients h4,
         .recipe-steps h4,
@@ -98,7 +108,9 @@
         /* 确保body使用正确的字体 */
         body {
             font-family: 'Electrolize', sans-serif;
-        }/* AI智能调酒师功能样式 */
+        }
+
+        /* AI智能调酒师功能样式 */
         .ai-bartender-section {
             background-color: rgba(25, 25, 50, 0.5);
             border: 1px solid rgba(74, 144, 226, 0.3);
@@ -295,7 +307,9 @@
         .regenerate-btn:hover {
             background: linear-gradient(135deg, #d97706, #f59e0b);
             transform: translateY(-2px);
-        }        /* AI分析功能样式 */
+        }
+
+        /* AI分析功能样式 */
         .ai-analysis-section {
             background-color: rgba(25, 25, 50, 0.5);
             border: 1px solid rgba(74, 144, 226, 0.3);
@@ -656,13 +670,15 @@
     </style>
 </head>
 
-<body>    <header>
+<body>
+    <header>
         <h1><a href="/">Cybar</a></h1>
         <div id="user-status">
             <a href="/auth/login/">登录</a> |
             <a href="/auth/register/">注册</a>
         </div>
-    </header>    <div id="login-prompt"
+    </header>
+    <div id="login-prompt"
         style="display: none; margin-top: 15px; padding: 10px; background-color: #333; border: 1px solid #555; border-radius: 4px; text-align: center;">
         <h3 style="color: #00e5ff;">需要登录</h3>
         <p>请 <a href="/auth/login/" style="color: #00e5ff; text-decoration: underline;">登录</a> 以保存您的自定义鸡尾酒。</p>
@@ -1042,8 +1058,8 @@
                         </div>
                         <div class="ingredient-action">
                             <button type="button" class="volume-btn volume-decrease" data-index="${index}">-</button>
-                            <input type="number" min="5" max="100" value="${ingredient.volume}" class="volume-input" data-index="${index}">
-                            <span>ml</span>
+                            <input type="number" min="5" max="1000" value="${ingredient.volume}" class="volume-input" data-index="${index}">
+                            <span>${ingredient.unit || 'ml'}</span>
                             <button type="button" class="volume-btn volume-increase" data-index="${index}">+</button>
                             <button type="button" class="remove-ingredient-btn" data-index="${index}">×</button>
                         </div>
@@ -1060,7 +1076,7 @@
                     });
 
                     item.querySelector('.volume-increase').addEventListener('click', function () {
-                        if (ingredient.volume < 100) {
+                        if (ingredient.volume < 1000) {
                             ingredient.volume += 5;
                             updateIngredientVolume(index, ingredient.volume);
                         }
@@ -1070,7 +1086,7 @@
                         let value = parseInt(e.target.value);
                         if (isNaN(value)) value = 30;
                         if (value < 5) value = 5;
-                        if (value > 100) value = 100;
+                        if (value > 1000) value = 1000;
                         updateIngredientVolume(index, value);
                     });
 
@@ -1186,7 +1202,8 @@
                 if (selectedIngredients.length > 0) {
                     summaryHTML += '<div class="ingredient-summary"><h6>原料：</h6>';
                     selectedIngredients.forEach(ingredient => {
-                        summaryHTML += `<span class="ingredient-tag">${ingredient.name} ${ingredient.volume}ml</span>`;
+                        const displayUnit = ingredient.unit || 'ml';
+                        summaryHTML += `<span class="ingredient-tag">${ingredient.name} ${ingredient.volume}${displayUnit}</span>`;
                     });
                     summaryHTML += '</div>';
 
@@ -1417,16 +1434,18 @@
                 const ingredientsContainer = document.getElementById('generated-ingredients');
                 if (recipe.ingredients && recipe.ingredients.length > 0) {
                     ingredientsContainer.innerHTML = recipe.ingredients.map(ing => {
-                        // 根据原料类型推断单位
-                        let unit = 'ml';
-                        if (ing.category === 'garnish') {
-                            unit = '个';
-                        } else if (ing.name.includes('苦精') || ing.name.includes('辣椒酱')) {
-                            unit = '滴';
-                        } else if (ing.name.includes('盐') || ing.name.includes('胡椒') || ing.name.includes('粉')) {
-                            unit = '克';
-                        } else if (ing.name.includes('片') || ing.name.includes('轮')) {
-                            unit = '片';
+                        // 使用原料本身定义的单位，如果没有则根据原料类型推断单位
+                        let unit = ing.unit || 'ml';
+                        if (!ing.unit) {
+                            if (ing.category === 'garnish') {
+                                unit = '个';
+                            } else if (ing.name.includes('苦精') || ing.name.includes('辣椒酱')) {
+                                unit = '滴';
+                            } else if (ing.name.includes('盐') || ing.name.includes('胡椒') || ing.name.includes('粉')) {
+                                unit = '克';
+                            } else if (ing.name.includes('片') || ing.name.includes('轮')) {
+                                unit = '片';
+                            }
                         }
 
                         return `
@@ -1523,16 +1542,18 @@
                 // 应用原料（需要转换格式）
                 if (recipe.ingredients && recipe.ingredients.length > 0) {
                     selectedIngredients = recipe.ingredients.map(ing => {
-                        // 根据原料类型推断单位
-                        let unit = 'ml';
-                        if (ing.category === 'garnish') {
-                            unit = '个';
-                        } else if (ing.name.includes('苦精') || ing.name.includes('辣椒酱')) {
-                            unit = '滴';
-                        } else if (ing.name.includes('盐') || ing.name.includes('胡椒') || ing.name.includes('粉')) {
-                            unit = '克';
-                        } else if (ing.name.includes('片') || ing.name.includes('轮')) {
-                            unit = '片';
+                        // 使用原料本身定义的单位，如果没有则根据原料类型推断单位
+                        let unit = ing.unit || 'ml';
+                        if (!ing.unit) {
+                            if (ing.category === 'garnish') {
+                                unit = '个';
+                            } else if (ing.name.includes('苦精') || ing.name.includes('辣椒酱')) {
+                                unit = '滴';
+                            } else if (ing.name.includes('盐') || ing.name.includes('胡椒') || ing.name.includes('粉')) {
+                                unit = '克';
+                            } else if (ing.name.includes('片') || ing.name.includes('轮')) {
+                                unit = '片';
+                            }
                         }
 
                         return {

@@ -180,11 +180,6 @@ function initializeSimulation() {
             setTimeout(() => {
                 stirRod.classList.remove('stirring');
                 liquid.classList.remove('wavy');
-
-                // 搅拌完成后让搅拌棒消失
-                stirRod.style.transition = 'opacity 0.8s ease-out, visibility 0.8s ease-out';
-                stirRod.style.opacity = '0';
-                stirRod.style.visibility = 'hidden';
             }, 3000);
         }
 
@@ -253,94 +248,88 @@ function injectCocktailSimulation() {
             return;
         }
 
-        // 创建模拟器容器
+        // 创建调酒模拟器容器
         const simulationContainer = document.createElement('div');
         simulationContainer.className = 'cocktail-simulation-container';
-
         simulationContainer.innerHTML = `
-            <h3 class="simulation-title">🧊 像素风调酒模拟器</h3>
+        <h4 class="simulation-title">像素风调酒模拟器</h4>
+        <div class="simulation-workspace">
+          <div class="pixel-grid"></div>
+          <div class="pixel-cocktail-glass">
+            <div class="pixel-glass-top"></div>
+            <div class="pixel-glass-connector"></div>
+            <div class="pixel-glass-stem"></div>
+            <div class="pixel-glass-base"></div>
+            <div class="pixel-glass-shine"></div>
+            <div class="pixel-glass-notch"></div>
             
-            <div class="simulation-workspace">
-                <div class="pixel-grid"></div>
-                
-                <!-- 像素风鸡尾酒杯 -->
-                <div class="pixel-cocktail-glass">
-                    <!-- 杯子主体 -->
-                    <div class="pixel-glass-top"></div>
-                    <div class="pixel-glass-connector"></div>
-                    <div class="pixel-glass-stem"></div>
-                    <div class="pixel-glass-base"></div>
-                    <div class="pixel-glass-shine"></div>
-                    
-                    <!-- 冰块容器 -->
-                    <div class="pixel-ice-container">
-                        <div class="pixel-ice-cube pixel-ice-cube-1"></div>
-                        <div class="pixel-ice-cube pixel-ice-cube-2"></div>
-                        <div class="pixel-ice-cube pixel-ice-cube-3"></div>
-                    </div>
-                    
-                    <!-- 液体 -->
-                    <div class="pixel-liquid"></div>
-                    
-                    <!-- 酒瓶 -->
-                    <div class="pixel-bottle">
-                        <div class="pixel-bottle-body">
-                            <div class="pixel-bottle-liquid-content"></div>
-                        </div>
-                        <div class="pixel-bottle-neck"></div>
-                        <div class="pouring-stream"></div>
-                    </div>
-                    
-                    <!-- 搅拌棒 -->
-                    <div class="pixel-stir-rod"></div>
-                    
-                    <!-- 杯子切口（用于装饰） -->
-                    <div class="pixel-glass-notch"></div>
-                </div>
+            <div class="pixel-ice-container">
+              <div class="pixel-ice-cube pixel-ice-cube-1"></div>
+              <div class="pixel-ice-cube pixel-ice-cube-2"></div>
+              <div class="pixel-ice-cube pixel-ice-cube-3"></div>
             </div>
             
-            <div class="simulation-controls">
-                <button id="add-ice-btn" class="simulation-btn">🧊 加冰</button>
-                <button id="pour-liquid-btn" class="simulation-btn">🍸 倒酒</button>
-                <button id="stir-btn" class="simulation-btn">🥄 搅拌</button>
-            </div>
-        `;
+            <div class="pixel-liquid"></div>
+          </div>
+          
+          <div class="pixel-bottle">
+            <div class="pixel-bottle-body"></div>
+            <div class="pixel-bottle-neck"></div>
+            <div class="pixel-bottle-liquid"></div>
+          </div>
+          
+          <div class="pixel-stir-rod"></div>
+        </div>
+        
+        <div class="simulation-controls">
+          <button id="add-ice-btn" class="simulation-btn">加冰块</button>
+          <button id="pour-liquid-btn" class="simulation-btn">倒入基酒</button>
+          <button id="stir-btn" class="simulation-btn">搅拌</button>
+        </div>
+      `;
 
-        // 将模拟器插入到ABV计算部分之前
-        abvCalculationSection.parentNode.insertBefore(simulationContainer, abvCalculationSection);
+        // 将新容器插入到abv显示之前
+        const abvDisplay = abvCalculationSection.querySelector('.abv-display');
+        if (abvDisplay) {
+            abvCalculationSection.insertBefore(simulationContainer, abvDisplay);
+        } else {
+            abvCalculationSection.appendChild(simulationContainer);
+        }
 
         console.log('调酒模拟器UI注入完成');
-
-    } catch (error) {
-        console.error('注入调酒模拟器时出错:', error);
-        throw error;
+    } catch (e) {
+        console.error('注入调酒模拟器UI时出现错误:', e);
+        throw e; // 重新抛出错误以便外部捕获
     }
 }
 
-// bindSimulationEvents 函数保持为兼容性存在
+// 独立的事件绑定函数，可以在多处调用以确保事件被绑定
 function bindSimulationEvents(container) {
-    console.log('绑定调酒模拟器事件 (兼容性函数)');
-
     try {
-        // 重新获取容器，确保是当前DOM中的元素
-        const actualContainer = document.querySelector('.cocktail-simulation-container');
-        if (!actualContainer) {
-            console.error('未找到调酒模拟器容器，跳过事件绑定');
-            return;
+        if (!container) {
+            container = document.querySelector('.cocktail-simulation-container');
+            if (!container) {
+                console.error('找不到模拟器容器，无法绑定事件');
+                return;
+            }
         }
 
-        // 按钮元素
-        const addIceBtn = actualContainer.querySelector('#add-ice-btn');
-        const pourLiquidBtn = actualContainer.querySelector('#pour-liquid-btn');
-        const stirBtn = actualContainer.querySelector('#stir-btn');
+        console.log('开始绑定模拟器事件...');
 
-        // 模拟器元素
-        const iceCubes = actualContainer.querySelectorAll('.pixel-ice-cube');
-        const bottle = actualContainer.querySelector('.pixel-bottle');
-        const liquid = actualContainer.querySelector('.pixel-liquid');
-        const stirRod = actualContainer.querySelector('.pixel-stir-rod');
+        // 获取按钮元素
+        const addIceBtn = container.querySelector('#add-ice-btn');
+        const pourLiquidBtn = container.querySelector('#pour-liquid-btn');
+        const stirBtn = container.querySelector('#stir-btn');
 
-        // 加冰块动画
+        // 获取动画元素
+        const iceCubes = container.querySelectorAll('.pixel-ice-cube');
+        const bottle = container.querySelector('.pixel-bottle');
+        const liquid = container.querySelector('.pixel-liquid');
+        const stirRod = container.querySelector('.pixel-stir-rod');
+
+        console.log(`找到按钮: 冰块=${!!addIceBtn}, 倒酒=${!!pourLiquidBtn}, 搅拌=${!!stirBtn}`);
+
+        // 冰块动画函数
         function addIce() {
             console.log('加冰块动画');
             if (!iceCubes || iceCubes.length === 0) {
@@ -353,7 +342,7 @@ function bindSimulationEvents(container) {
             });
         }
 
-        // 倒酒动画
+        // 倒酒动画函数
         function pourLiquid() {
             console.log('倒酒动画');
             if (!bottle) {
@@ -381,7 +370,7 @@ function bindSimulationEvents(container) {
             }, 3000);
         }
 
-        // 搅拌动画
+        // 搅拌动画函数
         function stir() {
             console.log('搅拌动画');
             if (!stirRod) {
@@ -404,109 +393,122 @@ function bindSimulationEvents(container) {
             setTimeout(() => {
                 stirRod.classList.remove('stirring');
                 liquid.classList.remove('wavy');
-
-                // 搅拌完成后让搅拌棒消失
-                stirRod.style.transition = 'opacity 0.8s ease-out, visibility 0.8s ease-out';
-                stirRod.style.opacity = '0';
-                stirRod.style.visibility = 'hidden';
             }, 3000);
         }
 
-        // 清除旧事件（通过克隆替换元素）
+        // 清除元素上的所有事件监听器
         function clearEvents(element) {
-            if (!element) return null;
-            const newElement = element.cloneNode(true);
+            if (!element) return;
+
+            const clone = element.cloneNode(true);
             if (element.parentNode) {
-                element.parentNode.replaceChild(newElement, element);
+                element.parentNode.replaceChild(clone, element);
             }
-            return newElement;
+            return clone;
         }
 
-        // 清除并重新绑定所有按钮
-        let addIceBtnNew = clearEvents(addIceBtn);
-        let pourLiquidBtnNew = clearEvents(pourLiquidBtn);
-        let stirBtnNew = clearEvents(stirBtn);
-
-        // 重新添加事件
-        if (addIceBtnNew) {
-            addIceBtnNew.addEventListener('click', function (e) {
+        // 移除并重新绑定事件，避免重复绑定
+        if (addIceBtn) {
+            const newAddIceBtn = clearEvents(addIceBtn);
+            newAddIceBtn.addEventListener('click', function (e) {
                 console.log('加冰块按钮被点击');
                 e.preventDefault();
                 addIce();
             });
         }
 
-        if (pourLiquidBtnNew) {
-            pourLiquidBtnNew.addEventListener('click', function (e) {
+        if (pourLiquidBtn) {
+            const newPourLiquidBtn = clearEvents(pourLiquidBtn);
+            newPourLiquidBtn.addEventListener('click', function (e) {
                 console.log('倒入基酒按钮被点击');
                 e.preventDefault();
                 pourLiquid();
             });
         }
 
-        if (stirBtnNew) {
-            stirBtnNew.addEventListener('click', function (e) {
+        if (stirBtn) {
+            const newStirBtn = clearEvents(stirBtn);
+            newStirBtn.addEventListener('click', function (e) {
                 console.log('搅拌按钮被点击');
                 e.preventDefault();
                 stir();
             });
         }
 
-        // 获取当前ABV值来设置液体颜色类别
+        console.log('模拟器事件绑定完成');
+
+        // 更新液体颜色函数
         function updateLiquidColor() {
-            const abvValue = parseFloat(document.getElementById('abv-value')?.textContent || '0');
+            // 模拟更新ABV颜色
+            let abvValue = 0;
+
+            // 尝试从页面中获取ABV值
+            const abvDisplay = document.querySelector('#calculated-abv');
+            if (abvDisplay) {
+                const abvText = abvDisplay.textContent || '0.0%';
+                abvValue = parseFloat(abvText.replace('%', '')) || 0;
+            }
+
+            // 立即根据当前值更新
             updateLiquidClassByAbv(abvValue);
         }
 
-        // 根据ABV更新液体颜色类别
         function updateLiquidClassByAbv(abv) {
-            const simulationContainer = document.querySelector('.cocktail-simulation-container');
-            if (!simulationContainer) return;
+            const container = document.querySelector('.cocktail-simulation-container');
 
-            // 清除所有ABV类别
-            simulationContainer.classList.remove('abv-low', 'abv-medium', 'abv-high');
+            // 移除所有ABV相关类
+            container.classList.remove('abv-low', 'abv-medium', 'abv-high');
 
-            // 根据ABV值添加对应类别
-            if (abv < 15) {
-                simulationContainer.classList.add('abv-low');
-            } else if (abv < 30) {
-                simulationContainer.classList.add('abv-medium');
+            // 根据ABV值添加相应的类
+            if (abv < 10) {
+                container.classList.add('abv-low');
+            } else if (abv >= 10 && abv < 25) {
+                container.classList.add('abv-medium');
             } else {
-                simulationContainer.classList.add('abv-high');
+                container.classList.add('abv-high');
             }
         }
 
-        console.log('调酒模拟器事件绑定完成');
+        // 初始测试
+        setTimeout(function () {
+            console.log('执行初始化测试...');
+            addIce();
 
-    } catch (error) {
-        console.error('绑定调酒模拟器事件时出错:', error);
-        throw error;
+            // 确保酒瓶初始可见
+            if (bottle) {
+                bottle.style.opacity = '1';
+                bottle.style.visibility = 'visible';
+            }
+        }, 500);
+
+    } catch (e) {
+        console.error('绑定模拟器事件时出错:', e);
+        if (window.cocktailDebug && window.cocktailDebug.showError) {
+            window.cocktailDebug.showError(`事件绑定错误: ${e.message}`);
+        }
     }
 }
 
-// 获取当前ABV值来设置液体颜色类别
-function updateLiquidColor() {
-    const abvValue = parseFloat(document.getElementById('abv-value')?.textContent || '0');
-    updateLiquidClassByAbv(abvValue);
-}
+// 设置自定义事件监听，确保ABV值更新时更新液体颜色
+document.addEventListener('abv-updated', function (e) {
+    if (e.detail && typeof e.detail.abv !== 'undefined') {
+        const container = document.querySelector('.cocktail-simulation-container');
+        if (!container) return;
 
-// 根据ABV更新液体颜色类别
-function updateLiquidClassByAbv(abv) {
-    const simulationContainer = document.querySelector('.cocktail-simulation-container');
-    if (!simulationContainer) return;
+        // 移除所有ABV相关类
+        container.classList.remove('abv-low', 'abv-medium', 'abv-high');
 
-    // 清除所有ABV类别
-    simulationContainer.classList.remove('abv-low', 'abv-medium', 'abv-high');
-
-    // 根据ABV值添加对应类别
-    if (abv < 15) {
-        simulationContainer.classList.add('abv-low');
-    } else if (abv < 30) {
-        simulationContainer.classList.add('abv-medium');
-    } else {
-        simulationContainer.classList.add('abv-high');
+        const abv = e.detail.abv;
+        // 根据ABV值添加相应的类
+        if (abv < 10) {
+            container.classList.add('abv-low');
+        } else if (abv >= 10 && abv < 25) {
+            container.classList.add('abv-medium');
+        } else {
+            container.classList.add('abv-high');
+        }
     }
-}
+});
 
 // 作为备份，在window加载完成后再次尝试初始化
 window.addEventListener('load', function () {
