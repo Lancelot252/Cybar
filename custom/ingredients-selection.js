@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="ingredient-abv">${ingredient.abv}% 酒精度</div>
                     </div>
                     <div class="volume-input-container">
-                        <input type="number" class="volume-input" value="${ingredient.volume}" min="0" step="5">
+                        <input type="number" class="volume-input" value="${ingredient.volume}" min="0" max="1000" step="5">
                         <span class="volume-unit">ml</span>
                     </div>
                     <button class="remove-selected-btn" title="移除此原料">×</button>

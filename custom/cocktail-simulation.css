@@ -361,8 +361,13 @@
     height: 90px;
     transform: rotate(0deg);
     transform-origin: bottom right;
-    transition: transform 0.8s ease-out;
-    will-change: transform;
+    transition: transform 0.8s ease-out, opacity 0.5s ease-out, visibility 0.5s ease-out;
+    will-change: transform, opacity, visibility;
+}
+
+.pixel-bottle.hidden-bottle {
+    opacity: 0 !important;
+    visibility: hidden !important;
 }
 
 /* 酒瓶体 */
@@ -600,26 +605,26 @@
 @keyframes add-garnish {
     0% {
         opacity: 0;
-        top: 40px;
-        left: 110px;
+        top: 30px;
+        left: 50px;
     }
 
     40% {
         opacity: 1;
-        top: 50px;
-        left: 140px;
+        top: 15px;
+        left: 35px;
     }
 
     70% {
-        top: 60px;
-        left: 150px;
+        top: 10px;
+        left: 25px;
     }
 
     100% {
         opacity: 1;
-        top: 70px;
-        left: 160px;
-        transform: none;
+        top: 8px;
+        left: 20px;
+        transform: rotate(-15deg);
     }
 }
 
@@ -1031,21 +1036,21 @@
 
     20% {
         opacity: 1;
-        top: 50px;
-        left: 140px;
+        top: 20px;
+        left: 60px;
     }
 
     30% {
-        top: 60px;
-        left: 150px;
+        top: 15px;
+        left: 50px;
     }
 
     40%,
     100% {
         opacity: 1;
-        top: 70px;
-        left: 160px;
-        transform: none;
+        top: 10px;
+        left: 30px;
+        transform: rotate(-15deg);
     }
 }
 
@@ -1423,27 +1428,27 @@
         0%,
         10% {
             opacity: 0;
-            top: 30px;
-            left: 50px;
+            top: 40px;
+            left: 110px;
         }
 
         20% {
             opacity: 1;
-            top: 40px;
-            left: 70px;
+            top: 20px;
+            left: 60px;
         }
 
         30% {
-            top: 45px;
-            left: 80px;
+            top: 15px;
+            left: 50px;
         }
 
         40%,
         100% {
             opacity: 1;
-            top: 50px;
-            left: 90px;
-            transform: none;
+            top: 10px;
+            left: 30px;
+            transform: rotate(-15deg);
         }
     }
 }
