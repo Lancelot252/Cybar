@@ -20,8 +20,7 @@
         <a href="../" class="back-link">返回主菜单</a>
     </nav>
 
-    <main>
-        <section id="recipe-detail">
+    <main>        <section id="recipe-detail">
             <!-- Recipe details will be loaded here by JavaScript -->
             <div id="loading-detail-message">正在加载配方详情...</div>
             
@@ -33,6 +32,138 @@
                 <button id="favorite-button" class="interaction-button">
                     <i class="far fa-star"></i> <span id="favorite-count">0</span>
                 </button>
+            </div>
+        </section>        <!-- AI口味分析区域 -->
+        <section id="ai-taste-analysis" style="display: none; margin: 30px 0; padding: 0; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
+            <!-- 头部区域 -->
+            <div class="ai-analysis-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; color: white; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><defs><pattern id=\"brain\" patternUnits=\"userSpaceOnUse\" width=\"20\" height=\"20\"><circle cx=\"10\" cy=\"10\" r=\"1\" fill=\"rgba(255,255,255,0.1)\"/></pattern></defs><rect width=\"100\" height=\"100\" fill=\"url(%23brain)\"/></svg>') repeat; animation: float 20s ease-in-out infinite;"></div>
+                <div style="position: relative; z-index: 2;">
+                    <h3 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 15px; font-size: 1.4em; font-weight: 600;">
+                        <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 50%; backdrop-filter: blur(10px);">
+                            <i class="fas fa-brain" style="font-size: 1.2em;"></i>
+                        </div>
+                        AI口味分析
+                        <span id="ai-analysis-badge" style="background: linear-gradient(135deg, #10b981, #34d399); padding: 6px 16px; border-radius: 20px; font-size: 0.7em; font-weight: 500; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);">
+                            智能分析
+                        </span>
+                    </h3>
+                    <p style="margin: 0; opacity: 0.9; font-size: 0.95em;">基于AI深度学习的专业口味特征分析</p>
+                </div>
+            </div>
+            
+            <!-- 内容区域 -->
+            <div class="ai-analysis-body" style="background: linear-gradient(135deg, rgba(15, 15, 35, 0.95), rgba(25, 25, 55, 0.95)); padding: 30px; backdrop-filter: blur(20px);">
+                
+                <!-- 加载状态 -->
+                <div id="ai-analysis-loading" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 40px 20px; color: #00e5ff;">
+                    <div style="position: relative;">
+                        <div style="width: 60px; height: 60px; border: 3px solid rgba(0, 229, 255, 0.3); border-top: 3px solid #00e5ff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <i class="fas fa-brain" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.2em;"></i>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.1em; font-weight: 500; margin-bottom: 8px;">正在分析这款鸡尾酒的口味特征...</div>
+                        <div style="font-size: 0.9em; opacity: 0.7;">AI正在处理配料成分和口味组合</div>
+                    </div>
+                </div>
+                
+                <!-- 分析结果容器 -->
+                <div id="ai-analysis-results" style="display: none;">
+                    
+                    <!-- 口味维度可视化 -->
+                    <div class="taste-dimensions" style="margin-bottom: 30px;">
+                        <h4 style="color: #00e5ff; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; font-size: 1.1em;">
+                            <i class="fas fa-chart-radar"></i>
+                            口味维度分析
+                        </h4>
+                        
+                        <!-- 口味雷达图容器 -->
+                        <div class="taste-radar-container" style="display: flex; gap: 30px; align-items: center; flex-wrap: wrap;">
+                            <!-- 雷达图 -->
+                            <div class="radar-chart" style="flex: 0 0 200px; height: 200px; position: relative;">
+                                <canvas id="taste-radar" width="200" height="200" style="background: radial-gradient(circle, rgba(0, 229, 255, 0.1) 0%, transparent 70%); border-radius: 50%;"></canvas>
+                            </div>
+                            
+                            <!-- 口味条形图 -->
+                            <div class="taste-bars" style="flex: 1; min-width: 250px;">
+                                <div class="taste-bar" style="margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                        <span style="color: #ff6b9d; font-weight: 500;">🍯 甜度</span>
+                                        <span id="sweetness-value" style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em;">0/5</span>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div id="sweetness-fill" style="height: 100%; background: linear-gradient(90deg, #ff6b9d, #ff8fab); width: 0%; transition: width 0.8s ease; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="taste-bar" style="margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                        <span style="color: #ffd93d; font-weight: 500;">🍋 酸度</span>
+                                        <span id="sourness-value" style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em;">0/5</span>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div id="sourness-fill" style="height: 100%; background: linear-gradient(90deg, #ffd93d, #ffe55c); width: 0%; transition: width 0.8s ease; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="taste-bar" style="margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                        <span style="color: #6bcf7f; font-weight: 500;">🌿 苦度</span>
+                                        <span id="bitterness-value" style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em;">0/5</span>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div id="bitterness-fill" style="height: 100%; background: linear-gradient(90deg, #6bcf7f, #85d197); width: 0%; transition: width 0.8s ease; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="taste-bar" style="margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                        <span style="color: #ff9f43; font-weight: 500;">🔥 烈度</span>
+                                        <span id="strength-value" style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em;">0/5</span>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div id="strength-fill" style="height: 100%; background: linear-gradient(90deg, #ff9f43, #ffb168); width: 0%; transition: width 0.8s ease; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="taste-bar">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                        <span style="color: #4bcffa; font-weight: 500;">❄️ 清爽度</span>
+                                        <span id="freshness-value" style="color: rgba(255, 255, 255, 0.8); font-size: 0.9em;">0/5</span>
+                                    </div>
+                                    <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                                        <div id="freshness-fill" style="height: 100%; background: linear-gradient(90deg, #4bcffa, #6dd5fa); width: 0%; transition: width 0.8s ease; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- AI文本分析 -->
+                    <div class="ai-text-analysis">
+                        <h4 style="color: #00e5ff; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; font-size: 1.1em;">
+                            <i class="fas fa-file-alt"></i>
+                            专业分析报告
+                        </h4>
+                        <div id="ai-analysis-content" style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px; line-height: 1.7; color: rgba(255, 255, 255, 0.9); border-left: 4px solid #00e5ff;">
+                            <!-- AI分析结果将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 错误状态 -->
+                <div id="ai-analysis-error" style="display: none; text-align: center; padding: 40px 20px;">
+                    <div style="color: #ff6b6b; font-size: 3em; margin-bottom: 15px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div style="color: #ff6b6b; font-size: 1.1em; font-weight: 500; margin-bottom: 8px;">AI分析暂时不可用</div>
+                    <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.9em;">请稍后重试或联系管理员</div>
+                </div>
+                
+                <!-- 分析元信息 -->
+                <div id="ai-analysis-meta" style="display: none; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center; font-size: 0.85em; color: rgba(255, 255, 255, 0.6);">
+                    <!-- 分析时间等元信息将在这里显示 -->
+                </div>
             </div>
         </section>
         <p id="error-message" style="color: red;"></p>
