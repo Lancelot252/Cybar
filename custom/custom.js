@@ -159,7 +159,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const iconColor = iconColors[category] || '#607D8B';
 
             // 设置原料图标和详细信息
-            const abvDisplay = ingredient.abv > 0 ? `${ingredient.abv}% ABV` : `(${ingredient.unit || '毫升'})`;
+            // 确保使用正确的单位，优先使用原料自身定义的单位
+            const displayUnit = ingredient.unit && ingredient.unit !== '' ? ingredient.unit : '毫升';
+            const abvDisplay = ingredient.abv > 0 ? `${ingredient.abv}% ABV` : `(${displayUnit})`;
 
             ingredientItem.innerHTML = `
                 <div class="ingredient-card">
@@ -452,11 +454,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     selectedItem.className = 'selected-ingredient-item';
                     selectedItem.dataset.id = ingredient.id;
 
+                    // 确保使用正确的单位
+                    const displayUnit = ingredient.unit && ingredient.unit !== '' ? ingredient.unit : '毫升';
+
                     selectedItem.innerHTML = `
                         <div class="selected-ingredient-name">${ingredient.name}</div>
                         <div class="selected-ingredient-volume">
-                            <input type="number" class="volume-input" value="${ingredient.volume}" min="0" step="5">
-                            <span class="volume-unit">${ingredient.unit || '毫升'}</span>
+                            <input type="number" class="volume-input" value="${ingredient.volume}" min="0" max="1000" step="5">
+                            <span class="volume-unit">${displayUnit}</span>
                         </div>
                         <button class="remove-selected-btn" title="移除此原料">×</button>
                     `;
