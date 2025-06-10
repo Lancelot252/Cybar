@@ -673,13 +673,22 @@ function displayAIAnalysisResult(analysis, analyzedAt) {
 // 从AI分析文本中提取口味数据
 function extractTasteDataFromAnalysis(analysis) {
     try {
-        // 更全面的口味数据提取正则表达式
-        const patterns = {
-            sweetness: /甜度[：:\s]*([0-5])(?:[\/\s]*5)?|甜味[：:\s]*([0-5])|偏?甜[：:\s]*([0-5])|糖分[：:\s]*([0-5])/gi,
-            sourness: /酸度[：:\s]*([0-5])(?:[\/\s]*5)?|酸味[：:\s]*([0-5])|偏?酸[：:\s]*([0-5])|酸爽[：:\s]*([0-5])/gi,
-            bitterness: /苦度[：:\s]*([0-5])(?:[\/\s]*5)?|苦味[：:\s]*([0-5])|偏?苦[：:\s]*([0-5])|苦涩[：:\s]*([0-5])/gi,
-            strength: /烈度[：:\s]*([0-5])(?:[\/\s]*5)?|酒精感[：:\s]*([0-5])|烈性[：:\s]*([0-5])|酒精度感受[：:\s]*([0-5])|强度[：:\s]*([0-5])/gi,
-            freshness: /清爽度[：:\s]*([0-5])(?:[\/\s]*5)?|清新[：:\s]*([0-5])|爽口[：:\s]*([0-5])|清香[：:\s]*([0-5])/gi
+        // 更精确的口味数据提取正则表达式，优先匹配标准化格式
+        const standardPatterns = {
+            sweetness: /甜度[：:\s]*([0-5])(?:[\/\s]*5)?/gi,
+            sourness: /酸度[：:\s]*([0-5])(?:[\/\s]*5)?/gi,
+            bitterness: /苦度[：:\s]*([0-5])(?:[\/\s]*5)?/gi,
+            strength: /烈度[：:\s]*([0-5])(?:[\/\s]*5)?/gi,
+            freshness: /清爽度[：:\s]*([0-5])(?:[\/\s]*5)?/gi
+        };
+
+        // 备用正则表达式（兼容旧格式）
+        const fallbackPatterns = {
+            sweetness: /甜味[：:\s]*([0-5])|偏?甜[：:\s]*([0-5])|糖分[：:\s]*([0-5])/gi,
+            sourness: /酸味[：:\s]*([0-5])|偏?酸[：:\s]*([0-5])|酸爽[：:\s]*([0-5])/gi,
+            bitterness: /苦味[：:\s]*([0-5])|偏?苦[：:\s]*([0-5])|苦涩[：:\s]*([0-5])/gi,
+            strength: /酒精感[：:\s]*([0-5])|烈性[：:\s]*([0-5])|酒精度感受[：:\s]*([0-5])|强度[：:\s]*([0-5])/gi,
+            freshness: /清新[：:\s]*([0-5])|爽口[：:\s]*([0-5])|清香[：:\s]*([0-5])/gi
         };
         
         // 描述性文本映射
@@ -714,8 +723,8 @@ function extractTasteDataFromAnalysis(analysis) {
             freshness: null
         };
         
-        // 提取数值型口味数据
-        for (const [dimension, pattern] of Object.entries(patterns)) {
+        // 首先尝试提取标准化格式的数值
+        for (const [dimension, pattern] of Object.entries(standardPatterns)) {
             let match;
             while ((match = pattern.exec(analysis)) !== null) {
                 for (let i = 1; i < match.length; i++) {
@@ -731,7 +740,26 @@ function extractTasteDataFromAnalysis(analysis) {
             }
         }
         
-        // 提取描述性口味数据（如果没有找到数值型数据）
+        // 如果标准格式没找到，尝试备用格式
+        for (const [dimension, pattern] of Object.entries(fallbackPatterns)) {
+            if (tasteData[dimension] === null) {
+                let match;
+                while ((match = pattern.exec(analysis)) !== null) {
+                    for (let i = 1; i < match.length; i++) {
+                        if (match[i] !== undefined) {
+                            const value = parseInt(match[i]);
+                            if (!isNaN(value) && value >= 0 && value <= 5) {
+                                tasteData[dimension] = value;
+                                break;
+                            }
+                        }
+                    }
+                    if (tasteData[dimension] !== null) break;
+                }
+            }
+        }
+        
+        // 最后尝试描述性文本匹配
         for (const [dimension, mapping] of Object.entries(descriptiveMapping)) {
             if (tasteData[dimension] === null) {
                 for (const [desc, value] of Object.entries(mapping)) {
