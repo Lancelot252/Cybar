@@ -7,7 +7,7 @@ async function testAIFunction() {
     try {
         // 测试AI口味分析功能
         console.log('1️⃣ 测试AI口味分析...');
-        const response = await axios.post('http://localhost:8080/api/custom/analyze-taste', {
+    const response = await axios.post('http://localhost:8080/api/custom/analyze-flavor', {
             ingredients: [
                 { name: '金酒', volume: 50, abv: 40 },
                 { name: '汤力水', volume: 150, abv: 0 }

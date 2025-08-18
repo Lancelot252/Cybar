@@ -5,7 +5,7 @@ echo 🚀 Cybar AI密钥配置验证
 echo ========================================
 echo.
 
-echo ✅ API密钥已配置: sk-0836ffd1389c405aaa65c108e8986e20
+echo ✅ API密钥已配置: sk-246ab5937fde4d60a827172ba760aa70
 echo.
 
 echo 🔍 正在启动服务器...

@@ -13,11 +13,11 @@ try {
 // AI密钥配置 - 从多个来源尝试获取
 let apiKey = null;
 
-// 1. 尝试从环境变量获取
-if (process.env.DEEPSEEK_API_KEY && process.env.DEEPSEEK_API_KEY !== 'sk-your-api-key-here') {
-    apiKey = process.env.DEEPSEEK_API_KEY;
-    console.log('🤖 从环境变量加载了AI密钥');
-}
+// // 1. 尝试从环境变量获取
+// if (process.env.DEEPSEEK_API_KEY && process.env.DEEPSEEK_API_KEY !== 'sk-your-api-key-here') {
+//     apiKey = process.env.DEEPSEEK_API_KEY;
+//     console.log('🤖 从环境变量加载了AI密钥');
+// }
 
 // 2. 尝试从配置文件获取
 const configFile = path.join(__dirname, 'config.json');
@@ -1166,7 +1166,7 @@ app.post('/api/custom/analyze-flavor', async (req, res) => {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 30000 // 30秒超时
+                timeout: 60000 // 30秒超时
             });
 
             analysis = response.data.choices[0].message.content;
