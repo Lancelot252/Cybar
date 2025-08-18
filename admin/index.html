@@ -110,6 +110,18 @@
             <div class="admin-section" id="comments-management-section">
                 <h3>评论管理</h3>
                 <p id="admin-comment-message" class="message"></p> <!-- Status/Error messages for comments -->
+                <!-- 筛选控件 -->
+                <div id="comment-filter-bar" style="margin: 10px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                    <label for="comment-filter-mode">查看方式:</label>
+                    <select id="comment-filter-mode" style="min-width: 120px;">
+                        <option value="all">全部评论</option>
+                        <option value="recipe">按配方ID</option>
+                        <option value="user">按用户 (ID或用户名)</option>
+                    </select>
+                    <input id="comment-filter-value" type="text" placeholder="(无)" style="flex: 1; min-width: 180px;" disabled>
+                    <button id="comment-filter-apply" disabled>应用筛选</button>
+                    <button id="comment-filter-reset" disabled>清除筛选</button>
+                </div>
                 <div class="table-container">
                     <table>
                         <thead>

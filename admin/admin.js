@@ -9,6 +9,9 @@ const adminUserLimit = 10; // Number of users per page
 // --- Add Global Variables for Comment Pagination ---
 let currentCommentPage = 1;
 const adminCommentLimit = 15; // Number of comments per page
+// --- Comment Filter State ---
+let commentFilterMode = 'all'; // all | recipe | user
+let commentFilterValue = '';
 
 // --- Updated DOMContentLoaded Listener ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -89,6 +92,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (commentId && confirm(`确定要删除 ID 为 ${commentId} 的评论吗？`)) {
                     deleteComment(commentId, event.target); // Pass button for feedback
                 }
+            } else if (event.target.classList.contains('comment-filter-by-recipe')) {
+                const rid = event.target.dataset.recipeId;
+                if (rid) {
+                    setCommentFilter('recipe', rid);
+                    loadCommentsForAdmin(1);
+                }
+            } else if (event.target.classList.contains('comment-filter-by-user')) {
+                const uname = event.target.dataset.username;
+                if (uname) {
+                    setCommentFilter('user', uname);
+                    loadCommentsForAdmin(1);
+                }
             }
         });
     } else {
@@ -96,6 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const commentMsgElement = document.getElementById('admin-comment-message');
         if(commentMsgElement) commentMsgElement.textContent = "无法加载评论列表容器。";
     }
+
+    // --- Comment Filter Controls ---
+    setupCommentFilterControls();
 
 
     // --- Add Event Listener for Refresh Button ---
@@ -580,8 +598,18 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
     paginationContainer.innerHTML = ''; // Clear old pagination
 
     try {
-        // Fetch paginated comments
-        const response = await fetch(`/api/admin/comments?page=${page}&limit=${adminCommentLimit}`);
+        // Build query params with filters
+        const params = new URLSearchParams();
+        params.set('page', page);
+        params.set('limit', adminCommentLimit);
+        if (commentFilterMode === 'recipe' && commentFilterValue.trim()) {
+            params.set('recipeId', commentFilterValue.trim());
+        } else if (commentFilterMode === 'user' && commentFilterValue.trim()) {
+            params.set('userQuery', commentFilterValue.trim());
+        }
+
+        // Fetch paginated comments with optional filters
+        const response = await fetch(`/api/admin/comments?${params.toString()}`);
         if (!response.ok) {
              if (handleAuthError(response, messageElement)) return;
              let errorMsg = `HTTP error! status: ${response.status}`;
@@ -593,7 +621,7 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
         }
 
         const responseData = await response.json();
-        const comments = responseData.comments; // Expecting { comments: [], ... }
+    const comments = responseData.comments; // Expecting { comments: [], ... }
         currentCommentPage = responseData.currentPage; // Update global current page
 
         container.innerHTML = ''; // Clear loading row
@@ -611,8 +639,8 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
 
             row.innerHTML = `
                 <td>${comment.id || 'N/A'}</td>
-                <td>${comment.username || 'N/A'}</td>
-                <td>${comment.recipeId || 'N/A'}</td>
+                <td><button class="link-like comment-filter-by-user" data-username="${comment.username || ''}" title="按此用户筛选">${comment.username || 'N/A'}</button></td>
+                <td><button class="link-like comment-filter-by-recipe" data-recipe-id="${comment.recipeId || ''}" title="按此配方筛选">${comment.recipeId || 'N/A'}</button></td>
                 <td title="${comment.text}">${commentTextShort}</td>
                 <td>${timestampFormatted}</td>
                 <td>
@@ -672,6 +700,93 @@ function renderCommentPagination(totalPages, currentPage) {
         }
     });
     paginationContainer.appendChild(nextButton);
+}
+
+// --- Comment Filter Helpers ---
+function setupCommentFilterControls() {
+    const modeSelect = document.getElementById('comment-filter-mode');
+    const valueInput = document.getElementById('comment-filter-value');
+    const applyBtn = document.getElementById('comment-filter-apply');
+    const resetBtn = document.getElementById('comment-filter-reset');
+    if (!modeSelect || !valueInput || !applyBtn || !resetBtn) return; // Missing elements
+
+    modeSelect.addEventListener('change', () => {
+        commentFilterMode = modeSelect.value;
+        if (commentFilterMode === 'all') {
+            valueInput.value = '';
+            valueInput.disabled = true;
+            applyBtn.disabled = true;
+            resetBtn.disabled = !commentFilterValue; // only enabled if previously filtered
+            valueInput.placeholder = '(无)';
+        } else if (commentFilterMode === 'recipe') {
+            valueInput.disabled = false;
+            valueInput.placeholder = '输入配方ID';
+            applyBtn.disabled = !valueInput.value.trim();
+            resetBtn.disabled = !commentFilterValue;            
+        } else if (commentFilterMode === 'user') {
+            valueInput.disabled = false;
+            valueInput.placeholder = '输入用户ID或用户名';
+            applyBtn.disabled = !valueInput.value.trim();
+            resetBtn.disabled = !commentFilterValue;
+        }
+    });
+
+    valueInput.addEventListener('input', () => {
+        if (commentFilterMode === 'all') {
+            applyBtn.disabled = true;
+        } else {
+            applyBtn.disabled = !valueInput.value.trim();
+        }
+    });
+
+    applyBtn.addEventListener('click', () => {
+        if (commentFilterMode === 'all') return; // nothing to apply
+        const val = valueInput.value.trim();
+        if (!val) return;
+        commentFilterValue = val;
+        resetBtn.disabled = false;
+        loadCommentsForAdmin(1);
+    });
+
+    resetBtn.addEventListener('click', () => {
+        commentFilterMode = 'all';
+        commentFilterValue = '';
+        modeSelect.value = 'all';
+        valueInput.value = '';
+        valueInput.disabled = true;
+        valueInput.placeholder = '(无)';
+        applyBtn.disabled = true;
+        resetBtn.disabled = true;
+        loadCommentsForAdmin(1);
+    });
+}
+
+function setCommentFilter(mode, value) {
+    const modeSelect = document.getElementById('comment-filter-mode');
+    const valueInput = document.getElementById('comment-filter-value');
+    const applyBtn = document.getElementById('comment-filter-apply');
+    const resetBtn = document.getElementById('comment-filter-reset');
+    commentFilterMode = mode;
+    commentFilterValue = value;
+    if (modeSelect) modeSelect.value = mode;
+    if (valueInput) {
+        valueInput.disabled = (mode === 'all');
+        valueInput.value = (mode === 'all') ? '' : value;
+        valueInput.placeholder = mode === 'recipe' ? '输入配方ID' : (mode === 'user' ? '输入用户ID或用户名' : '(无)');
+    }
+    if (applyBtn) applyBtn.disabled = true; // 已直接应用
+    if (resetBtn) resetBtn.disabled = false;
+    // 更新提示信息
+    const messageElement = document.getElementById('admin-comment-message');
+    if (messageElement) {
+        if (mode === 'recipe') {
+            messageElement.textContent = `当前筛选: 配方ID = ${value}`;
+        } else if (mode === 'user') {
+            messageElement.textContent = `当前筛选: 用户 = ${value}`;
+        } else {
+            messageElement.textContent = '';
+        }
+    }
 }
 
 // --- Function to delete a comment (Admin) ---

@@ -471,28 +471,50 @@ app.get('/api/admin/comments', isAuthenticated, isAdmin, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 15;
     const offset = (page - 1) * limit;
+    const recipeId = (req.query.recipeId || '').trim();
+    const userQuery = (req.query.userQuery || '').trim(); // 可为 user_id 或 username
+
+    // 动态构建 WHERE 条件
+    let whereClauses = [];
+    let params = [];
+    if (recipeId) {
+        whereClauses.push('thread_id = ?');
+        params.push(recipeId);
+    }
+    if (userQuery) {
+        // 同时匹配 user_id 精确或 username 精确 / 模糊，可按需调整
+        whereClauses.push('(user_id = ? OR username = ?)');
+        params.push(userQuery, userQuery);
+    }
+    const whereSql = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
 
     try {
-        // 查询总评论数
-        const [[{ total }]] = await dbPool.query('SELECT COUNT(*) AS total FROM comment');
+        // 查询总评论数（带筛选）
+        const countSql = `SELECT COUNT(*) AS total FROM comment ${whereSql}`;
+        const [[{ total }]] = await dbPool.query(countSql, params);
 
-        // 查询当前页评论
-        const [comments] = await dbPool.query(
-            `SELECT id, thread_id AS recipeId, user_id, username, text, timestamp
-             FROM comment
-             ORDER BY timestamp DESC
-             LIMIT ? OFFSET ?`,
-            [limit, offset]
-        );
+        // 查询当前页评论（带筛选）
+        const dataSql = `
+            SELECT id, thread_id AS recipeId, user_id, username, text, timestamp
+            FROM comment
+            ${whereSql}
+            ORDER BY timestamp DESC
+            LIMIT ? OFFSET ?`;
+        const dataParams = params.concat([limit, offset]);
+        const [comments] = await dbPool.query(dataSql, dataParams);
 
         res.json({
             totalItems: total,
             totalPages: Math.ceil(total / limit),
             currentPage: page,
-            comments
+            comments,
+            filter: {
+                recipeId: recipeId || null,
+                userQuery: userQuery || null
+            }
         });
     } catch (error) {
-        console.error("Error reading comments for admin:", error);
+        console.error('Error reading comments for admin (with filters):', error);
         res.status(500).json({ message: '无法加载评论信息' });
     }
 });
