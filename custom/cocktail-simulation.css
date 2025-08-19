@@ -1,3 +1,11 @@
+/* DEPRECATED: cocktail-simulation styles are no longer used by production pages.
+    Kept in repo for reference only. To remove permanently, run:
+      git rm custom/cocktail-simulation.css
+*/
+
+/* Note: original CSS content replaced to avoid accidental loading in production.
+    If you need to restore the simulation visuals for development, see
+    the commit history or restore from backups. */
 /* 像素风格调酒模拟器 */
 :root {
     --glass-color: rgba(184, 222, 255, 0.5);

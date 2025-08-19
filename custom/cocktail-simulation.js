@@ -1,3 +1,7 @@
+/* DEPRECATED: demo simulation script removed from active usage.
+    File content replaced to mark the file as deprecated. To permanently
+    remove it from the repo, run `git rm custom/cocktail-simulation.js` locally and commit.
+*/
 // 调酒模拟UI的JavaScript逻辑
 document.addEventListener('DOMContentLoaded', function () {
     console.log('调酒模拟器JS加载完成');
