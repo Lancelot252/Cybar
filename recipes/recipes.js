@@ -154,6 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial load of recipes (load page 1)
     fetchRecipes(1);
 
+    // 原料筛选功能已移除
+
     // 获取用户推荐
     async function fetchRecommendations() {
         try {

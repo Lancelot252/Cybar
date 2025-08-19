@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-cn">
 
 <head>
@@ -806,13 +806,7 @@
                                 <input type="text" id="ingredient-search" placeholder="搜索原料...">
                             </div>
                             <div class="categories-tabs" id="ingredient-categories">
-                                <button class="category-tab active" data-category="all">全部</button>
-                                <button class="category-tab" data-category="base_alcohol">基酒</button>
-                                <button class="category-tab" data-category="juice">果汁</button>
-                                <button class="category-tab" data-category="syrup">糖浆</button>
-                                <button class="category-tab" data-category="soda">碳酸饮料</button>
-                                <button class="category-tab" data-category="garnish">装饰</button>
-                                <button class="category-tab" data-category="other">其他</button>
+                                <!-- 分类按钮由内嵌JavaScript动态渲染 -->
                             </div>
                             <div class="ingredient-list" id="available-ingredients">
                                 <div class="loading">加载原料中...</div>
@@ -904,16 +898,6 @@
             let searchTerm = '';
             const alertContainer = document.getElementById('alert-container');
 
-            // 设置分类标签点击事件
-            document.querySelectorAll('.category-tab').forEach(tab => {
-                tab.addEventListener('click', function () {
-                    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    currentCategory = this.dataset.category;
-                    filterAndRenderIngredients();
-                });
-            });
-
             // 设置搜索输入事件
             document.getElementById('ingredient-search').addEventListener('input', function () {
                 searchTerm = this.value.trim().toLowerCase();
@@ -941,6 +925,9 @@
                             }
                         });
 
+                        // 渲染分类按钮
+                        renderCategoryTabs();
+                        
                         // 初始化渲染
                         filterAndRenderIngredients();
                     } else {
@@ -957,15 +944,79 @@
             function getColorForIngredient(ingredient, category) {
                 // 根据分类分配颜色
                 const categoryColors = {
-                    'base_alcohol': '#ff9f1c', // 橙色调 - 酒精基酒
-                    'juice': '#70d143',        // 绿色调 - 果汁
-                    'syrup': '#ffcf56',        // 黄色调 - 糖浆
-                    'soda': '#58d0ff',         // 蓝色调 - 碳酸饮料
-                    'garnish': '#ff5a5a',      // 红色调 - 装饰物
-                    'other': '#c78dff'         // 紫色调 - 其他原料
+                    'base_alcohol': '#ff9f1c', // 橙色调 - 基酒
+                    'liqueurs': '#FF5722',      // 橙红色 - 力娇酒/利口酒  
+                    'vermouth_wine': '#795548', // 棕色 - 味美思/加强葡萄酒
+                    'bitters': '#6A1B9A',       // 深紫色 - 苦精
+                    'juice': '#4CAF50',         // 绿色调 - 果汁
+                    'syrup': '#E91E63',         // 粉色调 - 糖浆
+                    'soda_mixer': '#2196F3',    // 蓝色调 - 碳酸/调配饮料
+                    'dairy_cream': '#9C27B0',   // 紫色 - 奶制品
+                    'other': '#607D8B'          // 灰蓝色调 - 其他原料
                 };
 
                 return categoryColors[category] || '#cccccc';
+            }
+
+            // 渲染分类按钮标签
+            function renderCategoryTabs() {
+                const container = document.getElementById('ingredient-categories');
+                if (!container) return;
+
+                // 清空现有内容
+                container.innerHTML = '';
+
+                // 分类顺序和名称映射 - 与后端API返回的数据结构对应
+                const CATEGORY_ORDER = ['base_alcohol', 'liqueurs', 'vermouth_wine', 'bitters', 'juice', 'syrup', 'soda_mixer', 'dairy_cream', 'other'];
+                const CATEGORY_NAMES = {
+                    'base_alcohol': '基酒',
+                    'liqueurs': '力娇酒',
+                    'vermouth_wine': '味美思/葡萄酒',
+                    'bitters': '苦精',
+                    'juice': '果汁',
+                    'syrup': '糖浆',
+                    'soda_mixer': '碳酸饮料',
+                    'dairy_cream': '奶制品',
+                    'other': '其他'
+                };
+
+                // 添加"全部"选项
+                const allBtn = document.createElement('button');
+                allBtn.className = 'category-tab' + (currentCategory === 'all' ? ' active' : '');
+                allBtn.dataset.category = 'all';
+                allBtn.textContent = '全部';
+                container.appendChild(allBtn);
+
+                // 按既定顺序渲染分类，只渲染后端API实际返回的分类
+                CATEGORY_ORDER.forEach(catKey => {
+                    // 检查该分类是否在API返回的数据中存在
+                    if (!ingredientsByCategory[catKey] || ingredientsByCategory[catKey].length === 0) {
+                        return; // 跳过不存在或空的分类
+                    }
+
+                    const btn = document.createElement('button');
+                    btn.className = 'category-tab' + (currentCategory === catKey ? ' active' : '');
+                    btn.dataset.category = catKey;
+                    btn.textContent = CATEGORY_NAMES[catKey] || catKey;
+                    container.appendChild(btn);
+                });
+                
+                console.log('已渲染分类标签:', container.children.length, '个');
+
+                // 重新设置分类标签点击事件（因为是动态创建的元素）
+                setupCategoryTabEvents();
+            }
+
+            // 设置分类标签点击事件
+            function setupCategoryTabEvents() {
+                document.querySelectorAll('.category-tab').forEach(tab => {
+                    tab.addEventListener('click', function () {
+                        document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        currentCategory = this.dataset.category;
+                        filterAndRenderIngredients();
+                    });
+                });
             }
 
             // 过滤并渲染原料列表

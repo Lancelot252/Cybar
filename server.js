@@ -604,6 +604,7 @@ app.get('/api/recipes', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search ? req.query.search.trim() : '';
+    // ingredients filter removed: no longer support filtering recipes by ingredient names
     const sort = req.query.sort || 'default';
     const offset = (page - 1) * limit;
 
@@ -615,6 +616,8 @@ app.get('/api/recipes', async (req, res) => {
         where = 'WHERE name LIKE ?';
         params.push(`%${search}%`);
     }
+
+    // removed ingredientNames handling
 
     // 根据排序类型确定ORDER BY子句
     switch (sort) {
@@ -634,11 +637,11 @@ app.get('/api/recipes', async (req, res) => {
     }
 
     try {
-        // 查询总数
-        const countSql = `SELECT COUNT(*) AS total FROM cocktails ${where}`;
-        const [[{ total }]] = await dbPool.query(countSql, params);
+    // 查询总数
+    const countSql = `SELECT COUNT(*) AS total FROM cocktails ${where}`;
+    const [[{ total }]] = await dbPool.query(countSql, params);
 
-        // 查询当前页数据
+        // 查询当前页数据（包含原料信息：GROUP_CONCAT DISTINCT）
         const dataSql = `
             SELECT
                 c.id,
@@ -647,14 +650,20 @@ app.get('/api/recipes', async (req, res) => {
                 c.instructions,
                 c.estimated_abv AS estimatedAbv,
                 (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount,
-                (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount
+                (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount,
+                GROUP_CONCAT(DISTINCT i.name) AS ingredients
             FROM cocktails c
+            LEFT JOIN likes l ON c.id = l.recipe_id
+            LEFT JOIN favorites f ON c.id = f.recipe_id
+            LEFT JOIN ingredients i ON c.id = i.cocktail_id
             ${where}
+            GROUP BY c.id
             ${orderBy}
             LIMIT ? OFFSET ?
         `;
         params.push(limit, offset);
-        const [recipes] = await dbPool.query(dataSql, params);
+
+    const [recipes] = await dbPool.query(dataSql, params);
 
         res.json({
             recipes: recipes.map(r => ({
@@ -989,7 +998,96 @@ app.get('/api/custom/ingredients', async (req, res) => {
             data = data.slice(1);
         }
         const ingredients = JSON.parse(data);
-        res.json(ingredients);
+
+        // Filter helper: decide if an item should be considered a liquid
+        const isLiquidItem = (item) => {
+            if (!item) return false;
+            const unit = (item.unit || '').toString().toLowerCase();
+
+            // Common liquid unit hints: Chinese '毫升' or latin 'ml', 'l', 'cl'
+            if (unit.includes('毫') || unit.includes('ml') || unit.includes('cl') || unit === 'l') {
+                return true;
+            }
+
+            // If unit is absent, fall back to numeric clues: positive volume or positive abv
+            if (typeof item.volume === 'number' && item.volume > 0) return true;
+            if (typeof item.abv === 'number' && item.abv > 0) return true;
+
+            return false;
+        };
+
+        // Build filtered structure: by default show liquid items only,
+        // but preserve a few meaningful non-liquid categories so their
+        // original items remain visible under their own category (eg garnish).
+        const filtered = { ingredients: [] };
+        const allowedNonLiquidCategories = new Set(['garnish', 'dairy_cream', 'other', 'spice_herb']);
+
+        if (Array.isArray(ingredients.ingredients)) {
+            for (const cat of ingredients.ingredients) {
+                if (!cat || !Array.isArray(cat.items)) continue;
+
+                const catKey = (cat.category || '').toString();
+
+                // If this category is one of the allowed non-liquid categories,
+                // return all its items (so they stay in their original category).
+                if (allowedNonLiquidCategories.has(catKey)) {
+                    filtered.ingredients.push({
+                        category: cat.category,
+                        items: cat.items.slice() // copy
+                    });
+                    continue;
+                }
+
+                // Otherwise only include items that look like liquids
+                const liquidItems = cat.items.filter(isLiquidItem);
+                if (liquidItems.length > 0) {
+                    filtered.ingredients.push({
+                        category: cat.category,
+                        items: liquidItems
+                    });
+                }
+            }
+        }
+
+        // Ensure every ingredient remains associated with some category in the
+        // returned structure (avoid silently dropping items). Any remaining
+        // uncategorized items will be appended to 'other' category if not present.
+        try {
+            const includedIds = new Set();
+            for (const c of filtered.ingredients) {
+                for (const it of c.items || []) {
+                    if (it && it.id) includedIds.add(it.id);
+                }
+            }
+
+            const leftovers = [];
+            for (const origCat of (ingredients.ingredients || [])) {
+                for (const it of (origCat.items || [])) {
+                    if (it && it.id && !includedIds.has(it.id)) {
+                        leftovers.push(it);
+                    }
+                }
+            }
+
+            if (leftovers.length > 0) {
+                // append leftovers to an 'other' bucket so they are not lost
+                let otherCat = filtered.ingredients.find(c => c.category === 'other');
+                if (!otherCat) {
+                    otherCat = { category: 'other', items: [] };
+                    filtered.ingredients.push(otherCat);
+                }
+                // avoid duplicating items
+                const existing = new Set((otherCat.items || []).map(i => i.id));
+                for (const it of leftovers) {
+                    if (!existing.has(it.id)) otherCat.items.push(it);
+                }
+            }
+        } catch (e) {
+            // non-fatal - if anything goes wrong here we still return the filtered result
+            console.error('Error while consolidating leftover ingredients:', e);
+        }
+
+        res.json(filtered);
     } catch (error) {
         console.error("Error reading ingredients:", error);
         res.status(500).json({ message: '加载原料数据失败' });
