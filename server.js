@@ -11,36 +11,57 @@ try {
 }
 
 // AI密钥配置 - 从多个来源尝试获取
-let apiKey = null;
+let deepseekApiKey = null;
+let qwenApiKey = null;
 
-// // 1. 尝试从环境变量获取
-// if (process.env.DEEPSEEK_API_KEY && process.env.DEEPSEEK_API_KEY !== 'sk-your-api-key-here') {
-//     apiKey = process.env.DEEPSEEK_API_KEY;
-//     console.log('🤖 从环境变量加载了AI密钥');
-// }
-
-// 2. 尝试从配置文件获取
+// 从配置文件获取API密钥
 const configFile = path.join(__dirname, 'config.json');
-if (!apiKey && fsSync.existsSync(configFile)) {
+if (fsSync.existsSync(configFile)) {
     try {
         const config = JSON.parse(fsSync.readFileSync(configFile, 'utf8'));
+
+        // 加载DeepSeek密钥
         if (config.DEEPSEEK_API_KEY && config.DEEPSEEK_API_KEY !== 'sk-your-api-key-here') {
-            apiKey = config.DEEPSEEK_API_KEY;
-            console.log('🤖 从配置文件加载了AI密钥');
+            deepseekApiKey = config.DEEPSEEK_API_KEY;
+            console.log('🤖 从配置文件加载了DeepSeek API密钥');
+        }
+
+        // 加载千问密钥
+        if (config.QWEN_API_KEY && config.QWEN_API_KEY !== 'sk-your-api-key-here') {
+            qwenApiKey = config.QWEN_API_KEY;
+            console.log('🤖 从配置文件加载了千问 API密钥');
         }
     } catch (error) {
         console.log('⚠️ 配置文件读取失败:', error.message);
     }
 }
 
-// 3. 设置API密钥到环境变量
-if (apiKey) {
-    process.env.DEEPSEEK_API_KEY = apiKey;
-    console.log('🤖 已配置AI密钥环境变量');
+// ============================================================
+// 🔧 AI模型切换开关 - 在这里选择使用哪个AI模型
+// ============================================================
+// 可选值: 'deepseek' 或 'qwen'
+const AI_MODEL_PREFERENCE = 'qwen';  // ← 修改这里切换模型
+// ============================================================
+
+// 根据偏好设置环境变量
+if (AI_MODEL_PREFERENCE === 'deepseek' && deepseekApiKey) {
+    process.env.DEEPSEEK_API_KEY = deepseekApiKey;
+    process.env.AI_PROVIDER = 'deepseek';
+    console.log('🤖 将使用 DeepSeek 模型');
+} else if (AI_MODEL_PREFERENCE === 'qwen' && qwenApiKey) {
+    process.env.QWEN_API_KEY = qwenApiKey;
+    process.env.AI_PROVIDER = 'qwen';
+    console.log('🤖 将使用千问Turbo模型 (响应更快)');
+} else if (deepseekApiKey) {
+    process.env.DEEPSEEK_API_KEY = deepseekApiKey;
+    process.env.AI_PROVIDER = 'deepseek';
+    console.log('🤖 将使用 DeepSeek 模型 (备选)');
+} else if (qwenApiKey) {
+    process.env.QWEN_API_KEY = qwenApiKey;
+    process.env.AI_PROVIDER = 'qwen';
+    console.log('🤖 将使用千问Turbo模型 (备选)');
 } else {
     console.log('⚠️ 未找到有效的AI密钥，将使用演示模式');
-    console.log('   请在环境变量DEEPSEEK_API_KEY中设置您的API密钥');
-    console.log('   或在config.json文件中配置{"DEEPSEEK_API_KEY": "您的密钥"}');
 }
 
 const express = require('express');
@@ -56,8 +77,9 @@ const port = 8080; // Change port number to 8080
 const dbPool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: 'ABzj#12345678',
-    database: 'cybar',
+    // password: 'ABzj#12345678',
+    password: 'zqd20040504',  // 本地调试密码
+    database: 'zqd_cybar',    // 本地数据库名
     port: 3306,
     charset: 'utf8mb4'
 });
@@ -637,9 +659,9 @@ app.get('/api/recipes', async (req, res) => {
     }
 
     try {
-    // 查询总数
-    const countSql = `SELECT COUNT(*) AS total FROM cocktails ${where}`;
-    const [[{ total }]] = await dbPool.query(countSql, params);
+        // 查询总数
+        const countSql = `SELECT COUNT(*) AS total FROM cocktails ${where}`;
+        const [[{ total }]] = await dbPool.query(countSql, params);
 
         // 查询当前页数据（包含原料信息：GROUP_CONCAT DISTINCT）
         const dataSql = `
@@ -663,7 +685,7 @@ app.get('/api/recipes', async (req, res) => {
         `;
         params.push(limit, offset);
 
-    const [recipes] = await dbPool.query(dataSql, params);
+        const [recipes] = await dbPool.query(dataSql, params);
 
         res.json({
             recipes: recipes.map(r => ({
@@ -1501,6 +1523,35 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
                     message: 'AI服务认证失败，请联系管理员配置API密钥',
                     error: 'API_AUTH_ERROR'
                 });
+            } else if (error.response.status === 402) {
+                // API余额不足，返回演示模式配方
+                console.log('⚠️ DeepSeek API余额不足，使用演示模式');
+                const demoRecipe = {
+                    name: "AI灵感特调",
+                    description: `根据您"${tasteDescription}"的描述，为您推荐这款特色鸡尾酒`,
+                    ingredients: [
+                        { name: "伏特加", volume: 45, abv: 40, category: "base_alcohol" },
+                        { name: "蔓越莓汁", volume: 30, abv: 0, category: "juice" },
+                        { name: "柠檬汁", volume: 15, abv: 0, category: "juice" },
+                        { name: "糖浆", volume: 10, abv: 0, category: "syrup" }
+                    ],
+                    steps: [
+                        "在调酒器中加入冰块",
+                        "依次倒入伏特加、蔓越莓汁、柠檬汁和糖浆",
+                        "用力摇晃15-20秒",
+                        "用双重过滤器过滤到冰镇的马天尼杯中",
+                        "用柠檬皮装饰"
+                    ],
+                    glassware: "马天尼杯",
+                    garnish: "柠檬皮",
+                    tips: "API余额不足，这是演示配方。请充值DeepSeek账户获得真实AI配方。",
+                    isDemo: true
+                };
+                return res.json({
+                    success: true,
+                    recipe: demoRecipe,
+                    generatedAt: new Date().toISOString()
+                });
             } else if (error.response.status === 429) {
                 return res.status(429).json({
                     message: 'AI服务请求过于频繁，请稍后再试',
@@ -2024,5 +2075,315 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
             message: "生成推荐时出错",
             error: error.message
         });
+    }
+});
+
+// ==================== 口味评分和AI分析API ====================
+
+// 评分数据文件路径
+const ratingsFilePath = path.join(__dirname, 'data', 'ratings.json');
+
+// 读取评分数据
+function readRatings() {
+    try {
+        if (fsSync.existsSync(ratingsFilePath)) {
+            const data = fsSync.readFileSync(ratingsFilePath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error('读取评分数据失败:', error);
+    }
+    return {};
+}
+
+// 保存评分数据
+function saveRatings(ratings) {
+    try {
+        const dir = path.dirname(ratingsFilePath);
+        if (!fsSync.existsSync(dir)) {
+            fsSync.mkdirSync(dir, { recursive: true });
+        }
+        fsSync.writeFileSync(ratingsFilePath, JSON.stringify(ratings, null, 2), 'utf8');
+        console.log(`[评分] 数据已保存到: ${ratingsFilePath}`);
+        return true;
+    } catch (error) {
+        console.error('保存评分数据失败:', error);
+        return false;
+    }
+}
+
+// 获取配方的评分信息
+app.get('/api/recipes/:id/ratings', async (req, res) => {
+    try {
+        const recipeId = req.params.id;
+        const ratings = readRatings();
+        const recipeRatings = ratings[recipeId];
+
+        if (recipeRatings) {
+            res.json({
+                success: true,
+                hasRating: true,
+                ratings: recipeRatings.scores,
+                calculatedScore: recipeRatings.calculatedScore,
+                aiAnalysis: recipeRatings.aiAnalysis,
+                ratedAt: recipeRatings.ratedAt
+            });
+        } else {
+            res.json({
+                success: true,
+                hasRating: false
+            });
+        }
+    } catch (error) {
+        console.error('获取评分失败:', error);
+        res.status(500).json({ message: '获取评分失败' });
+    }
+});
+
+// 保存配方评分和AI分析
+app.post('/api/recipes/:id/ratings', async (req, res) => {
+    try {
+        const recipeId = req.params.id;
+        const { scores, aiAnalysis } = req.body;
+
+        // 验证评分数据
+        if (!scores || !scores.visual || !scores.aroma || !scores.taste || !scores.mouthfeel || !scores.finish) {
+            return res.status(400).json({ message: '请提供完整的评分数据' });
+        }
+
+        // 计算加权总分
+        // 权重: 外观10%, 香气20%, 风味40%, 口感20%, 余韵10%
+        const calculatedScore = (
+            scores.visual * 0.1 +
+            scores.aroma * 0.2 +
+            scores.taste * 0.4 +
+            scores.mouthfeel * 0.2 +
+            scores.finish * 0.1
+        ).toFixed(1);
+
+        const ratings = readRatings();
+        ratings[recipeId] = {
+            scores: scores,
+            calculatedScore: parseFloat(calculatedScore),
+            aiAnalysis: aiAnalysis || null,
+            ratedAt: new Date().toISOString()
+        };
+
+        if (saveRatings(ratings)) {
+            res.json({
+                success: true,
+                calculatedScore: parseFloat(calculatedScore),
+                message: '评分保存成功'
+            });
+        } else {
+            res.status(500).json({ message: '保存评分失败' });
+        }
+    } catch (error) {
+        console.error('保存评分失败:', error);
+        res.status(500).json({ message: '保存评分失败' });
+    }
+});
+
+// 基于配方ID进行AI口味分析
+app.post('/api/recipes/:id/ai-analyze', async (req, res) => {
+    try {
+        const recipeId = req.params.id;
+        console.log(`[AI分析] 开始分析配方ID: ${recipeId}`);
+
+        // 获取配方详情
+        let recipes;
+        try {
+            [recipes] = await dbPool.query(
+                'SELECT id, name, instructions, estimated_abv FROM cocktails WHERE id = ?',
+                [recipeId]
+            );
+            console.log(`[AI分析] 查询到配方数量: ${recipes.length}`);
+        } catch (dbError) {
+            console.error('[AI分析] 数据库查询配方失败:', dbError.message);
+            return res.status(500).json({ message: '数据库查询失败' });
+        }
+
+        if (recipes.length === 0) {
+            return res.status(404).json({ message: '配方不存在' });
+        }
+
+        const recipe = recipes[0];
+        console.log(`[AI分析] 配方名称: ${recipe.name}`);
+
+        // 获取配方原料
+        let ingredients;
+        try {
+            [ingredients] = await dbPool.query(
+                'SELECT name, volume, abv FROM ingredients WHERE cocktail_id = ?',
+                [recipeId]
+            );
+            console.log(`[AI分析] 查询到原料数量: ${ingredients.length}`);
+        } catch (dbError) {
+            console.error('[AI分析] 数据库查询原料失败:', dbError.message);
+            return res.status(500).json({ message: '数据库查询失败' });
+        }
+
+        if (ingredients.length === 0) {
+            // 如果没有原料，使用配方的基本信息进行分析
+            console.log('[AI分析] 配方没有原料信息，使用基本信息分析');
+        }
+
+        // 构建分析提示
+        const ingredientsList = ingredients.map(ing =>
+            `${ing.name} (${ing.volume}ml, 酒精度: ${ing.abv || 0}%)`
+        ).join(', ');
+
+        const prompt = `请对以下鸡尾酒进行专业的口味分析：
+
+鸡尾酒名称: ${recipe.name}
+预估酒精度: ${recipe.estimated_abv || '未知'}%
+原料: ${ingredientsList}
+制作方法: ${recipe.instructions || '未提供'}
+
+请按照以下格式提供详细分析：
+
+【综合评分建议】
+外观呈现: X/10 (颜色、透明度、装饰等)
+香气表现: X/10 (初闻、复杂性、酒精融合度)
+风味平衡: X/10 (酸甜平衡、苦味整合、融合度)
+口感体验: X/10 (温度、稀释度、质地)
+余韵持久: X/10 (持久度、愉悦感)
+
+【口味特征】
+甜度: X/5
+酸度: X/5
+苦度: X/5
+烈度: X/5
+清爽度: X/5
+
+【详细分析】
+1. 外观与呈现分析
+2. 香气层次解析
+3. 风味平衡评价
+4. 口感与酒体描述
+5. 余韵与回味分析
+6. 适饮场景推荐
+7. 改进建议(如有)
+
+请用专业但易懂的语言，给出客观准确的分析。
+
+注意：请不要使用任何Markdown格式符号（如**、*、#、-等），直接输出纯文本内容。`;
+
+        let analysis;
+        const aiProvider = process.env.AI_PROVIDER;
+        const qwenKey = process.env.QWEN_API_KEY;
+        const deepseekKey = process.env.DEEPSEEK_API_KEY;
+
+        if (!qwenKey && !deepseekKey) {
+            // 演示模式
+            analysis = `🤖 AI口味分析结果
+
+【综合评分建议】
+外观呈现: 8/10 - 色泽诱人，视觉效果良好
+香气表现: 7/10 - 香气层次丰富
+风味平衡: 8/10 - 酸甜适中，融合度高
+口感体验: 8/10 - 口感顺滑，温度适宜
+余韵持久: 7/10 - 回味悠长
+
+【口味特征】
+甜度: 3/5 - 适中的甜度
+酸度: 2/5 - 清爽的酸度
+苦度: 1/5 - 微苦回甘
+烈度: 3/5 - 酒精感适中
+清爽度: 4/5 - 清爽解腻
+
+【详细分析】
+
+**外观与呈现：**
+这款${recipe.name}呈现出优雅的色泽，透明度良好。建议搭配合适的杯具和装饰物，提升整体视觉体验。
+
+**香气层次：**
+前调带有明显的酒精香气和原料特征香，中调展现出丰富的风味层次，后调留有淡淡的果香或草本香气。
+
+**风味平衡：**
+酸甜比例协调，各种原料的风味相互融合而非冲突，整体呈现出和谐统一的口感。
+
+**口感与酒体：**
+入口顺滑，酒体中等偏轻，酒精感被很好地掩盖，适合细细品味。
+
+**余韵分析：**
+回味持久，留下愉悦的果香或木质香气，令人回味无穷。
+
+**适饮场景：**
+适合休闲聚会、晚餐后饮用，或作为开胃酒。
+
+⚠️ 这是演示模式的分析结果。配置API密钥后可获得更精准的AI分析。`;
+        } else if (aiProvider === 'qwen' && qwenKey) {
+            // 调用阿里云千问API (响应更快)
+            console.log('[AI分析] 使用千问Turbo模型');
+            const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                model: 'qwen-plus',
+                messages: [
+                    {
+                        role: 'system',
+                        content: '你是一位资深的调酒师和品酒专家，拥有丰富的鸡尾酒品鉴经验。请用专业、客观的语言分析鸡尾酒的口味特征。'
+                    },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 1500
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${qwenKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            });
+            analysis = response.data.choices[0].message.content;
+        } else if (deepseekKey) {
+            // 调用DeepSeek API
+            console.log('[AI分析] 使用DeepSeek模型');
+            const response = await axios.post('https://api.deepseek.com/chat/completions', {
+                model: 'deepseek-chat',
+                messages: [
+                    {
+                        role: 'system',
+                        content: '你是一位资深的调酒师和品酒专家，拥有丰富的鸡尾酒品鉴经验。请用专业、客观的语言分析鸡尾酒的口味特征。'
+                    },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 1500
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${deepseekKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 60000
+            });
+            analysis = response.data.choices[0].message.content;
+        }
+
+        // 保存分析结果到评分数据
+        const ratings = readRatings();
+        if (!ratings[recipeId]) {
+            ratings[recipeId] = {};
+        }
+        ratings[recipeId].aiAnalysis = analysis;
+        ratings[recipeId].analyzedAt = new Date().toISOString();
+        saveRatings(ratings);
+
+        res.json({
+            success: true,
+            analysis: analysis,
+            analyzedAt: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('[AI分析] 错误详情:', error);
+        console.error('[AI分析] 错误信息:', error.message);
+        if (error.response) {
+            console.error('[AI分析] 响应状态:', error.response.status);
+            console.error('[AI分析] 响应数据:', error.response.data);
+            if (error.response.status === 402) {
+                return res.status(402).json({ message: 'API余额不足' });
+            }
+        }
+        res.status(500).json({ message: `AI分析服务暂时不可用: ${error.message}` });
     }
 });
