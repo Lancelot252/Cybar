@@ -42,6 +42,12 @@ if (fsSync.existsSync(configFile)) {
 // 可选值: 'deepseek' 或 'qwen'
 const AI_MODEL_PREFERENCE = 'qwen';  // ← 修改这里切换模型
 // ============================================================
+// 🎯 推荐策略配置 - 选择推荐多样性策略
+// ============================================================
+// 可选值: 'TIERED_RANDOM' (分层随机) | 'TIME_DECAY' (时间衰减) | 'BASIC' (基础)
+process.env.RECOMMENDATION_STRATEGY = process.env.RECOMMENDATION_STRATEGY || 'TIERED_RANDOM';
+console.log(`🎲 推荐策略: ${process.env.RECOMMENDATION_STRATEGY}`);
+// ============================================================
 
 // 根据偏好设置环境变量
 if (AI_MODEL_PREFERENCE === 'deepseek' && deepseekApiKey) {
@@ -83,6 +89,11 @@ const dbPool = mysql.createPool({
     port: 3306,
     charset: 'utf8mb4'
 });
+
+// 引入推荐策略系统
+const { StrategyFactory } = require('./recommendationStrategies');
+const strategyFactory = new StrategyFactory(dbPool);
+console.log(`✅ 推荐策略系统已初始化，可用策略: ${strategyFactory.listStrategies().join(', ')}`);
 
 // --- Visit Counter (In-Memory - Resets on server restart) ---
 // Use an object to store counts per path
@@ -2008,14 +2019,24 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
         // 6) 排序所有推荐配方
         const sortedRecipes = scoredRecipes.sort((a, b) => b.totalScore - a.totalScore);
         
+        // 7) 应用推荐策略（多样性优化）
+        const strategy = strategyFactory.getActiveStrategy();
+        const strategyContext = {
+            userId,
+            session: req.session,
+            limit,
+            offset
+        };
+        
+        const diversifiedRecipes = await strategy.apply(sortedRecipes, strategyContext);
+        
         // 计算分页信息
         const totalRecommendations = sortedRecipes.length;
         const totalPages = Math.ceil(totalRecommendations / limit);
         const hasMore = page < totalPages;
         
-        // 7) 分页截取并格式化返回数据
-        const recommendations = sortedRecipes
-            .slice(offset, offset + limit)
+        // 8) 格式化返回数据
+        const recommendations = diversifiedRecipes
             .map(recipe => {
                 const maxPossibleScore = 4 + 3 + 2 + 1.5 + 2.5;
                 const matchPercentage = Math.min(
