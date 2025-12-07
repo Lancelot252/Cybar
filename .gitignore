@@ -26,6 +26,7 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+.github/
 
 # 操作系统
 .DS_Store
