@@ -42,6 +42,12 @@ if (fsSync.existsSync(configFile)) {
 // 可选值: 'deepseek' 或 'qwen'
 const AI_MODEL_PREFERENCE = 'qwen';  // ← 修改这里切换模型
 // ============================================================
+// 🎯 推荐策略配置 - 选择推荐多样性策略
+// ============================================================
+// 可选值: 'TIERED_RANDOM' (分层随机) | 'TIME_DECAY' (时间衰减) | 'BASIC' (基础)
+process.env.RECOMMENDATION_STRATEGY = process.env.RECOMMENDATION_STRATEGY || 'TIERED_RANDOM';
+console.log(`🎲 推荐策略: ${process.env.RECOMMENDATION_STRATEGY}`);
+// ============================================================
 
 // 根据偏好设置环境变量
 if (AI_MODEL_PREFERENCE === 'deepseek' && deepseekApiKey) {
@@ -75,14 +81,19 @@ const port = 8080; // Change port number to 8080
 
 // 数据库连接池
 const dbPool = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
+    host: '192.168.43.231',
+    user: 'cybar_user',
     // password: 'ABzj#12345678',
-    password: 'zqd20040504',  // 本地调试密码
-    database: 'zqd_cybar',    // 本地数据库名
+    password: '2025',  // 本地调试密码
+    database: 'cybar',    // 本地数据库名
     port: 3306,
     charset: 'utf8mb4'
 });
+
+// 引入推荐策略系统
+const { StrategyFactory } = require('./recommendationStrategies');
+const strategyFactory = new StrategyFactory(dbPool);
+console.log(`✅ 推荐策略系统已初始化，可用策略: ${strategyFactory.listStrategies().join(', ')}`);
 
 // --- Visit Counter (In-Memory - Resets on server restart) ---
 // Use an object to store counts per path
@@ -1595,10 +1606,14 @@ app.listen(port, () => {
     console.log(`========================================`);
 });
 
-// 更新推荐API - 综合协同过滤和原料规范化
+// 更新推荐API - 综合协同过滤和原料规范化（支持分页）
 app.get('/api/recommendations', isAuthenticated, async (req, res) => {
     const userId = req.session.userId;
-    const MAX_RECOMMENDATIONS = 4;
+    
+    // 分页参数
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
 
     // 原料名称规范化映射表
     const ingredientNormalizationMap = {
@@ -1654,7 +1669,7 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
                 GROUP_CONCAT(DISTINCT i.name) AS ingredients
             FROM likes l
             JOIN cocktails c ON l.recipe_id = c.id
-            JOIN ingredients i ON c.id = i.cocktail_id
+            LEFT JOIN ingredients i ON c.id = i.cocktail_id
             WHERE l.user_id = ?
             GROUP BY c.id
             UNION ALL
@@ -1664,7 +1679,7 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
                 GROUP_CONCAT(DISTINCT i.name) AS ingredients
             FROM favorites f
             JOIN cocktails c ON f.recipe_id = c.id
-            JOIN ingredients i ON c.id = i.cocktail_id
+            LEFT JOIN ingredients i ON c.id = i.cocktail_id
             WHERE f.user_id = ?
             GROUP BY c.id
         `, [userId, userId]);
@@ -1762,46 +1777,51 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
                 AND user_id != ?
             `, [Array.from(preferenceData.interactedRecipeIds), userId]);
 
-            // 获取这些用户的完整互动数据
-            const [allInteractions] = await dbPool.query(`
-                SELECT user_id AS userId, recipe_id AS recipeId
-                FROM (
-                    SELECT user_id, recipe_id FROM likes
-                    UNION ALL
-                    SELECT user_id, recipe_id FROM favorites
-                ) AS interactions
-                WHERE user_id IN (?)
-            `, [potentialUsers.map(u => u.userId)]);
+            // 如果没有潜在相似用户，跳过协同过滤
+            if (potentialUsers.length === 0) {
+                console.log('没有找到潜在相似用户，跳过协同过滤');
+            } else {
+                // 获取这些用户的完整互动数据
+                const [allInteractions] = await dbPool.query(`
+                    SELECT user_id AS userId, recipe_id AS recipeId
+                    FROM (
+                        SELECT user_id, recipe_id FROM likes
+                        UNION ALL
+                        SELECT user_id, recipe_id FROM favorites
+                    ) AS interactions
+                    WHERE user_id IN (?)
+                `, [potentialUsers.map(u => u.userId)]);
 
-            // 构建用户互动映射
-            const userInteractionMap = new Map();
-            allInteractions.forEach(ia => {
-                if (!userInteractionMap.has(ia.userId)) {
-                    userInteractionMap.set(ia.userId, new Set());
-                }
-                userInteractionMap.get(ia.userId).add(ia.recipeId);
-            });
+                // 构建用户互动映射
+                const userInteractionMap = new Map();
+                allInteractions.forEach(ia => {
+                    if (!userInteractionMap.has(ia.userId)) {
+                        userInteractionMap.set(ia.userId, new Set());
+                    }
+                    userInteractionMap.get(ia.userId).add(ia.recipeId);
+                });
 
-            // 计算Jaccard相似度
-            const currentUserSet = preferenceData.interactedRecipeIds;
-            potentialUsers.forEach(user => {
-                const otherUserSet = userInteractionMap.get(user.userId) || new Set();
+                // 计算Jaccard相似度
+                const currentUserSet = preferenceData.interactedRecipeIds;
+                potentialUsers.forEach(user => {
+                    const otherUserSet = userInteractionMap.get(user.userId) || new Set();
 
-                // 计算交集和并集
-                const intersection = new Set(
-                    [...currentUserSet].filter(id => otherUserSet.has(id))
-                );
-                const union = new Set([...currentUserSet, ...otherUserSet]);
+                    // 计算交集和并集
+                    const intersection = new Set(
+                        [...currentUserSet].filter(id => otherUserSet.has(id))
+                    );
+                    const union = new Set([...currentUserSet, ...otherUserSet]);
 
-                // 避免除以零
-                const similarity = union.size > 0
-                    ? intersection.size / union.size
-                    : 0;
+                    // 避免除以零
+                    const similarity = union.size > 0
+                        ? intersection.size / union.size
+                        : 0;
 
-                if (similarity > 0.2) {  // 设置相似度阈值
-                    similarUsers.set(user.userId, similarity);
-                }
-            });
+                    if (similarity > 0.2) {  // 设置相似度阈值
+                        similarUsers.set(user.userId, similarity);
+                    }
+                });
+            }
         }
 
         // 4) 拿到所有候选配方
@@ -1814,7 +1834,7 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
             FROM cocktails c
             LEFT JOIN likes l ON c.id = l.recipe_id
             LEFT JOIN favorites f ON c.id = f.recipe_id
-            JOIN ingredients i ON c.id = i.cocktail_id
+            LEFT JOIN ingredients i ON c.id = i.cocktail_id
             GROUP BY c.id
         `);
 
@@ -1996,10 +2016,27 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
             });
         }
 
-        // 6) 排序 & 取前 MAX_RECOMMENDATIONS 个，拼最终返回格式
-        const recommendations = scoredRecipes
-            .sort((a, b) => b.totalScore - a.totalScore)
-            .slice(0, MAX_RECOMMENDATIONS)
+        // 6) 排序所有推荐配方
+        const sortedRecipes = scoredRecipes.sort((a, b) => b.totalScore - a.totalScore);
+        
+        // 7) 应用推荐策略（多样性优化）
+        const strategy = strategyFactory.getActiveStrategy();
+        const strategyContext = {
+            userId,
+            session: req.session,
+            limit,
+            offset
+        };
+        
+        const diversifiedRecipes = await strategy.apply(sortedRecipes, strategyContext);
+        
+        // 计算分页信息
+        const totalRecommendations = sortedRecipes.length;
+        const totalPages = Math.ceil(totalRecommendations / limit);
+        const hasMore = page < totalPages;
+        
+        // 8) 格式化返回数据
+        const recommendations = diversifiedRecipes
             .map(recipe => {
                 const maxPossibleScore = 4 + 3 + 2 + 1.5 + 2.5;
                 const matchPercentage = Math.min(
@@ -2063,11 +2100,21 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
                     estimatedAbv: recipe.estimatedAbv,
                     matchPercentage,
                     reason: reasonText,
-                    reasons: reasons
+                    reasons: reasons,
+                    likeCount: recipe.likeCount || 0
                 };
             });
 
-        return res.json({ recommendations });
+        return res.json({ 
+            recommendations,
+            pagination: {
+                currentPage: page,
+                totalPages: totalPages,
+                totalRecommendations: totalRecommendations,
+                limit: limit,
+                hasMore: hasMore
+            }
+        });
 
     } catch (error) {
         console.error("生成推荐失败:", error);
