@@ -80,6 +80,15 @@ router.post('/api/user/avatar', isAuthenticated, upload.single('avatar'), async 
         }
 
         const userId = req.session.userId;
+        
+        // 获取旧头像路径
+        const [rows] = await dbPool.query(
+            'SELECT avatar FROM users WHERE id = ?',
+            [userId]
+        );
+        
+        const oldAvatar = rows.length > 0 ? rows[0].avatar : null;
+        
         // 生成网页可访问的路径 (注意：Web路径用正斜杠 /)
         let webPath = '/uploads/avatars/' + req.file.filename;
         
@@ -88,6 +97,19 @@ router.post('/api/user/avatar', isAuthenticated, upload.single('avatar'), async 
             'UPDATE users SET avatar = ? WHERE id = ?',
             [webPath, userId]
         );
+        
+        // 删除旧头像文件（如果存在且不是默认头像）
+        if (oldAvatar && oldAvatar !== '/uploads/avatars/test.jpg') {
+            const oldAvatarPath = path.join(ROOT_DIR, oldAvatar);
+            if (fs.existsSync(oldAvatarPath)) {
+                try {
+                    fs.unlinkSync(oldAvatarPath);
+                    console.log('已删除旧头像:', oldAvatarPath);
+                } catch (err) {
+                    console.error('删除旧头像失败:', err);
+                }
+            }
+        }
 
         res.json({ message: '头像上传成功', avatarUrl: webPath });
     } catch (error) {
