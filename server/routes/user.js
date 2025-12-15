@@ -166,3 +166,44 @@ router.post('/api/user/signature', isAuthenticated, async (req, res) => {
 });
 
 module.exports = router;
+// 更新用户个人资料
+router.put('/api/user/profile', isAuthenticated, async (req, res) => {
+    const userId = req.session.userId;
+    const { nickname, bio } = req.body;
+
+    if (!nickname) {
+        return res.status(400).json({ message: '昵称不能为空' });
+    }
+
+    try {
+        // 检查昵称是否已被其他用户使用
+        const [existing] = await dbPool.query(
+            'SELECT id FROM users WHERE username = ? AND id != ?',
+            [nickname, userId]
+        );
+
+        if (existing.length > 0) {
+            return res.status(409).json({ message: '该昵称已被使用' });
+        }
+
+        // 更新用户名 (数据库中没有 bio 字段，暂时忽略 bio)
+        await dbPool.query(
+            'UPDATE users SET username = ? WHERE id = ?',
+            [nickname, userId]
+        );
+
+        // 更新 Session 中的用户名
+        req.session.username = nickname;
+
+        res.json({ 
+            message: '个人资料已更新', 
+            username: nickname
+        });
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        res.status(500).json({ message: '更新个人资料失败' });
+    }
+});
+
+
+module.exports = router;
