@@ -1,614 +1,440 @@
 // 自定义鸡尾酒创建器的JavaScript逻辑
 document.addEventListener('DOMContentLoaded', function () {
-    // 全局变量
-    let allIngredients = {}; // 所有原料数据
-    let selectedIngredients = []; // 已选择的原料
-    // 使用 ingredients.json 中的 category 值作为默认（例如: 'base_alcohol'）
-    let currentCategoryTab = 'base_alcohol'; // 当前活动的分类标签
+    // --- 1. 全局变量 & 编辑模式检测 ---
+    let allIngredients = {}; 
+    let selectedIngredients = []; 
+    let currentCategoryTab = 'base_alcohol'; 
 
-    // 分类顺序和名称映射 - 与后端API返回的数据结构完全对应
+    // [核心] 检查 URL 是否包含 ?id=xxx
+    const urlParams = new URLSearchParams(window.location.search);
+    const editRecipeId = urlParams.get('id'); 
+    const isEditMode = !!editRecipeId; // 转换为布尔值 (true/false)
+
+    // 分类配置
     const CATEGORY_ORDER = ['base_alcohol', 'liqueurs', 'vermouth_wine', 'bitters', 'juice', 'syrup', 'soda_mixer', 'dairy_cream', 'other'];
     const CATEGORY_NAMES = {
-        'base_alcohol': '基酒',
-        'liqueurs': '力娇酒/利口酒',
-        'vermouth_wine': '味美思/加强葡萄酒',
-        'bitters': '苦精',
-        'juice': '果汁',
-        'syrup': '糖浆',
-        'soda_mixer': '碳酸/调配饮料',
-        'dairy_cream': '奶制品',
-        'other': '其他'
+        'base_alcohol': '基酒', 'liqueurs': '力娇酒/利口酒', 'vermouth_wine': '味美思/加强葡萄酒',
+        'bitters': '苦精', 'juice': '果汁', 'syrup': '糖浆',
+        'soda_mixer': '碳酸/调配饮料', 'dairy_cream': '奶制品', 'other': '其他'
     };
 
-    // 初始化函数
+    // --- 2. 初始化函数 ---
     async function initialize() {
         try {
-            console.log('正在初始化自定义调酒界面...');
+            console.log(isEditMode ? `进入修改模式 (ID: ${editRecipeId})` : '进入创建模式');
 
-            // 获取所有原料数据
-            console.log('正在获取原料数据...');
+            // 2.1 如果是编辑模式，修改界面标题
+            if (isEditMode) {
+                const titleEl = document.querySelector('h2');
+                if (titleEl) titleEl.textContent = '修改配方';
+                const saveBtn = document.getElementById('save-cocktail-btn');
+                if (saveBtn) saveBtn.textContent = '保存修改';
+            }
+
+            // 2.2 获取原料库 (必须先有原料库，才能做回显匹配)
             const response = await fetch('/api/custom/ingredients');
-
-            // 添加详细日志
-            console.log('API响应状态:', response.status, response.statusText);
-
-            if (!response.ok) {
-                throw new Error(`获取原料数据失败: HTTP ${response.status} - ${response.statusText}`);
-            }
-
+            if (!response.ok) throw new Error('原料数据加载失败');
             const responseText = await response.text();
-            console.log('API响应内容长度:', responseText.length);
+            allIngredients = JSON.parse(responseText);
 
-            try {
-                // 尝试解析JSON
-                allIngredients = JSON.parse(responseText);
-                console.log('原料数据解析成功:', allIngredients);
-            } catch (parseError) {
-                console.error('JSON解析错误:', parseError);
-                console.error('收到的响应文本:', responseText.substring(0, 200) + '...');
-                throw new Error('解析原料数据失败: ' + parseError.message);
-            }
-
-            // 确保数据结构正确
-            if (!allIngredients.ingredients || !Array.isArray(allIngredients.ingredients)) {
-                console.error('原料数据格式不正确:', allIngredients);
-                showErrorMessage('原料数据格式不正确，请联系管理员');
-                return;
-            }
-
-            // 确认每个分类
-            console.log('可用原料分类:');
-            allIngredients.ingredients.forEach(category => {
-                console.log(`- ${category.category}: ${category.items ? category.items.length : 0} 个原料`);
-            });
-
-            // 加载基酒分类（初始显示，使用 JSON 中的 category key）
-            console.log('加载基酒分类...');
+            // 2.3 初始化基础界面
             loadIngredientsForCategory('base_alcohol');
-
-            // 渲染分类标签（替换页面中的静态按钮），并设置事件监听器
-            console.log('渲染分类标签并设置事件监听器...');
             renderCategoryTabs();
             setupEventListeners();
-
-            // 初始化酒精含量计算
             updateAbvCalculation();
 
-            // 初始化动画
-            const cocktailAnimation = document.querySelector('.cocktail-glass');
-            if (cocktailAnimation) {
-                cocktailAnimation.classList.add('abv-0');
+            // 2.4 [关键] 如果是编辑模式，去后台拉取旧数据并填入
+            if (isEditMode) {
+                await loadRecipeForEdit(editRecipeId);
             }
 
-            console.log('初始化完成');
         } catch (error) {
             console.error('初始化错误:', error);
-            showErrorMessage('加载数据失败: ' + error.message);
-
-            // 显示错误在界面上
-            document.getElementById('ingredients-list').innerHTML = `
-                <div class="error-message">
-                    <p>加载原料数据失败</p>
-                    <p>错误信息: ${error.message}</p>
-                    <button onclick="window.location.reload()">重新加载</button>
-                </div>
-            `;
+            showErrorMessage('加载失败: ' + error.message);
         }
     }
 
-    // 根据分类加载原料
-    function loadIngredientsForCategory(category) {
-        console.log(`加载分类 ${category} 的原料...`);
-        const ingredientsList = document.getElementById('ingredients-list');
-        ingredientsList.innerHTML = ''; // 清空现有内容
-    // 直接使用 JSON 中的 category key（例如: base_alcohol, liqueurs, vermouth_wine, bitters, juice, syrup, soda_mixer, dairy_cream, other）
-    const jsonCategory = category;
+    // --- 3. [新增] 加载并回显旧数据 ---
+    async function loadRecipeForEdit(id) {
+        try {
+            const res = await fetch(`/api/recipes/${id}`);
+            if (!res.ok) throw new Error('无法获取原配方数据');
+            const recipe = await res.json();
 
-        // 查找对应分类的原料
-        if (!allIngredients || !allIngredients.ingredients) {
-            console.error('原料数据结构不正确:', allIngredients);
-            ingredientsList.innerHTML = '<div class="no-ingredients-message">加载原料数据失败</div>';
-            return;
-        }
+            // >>> 回显名称 <<<
+            const nameInput = document.getElementById('cocktail-name');
+            if (nameInput) nameInput.value = recipe.name;
+            const descInput = document.getElementById('cocktail-description');
+            if (descInput) descInput.value = recipe.description || '';
 
-        // 若 category 为 'all'，合并所有分类条目
-        let categoryObj = null;
-        if (jsonCategory === 'all') {
-            // 创建一个合并对象，items 为所有分类的拼接
-            const allItems = [];
-            allIngredients.ingredients.forEach(cat => {
-                if (Array.isArray(cat.items)) allItems.push(...cat.items.map(i => ({...i, _src_category: cat.category}))); 
-            });
-            categoryObj = { category: 'all', items: allItems };
-        } else {
-            categoryObj = allIngredients.ingredients.find(cat => cat.category === jsonCategory);
-        }
-        console.log('找到的分类对象:', categoryObj);
+            // >>> 回显步骤 <<<
+            const stepsContainer = document.getElementById('steps-container');
+            if (stepsContainer) {
+                stepsContainer.innerHTML = ''; // 清空默认空行
+                
+                let steps = [];
+                // 兼容性处理：步骤可能是数组，也可能是字符串
+                if (Array.isArray(recipe.instructions)) {
+                    steps = recipe.instructions;
+                } else if (typeof recipe.instructions === 'string') {
+                    steps = recipe.instructions.split('\n');
+                }
 
-        // 检查该分类是否有数据
-        if (!categoryObj || !categoryObj.items || categoryObj.items.length === 0) {
-            console.log(`分类 ${jsonCategory} 没有原料数据`);
-            ingredientsList.innerHTML = '<div class="no-ingredients-message">此分类没有可用原料</div>';
-            return;
-        }
-
-        const categoryData = categoryObj.items;
-        console.log(`找到 ${categoryData.length} 个原料`);
-
-        // 创建网格容器
-        const gridContainer = document.createElement('div');
-        gridContainer.className = 'ingredients-grid';
-
-        // 遍历该分类的原料，创建网格项
-        categoryData.forEach(ingredient => {
-            console.log(`创建原料项: ${ingredient.name}`);
-            const ingredientItem = document.createElement('div');
-            ingredientItem.className = 'ingredient-item';
-            ingredientItem.dataset.id = ingredient.id;
-
-            // 将来源分类记录在 dataset（用于'all'视图时区分颜色显示）
-            if (ingredient._src_category) ingredientItem.dataset.category = ingredient._src_category;
-
-            // 判断该原料是否已被选择
-            const isSelected = selectedIngredients.some(i => i.id === ingredient.id);
-            if (isSelected) {
-                ingredientItem.classList.add('selected');
-            }
-
-            // 为不同分类设置不同的图标颜色 - 基于后端API返回的分类结构
-            // 颜色映射与CATEGORY_ORDER保持一致
-            const iconColors = {
-                'base_alcohol': '#FF9800',  // 橙色 - 基酒
-                'liqueurs': '#FF5722',      // 橙红色 - 力娇酒/利口酒  
-                'vermouth_wine': '#795548', // 棕色 - 味美思/加强葡萄酒
-                'bitters': '#6A1B9A',       // 深紫色 - 苦精
-                'juice': '#4CAF50',         // 绿色 - 果汁
-                'syrup': '#E91E63',         // 粉色 - 糖浆
-                'soda_mixer': '#2196F3',    // 蓝色 - 碳酸/调配饮料
-                'dairy_cream': '#9C27B0',   // 紫色 - 奶制品
-                'other': '#607D8B'          // 灰蓝色 - 其他
-            };
-
-            // 如果显示的是合并视图('all')，优先使用原料自身的来源分类来选择颜色
-            const itemCategoryForColor = ingredient._src_category || jsonCategory;
-            const iconColor = iconColors[itemCategoryForColor] || '#607D8B';
-
-            // 设置原料图标和详细信息
-            // 确保使用正确的单位，优先使用原料自身定义的单位
-            const displayUnit = ingredient.unit && ingredient.unit !== '' ? ingredient.unit : '毫升';
-            const abvDisplay = ingredient.abv > 0 ? `${ingredient.abv}% ABV` : `(${displayUnit})`;
-
-            ingredientItem.innerHTML = `
-                <div class="ingredient-card">
-                    <div class="ingredient-icon" style="background-color: ${iconColor};">${ingredient.name.charAt(0)}</div>
-                    <div class="ingredient-details">
-                        <div class="ingredient-name">${ingredient.name}</div>
-                        <div class="ingredient-abv">${abvDisplay}</div>
-                    </div>
-                    <button class="add-ingredient-btn" title="添加此原料">+</button>
-                </div>
-            `;
-
-            gridContainer.appendChild(ingredientItem);
-        });
-
-        ingredientsList.appendChild(gridContainer);
-
-        // 更新分类标签的活动状态（dataset.category 应当包含 JSON 的 category key）
-        document.querySelectorAll('.category-tab').forEach(tab => {
-            if (tab.dataset.category === jsonCategory) {
-                tab.classList.add('active');
-            } else {
-                tab.classList.remove('active');
-            }
-        });
-
-        currentCategoryTab = category;
-    }
-
-    // 设置所有事件监听器
-    function setupEventListeners() {
-        // 1. 分类标签点击事件（事件委托到容器，确保动态渲染的按钮也能响应）
-        const categoriesContainer = document.getElementById('ingredient-categories');
-        if (categoriesContainer) {
-            categoriesContainer.addEventListener('click', function (e) {
-                const tab = e.target.closest('.category-tab');
-                if (!tab) return;
-                const category = tab.dataset.category;
-                console.log('分类标签点击(委托):', category);
-
-                // 更新 UI active 状态
-                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-
-                loadIngredientsForCategory(category);
-            });
-        }
-
-        // 2. 搜索功能
-        const searchInput = document.getElementById('ingredient-search');
-        searchInput.addEventListener('input', function () {
-            filterIngredients(this.value);
-        });
-
-        // 3. 添加原料按钮点击事件（使用事件委托）
-        document.getElementById('ingredients-list').addEventListener('click', function (e) {
-            const addButton = e.target.closest('.add-ingredient-btn');
-            if (addButton) {
-                console.log('添加原料按钮点击');
-                const ingredientItem = addButton.closest('.ingredient-item');
-                const ingredientId = ingredientItem.dataset.id;
-                console.log('添加原料ID:', ingredientId);
-                addIngredientToSelection(ingredientId);
-            }
-        });
-
-        // 4. 添加步骤按钮点击事件
-        document.getElementById('add-step-btn').addEventListener('click', addPreparationStep);
-
-        // 5. 移除步骤按钮点击事件（使用事件委托）
-        document.getElementById('steps-container').addEventListener('click', function (e) {
-            if (e.target.classList.contains('remove-step-btn')) {
-                const stepItem = e.target.closest('.step-item');
-                if (document.querySelectorAll('.step-item').length > 1) {
-                    stepItem.remove();
-                    renumberSteps();
+                if (steps.length > 0) {
+                    steps.forEach(stepText => addPreparationStep(stepText));
                 } else {
-                    showErrorMessage('至少需要保留一个步骤');
+                    addPreparationStep();
                 }
             }
-        });
 
-        // 6. 保存鸡尾酒按钮点击事件
-        document.getElementById('save-cocktail-btn').addEventListener('click', saveCustomCocktail);
+            // >>> 回显原料 (最关键部分) <<<
+            if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
+                selectedIngredients = []; // 先清空
 
-        // 7. 取消按钮点击事件
-        document.getElementById('cancel-btn').addEventListener('click', function () {
-            if (confirm('确定要取消创建？所有未保存的修改将丢失。')) {
-                window.location.href = '/';
+                recipe.ingredients.forEach(savedIng => {
+                    let matchedItem = null;
+                    let matchedCategory = 'other';
+
+                    // 尝试在原料库中找到匹配项 (忽略大小写)
+                    if (allIngredients.ingredients) {
+                        for (const cat of allIngredients.ingredients) {
+                            const found = cat.items.find(item => 
+                                item.name.toLowerCase() === savedIng.name.toLowerCase()
+                            );
+                            if (found) {
+                                matchedItem = found;
+                                matchedCategory = cat.category;
+                                break;
+                            }
+                        }
+                    }
+
+                    // [强力回显] 即使原料库里找不到(比如是旧数据)，也强行显示，防止数据丢失
+                    selectedIngredients.push({
+                        id: matchedItem ? matchedItem.id : ('legacy_' + Math.random().toString(36).substr(2, 9)),
+                        name: savedIng.name,
+                        volume: parseFloat(savedIng.volume) || 30,
+                        abv: parseFloat(savedIng.abv) || 0,
+                        category: matchedCategory,
+                        unit: matchedItem ? matchedItem.unit : 'ml'
+                    });
+                });
+
+                // 渲染回显结果
+                renderSelectedIngredients();
+                updateAbvCalculation();
+                
+                // 高亮左侧列表 (如果匹配到了)
+                highlightSelectedItemsInList();
             }
-        });
 
-        // 8. 已选原料列表中的移除按钮（使用事件委托）
-        document.getElementById('selected-ingredients-list').addEventListener('click', function (e) {
-            const removeButton = e.target.closest('.remove-selected-btn');
-            if (removeButton) {
-                console.log('移除原料按钮点击');
-                const selectedItem = removeButton.closest('.selected-ingredient-item');
-                const ingredientId = selectedItem.dataset.id;
-                console.log('移除原料ID:', ingredientId);
-                removeIngredientFromSelection(ingredientId);
-            }
-        });
-
-        // 9. 体积输入变化事件（使用事件委托）
-        document.getElementById('selected-ingredients-list').addEventListener('input', function (e) {
-            if (e.target.classList.contains('volume-input')) {
-                const selectedItem = e.target.closest('.selected-ingredient-item');
-                const ingredientId = selectedItem.dataset.id;
-                const volume = parseFloat(e.target.value) || 0;
-
-                // 更新选中原料的体积
-                const ingredientIndex = selectedIngredients.findIndex(i => i.id === ingredientId);
-                if (ingredientIndex !== -1) {
-                    selectedIngredients[ingredientIndex].volume = volume;
-                    updateAbvCalculation();
+            // >>> 回显图片提示 <<<
+            if (recipe.image) {
+                const imgLabel = document.querySelector('label[for="cocktail-image"]');
+                if (imgLabel) {
+                    imgLabel.innerHTML = `当前已有封面图 (不上传则保留原图) <span style="color:#00f2fe">✔</span>`;
                 }
             }
-        });
+
+        } catch (error) {
+            console.error('回显失败:', error);
+            showErrorMessage('无法加载旧数据，请刷新重试');
+        }
     }
 
-    // 动态渲染分类标签到页面上的 #ingredient-categories（替换静态按钮）
+    // --- 4. 保存/更新逻辑 ---
+    async function saveCustomCocktail() {
+        const nameInput = document.getElementById('cocktail-name');
+        const imageInput = document.getElementById('cocktail-image');
+        
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) return showErrorMessage('请输入鸡尾酒名称');
+        if (selectedIngredients.length === 0) return showErrorMessage('请至少选择一种原料');
+
+        // 收集步骤
+        const stepInputs = document.querySelectorAll('.step-input');
+        const steps = Array.from(stepInputs).map(input => input.value.trim()).filter(step => step);
+
+        // 计算ABV
+        let totalVol = 0, totalAlc = 0;
+        selectedIngredients.forEach(i => {
+            totalVol += (i.volume || 0);
+            totalAlc += (i.volume || 0) * (i.abv || 0) / 100;
+        });
+        const estimatedAbv = totalVol > 0 ? Math.round((totalAlc / totalVol) * 1000) / 10 : 0;
+
+        // 构建 FormData
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('estimatedAbv', estimatedAbv);
+        
+        // 序列化原料 (只传必要字段)
+        const ingredientsData = selectedIngredients.map(ing => ({
+            name: ing.name,
+            volume: ing.volume,
+            abv: ing.abv
+        }));
+        formData.append('ingredients', JSON.stringify(ingredientsData));
+        formData.append('steps', JSON.stringify(steps));
+
+        // 图片处理
+        if (imageInput && imageInput.files[0]) {
+            formData.append('image', imageInput.files[0]);
+        }
+
+        try {
+            // [智能判断] 是更新还是新建？
+            const url = isEditMode ? `/api/custom/cocktails/${editRecipeId}` : '/api/custom/cocktails';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            console.log(`正在提交... URL: ${url}, Method: ${method}`);
+
+            const response = await fetch(url, {
+                method: method,
+                body: formData
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || '操作失败');
+            }
+
+            alert(isEditMode ? '修改成功！' : '创建成功！');
+            window.location.href = '/profile/'; // 完成后返回个人中心
+
+        } catch (error) {
+            console.error('保存失败:', error);
+            showErrorMessage(error.message);
+        }
+    }
+
+    // --- 5. 辅助功能函数 ---
+
+    // 渲染分类标签
     function renderCategoryTabs() {
         const container = document.getElementById('ingredient-categories');
         if (!container) return;
-
-        // 清空现有内容
         container.innerHTML = '';
 
-        // 添加“全部”选项
         const allBtn = document.createElement('button');
-        allBtn.className = 'category-tab' + (currentCategoryTab === 'all' ? ' active' : '');
+        allBtn.className = 'category-tab';
         allBtn.dataset.category = 'all';
         allBtn.textContent = '全部';
         container.appendChild(allBtn);
 
-        // 按既定顺序渲染分类，只渲染后端API实际返回的分类
         CATEGORY_ORDER.forEach(catKey => {
-            // 检查该分类是否在API返回的数据中存在
+            // 只渲染存在的分类
             const hasCat = allIngredients.ingredients && allIngredients.ingredients.some(c => c.category === catKey);
-            if (!hasCat) {
-                console.log(`跳过不存在的分类: ${catKey}`);
-                return;
+            if (hasCat) {
+                const btn = document.createElement('button');
+                btn.className = 'category-tab';
+                btn.dataset.category = catKey;
+                btn.textContent = CATEGORY_NAMES[catKey] || catKey;
+                container.appendChild(btn);
             }
-
-            const btn = document.createElement('button');
-            btn.className = 'category-tab' + (currentCategoryTab === catKey ? ' active' : '');
-            btn.dataset.category = catKey;
-            btn.textContent = CATEGORY_NAMES[catKey] || catKey;
-            container.appendChild(btn);
         });
+        updateTabStyles();
+    }
+
+    // 加载对应分类原料
+    function loadIngredientsForCategory(category) {
+        const list = document.getElementById('ingredients-list');
+        if(!list) return;
+        list.innerHTML = '';
         
-        console.log('已渲染分类标签:', container.children.length, '个');
-    }
-
-    // 过滤原料列表
-    function filterIngredients(query) {
-        query = query.toLowerCase().trim();
-
-        // 获取当前显示的分类下的所有原料项
-        const ingredientItems = document.querySelectorAll('.ingredient-item');
-
-        // 如果查询为空，则显示所有项
-        if (query === '') {
-            ingredientItems.forEach(item => {
-                item.style.display = '';
-            });
-            return;
-        }
-
-        // 遍历并根据查询过滤原料项
-        ingredientItems.forEach(item => {
-            const nameElement = item.querySelector('.ingredient-name');
-            if (nameElement) {
-                const name = nameElement.textContent.toLowerCase();
-                // 如果名称包含查询字符串，则显示；否则隐藏
-                if (name.includes(query)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            }
-        });
-
-        // 如果没有匹配项，显示提示信息
-        const visibleItems = document.querySelectorAll('.ingredient-item[style=""]');
-        const noResults = visibleItems.length === 0;
-
-        const noResultsMessage = document.querySelector('.no-results-message');
-        if (noResults) {
-            if (!noResultsMessage) {
-                const message = document.createElement('div');
-                message.className = 'no-results-message';
-                message.textContent = `没有找到匹配 "${query}" 的原料`;
-                document.getElementById('ingredients-list').appendChild(message);
-            }
-        } else {
-            if (noResultsMessage) {
-                noResultsMessage.remove();
-            }
-        }
-    }
-
-    // 添加原料到已选列表
-    function addIngredientToSelection(ingredientId) {
-        // 在分类中查找原料
-        let selectedIngredient = null;
-        let found = false;
-
-        // 遍历所有分类查找原料
-        for (const categoryObj of allIngredients.ingredients) {
-            const ingredient = categoryObj.items.find(item => item.id === ingredientId);
-            if (ingredient) {
-                // 根据单位设置默认数量
-                let defaultVolume = 30; // 默认毫升
-                if (ingredient.unit === '滴') {
-                    defaultVolume = 3;
-                } else if (ingredient.unit === '片') {
-                    defaultVolume = 1;
-                } else if (ingredient.unit === '个') {
-                    defaultVolume = 1;
-                } else if (ingredient.unit === '颗') {
-                    defaultVolume = 2;
-                } else if (ingredient.unit === '根') {
-                    defaultVolume = 1;
-                } else if (ingredient.unit === '茶匙') {
-                    defaultVolume = 1;
-                }
-
-                selectedIngredient = {
-                    ...ingredient,
-                    volume: defaultVolume,
-                    category: categoryObj.category // 保存原料分类
-                };
-                found = true;
-                break;
-            }
-        }
-
-        if (!found || !selectedIngredient) {
-            console.error('找不到指定ID的原料:', ingredientId);
-            return;
-        }
-
-        // 检查是否已经选择了该原料
-        if (selectedIngredients.some(i => i.id === ingredientId)) {
-            showErrorMessage('该原料已被选择');
-            return;
-        }
-
-        // 添加到已选列表
-        selectedIngredients.push(selectedIngredient);
-
-        // 更新显示
-        renderSelectedIngredients();
-        updateAbvCalculation();
-
-        // 更新原料项在列表中的显示状态
-        const ingredientItem = document.querySelector(`.ingredient-item[data-id="${ingredientId}"]`);
-        if (ingredientItem) {
-            ingredientItem.classList.add('selected');
-        }
-    }
-
-    // 从已选列表中移除原料
-    function removeIngredientFromSelection(ingredientId) {
-        // 从已选列表中移除
-        selectedIngredients = selectedIngredients.filter(i => i.id !== ingredientId);
-
-        // 更新显示
-        renderSelectedIngredients();
-        updateAbvCalculation();
-
-        // 更新原料项在列表中的显示状态
-        const ingredientItem = document.querySelector(`.ingredient-item[data-id="${ingredientId}"]`);
-        if (ingredientItem) {
-            ingredientItem.classList.remove('selected');
-        }
-    }
-
-    // 渲染已选原料列表
-    function renderSelectedIngredients() {
-        const selectedList = document.getElementById('selected-ingredients-list');
-        const selectedCount = document.getElementById('selected-count');
-
-        // 更新选中数量
-        selectedCount.textContent = selectedIngredients.length;
-
-        // 判断是否有选中的原料
-        if (selectedIngredients.length === 0) {
-            selectedList.innerHTML = '<div class="empty-selection-message">请从右侧列表选择原料</div>';
-            return;
-        }
-
-        // 清空并重新填充列表
-        selectedList.innerHTML = '';
-
-        // 将原料按类别分组
-        const groupedIngredients = {};
-
-        selectedIngredients.forEach(ingredient => {
-            const category = ingredient.category;
-            if (!groupedIngredients[category]) {
-                groupedIngredients[category] = [];
-            }
-            groupedIngredients[category].push(ingredient);
-        });
-
-        // 按全局定义的顺序创建分类分组（使用统一的常量）
-        CATEGORY_ORDER.forEach(category => {
-            if (groupedIngredients[category] && groupedIngredients[category].length > 0) {
-                // 创建分类标题
-                const categoryHeader = document.createElement('div');
-                categoryHeader.className = 'selected-category-header';
-                categoryHeader.textContent = CATEGORY_NAMES[category] || category;
-                selectedList.appendChild(categoryHeader);
-
-                // 创建该分类下的所有原料项
-                groupedIngredients[category].forEach(ingredient => {
-                    const selectedItem = document.createElement('div');
-                    selectedItem.className = 'selected-ingredient-item';
-                    selectedItem.dataset.id = ingredient.id;
-
-                    // 确保使用正确的单位
-                    const displayUnit = ingredient.unit && ingredient.unit !== '' ? ingredient.unit : '毫升';
-
-                    selectedItem.innerHTML = `
-                        <div class="selected-ingredient-name">${ingredient.name}</div>
-                        <div class="selected-ingredient-volume">
-                            <input type="number" class="volume-input" value="${ingredient.volume}" min="0" max="1000" step="5">
-                            <span class="volume-unit">${displayUnit}</span>
-                        </div>
-                        <button class="remove-selected-btn" title="移除此原料">×</button>
-                    `;
-
-                    selectedList.appendChild(selectedItem);
+        let itemsToShow = [];
+        if (category === 'all') {
+            if(allIngredients.ingredients) {
+                allIngredients.ingredients.forEach(c => {
+                    if(c.items) itemsToShow.push(...c.items.map(i => ({...i, _cat: c.category})));
                 });
             }
-        });
-    }
+        } else if (allIngredients.ingredients) {
+            const catObj = allIngredients.ingredients.find(c => c.category === category);
+            if(catObj) itemsToShow = catObj.items;
+        }
 
-    // 更新酒精含量计算
-    function updateAbvCalculation() {
-        const calculatedAbvElement = document.getElementById('calculated-abv');
-        const abvDescriptionElement = document.getElementById('abv-description');
-        const cocktailAnimation = document.querySelector('.cocktail-glass');
-
-        // 如果没有选择原料，显示0%
-        if (selectedIngredients.length === 0) {
-            calculatedAbvElement.textContent = '0.0%';
-            abvDescriptionElement.textContent = '无酒精或低度酒精，适合任何人饮用';
-
-            // 重置动画颜色类
-            resetAbvClasses(cocktailAnimation);
+        if (itemsToShow.length === 0) {
+            list.innerHTML = '<div class="no-ingredients-message">该分类暂无原料</div>';
             return;
         }
 
-        // 计算总体积和总酒精体积
-        let totalVolume = 0;
-        let totalAlcoholVolume = 0;
+        const grid = document.createElement('div');
+        grid.className = 'ingredients-grid';
 
-        selectedIngredients.forEach(ingredient => {
-            const volume = ingredient.volume || 0;
-            const abv = ingredient.abv || 0;
+        itemsToShow.forEach(ing => {
+            const item = document.createElement('div');
+            item.className = 'ingredient-item';
+            item.dataset.id = ing.id;
+            
+            // 检查是否已选，如果是，加高亮
+            if (selectedIngredients.some(s => s.id === ing.id)) {
+                item.classList.add('selected');
+            }
 
-            totalVolume += volume;
-            totalAlcoholVolume += (volume * abv / 100);
+            // 颜色逻辑
+            const catKey = ing._cat || category;
+            const colors = {'base_alcohol':'#FF9800', 'liqueurs':'#FF5722', 'juice':'#4CAF50', 'syrup':'#E91E63', 'other':'#607D8B'};
+            const bg = colors[catKey] || '#607D8B';
+
+            item.innerHTML = `
+                <div class="ingredient-card">
+                    <div class="ingredient-icon" style="background-color:${bg}">${ing.name.charAt(0)}</div>
+                    <div class="ingredient-details">
+                        <div class="ingredient-name">${ing.name}</div>
+                        <div class="ingredient-abv">${ing.abv > 0 ? ing.abv + '%' : (ing.unit||'ml')}</div>
+                    </div>
+                    <button class="add-ingredient-btn">+</button>
+                </div>
+            `;
+            grid.appendChild(item);
         });
-
-        // 计算平均酒精含量
-        let calculatedAbv = totalVolume > 0 ? (totalAlcoholVolume / totalVolume) * 100 : 0;
-
-        // 四舍五入到小数点后一位
-        calculatedAbv = Math.round(calculatedAbv * 10) / 10;
-
-        // 更新显示
-        calculatedAbvElement.textContent = `${calculatedAbv.toFixed(1)}%`;
-
-        // 根据酒精度数设置描述和颜色
-        let description = '';
-        let color = '';
-
-        // 重置动画颜色类
-        resetAbvClasses(cocktailAnimation);
-
-        if (calculatedAbv === 0) {
-            description = '无酒精，适合所有人饮用';
-            color = '#4CAF50'; // 绿色
-            cocktailAnimation.classList.add('abv-low');
-        } else if (calculatedAbv < 5) {
-            description = '低度酒精，适合大多数人饮用';
-            color = '#8BC34A'; // 淡绿色
-            cocktailAnimation.classList.add('abv-low');
-        } else if (calculatedAbv < 15) {
-            description = '中等酒精度，相当于啤酒或葡萄酒';
-            color = '#FFC107'; // 黄色
-            cocktailAnimation.classList.add('abv-medium');
-        } else if (calculatedAbv < 25) {
-            description = '中高酒精度，适量饮用';
-            color = '#FF9800'; // 橙色
-            cocktailAnimation.classList.add('abv-medium');
-        } else if (calculatedAbv < 40) {
-            description = '高酒精度，请小心饮用';
-            color = '#FF5722'; // 深橙色
-            cocktailAnimation.classList.add('abv-high');
-        } else {
-            description = '极高酒精度，仅限有经验的人少量饮用';
-            color = '#F44336'; // 红色
-            cocktailAnimation.classList.add('abv-high');
-        }
-
-        abvDescriptionElement.textContent = description;
-        calculatedAbvElement.style.color = color;
-
-        // 触发自定义事件，通知ABV更新
-        const event = new CustomEvent('abv-updated', { detail: { abv: calculatedAbv } });
-        document.dispatchEvent(event);
+        list.appendChild(grid);
+        currentCategoryTab = category;
+        updateTabStyles();
     }
 
-    // 使updateAbvCalculation在全局作用域可见，以便其他脚本可以扩展它
-    window.updateAbvCalculation = updateAbvCalculation;
-
-    // 重置ABV类
-    function resetAbvClasses(element) {
-        if (element) {
-            element.classList.remove('abv-low', 'abv-medium', 'abv-high');
+    function setupEventListeners() {
+        // 分类点击
+        document.getElementById('ingredient-categories')?.addEventListener('click', e => {
+            const tab = e.target.closest('.category-tab');
+            if (tab) loadIngredientsForCategory(tab.dataset.category);
+        });
+        // 添加原料 (+)
+        document.getElementById('ingredients-list')?.addEventListener('click', e => {
+            const btn = e.target.closest('.add-ingredient-btn');
+            if (btn) addIngredientToSelection(btn.closest('.ingredient-item').dataset.id);
+        });
+        // 添加步骤 (支持传参)
+        document.getElementById('add-step-btn')?.addEventListener('click', () => addPreparationStep());
+        // 删除步骤
+        document.getElementById('steps-container')?.addEventListener('click', e => {
+            if (e.target.classList.contains('remove-step-btn')) {
+                e.target.closest('.step-item').remove();
+                renumberSteps();
+            }
+        });
+        // 保存
+        document.getElementById('save-cocktail-btn')?.addEventListener('click', saveCustomCocktail);
+        // 取消
+        document.getElementById('cancel-btn')?.addEventListener('click', () => {
+            if(confirm('确定要离开吗？未保存的内容将丢失。')) window.location.href = '/profile/';
+        });
+        // 右侧已选列表：删除和修改体积
+        const selList = document.getElementById('selected-ingredients-list');
+        if (selList) {
+            selList.addEventListener('click', e => {
+                const btn = e.target.closest('.remove-selected-btn');
+                if (btn) removeIngredientFromSelection(btn.closest('.selected-ingredient-item').dataset.id);
+            });
+            selList.addEventListener('input', e => {
+                if (e.target.classList.contains('volume-input')) {
+                    const id = e.target.closest('.selected-ingredient-item').dataset.id;
+                    const idx = selectedIngredients.findIndex(i => i.id == id);
+                    if (idx !== -1) {
+                        selectedIngredients[idx].volume = parseFloat(e.target.value) || 0;
+                        updateAbvCalculation();
+                    }
+                }
+            });
         }
+        // 搜索
+        document.getElementById('ingredient-search')?.addEventListener('input', function() {
+            const v = this.value.toLowerCase();
+            document.querySelectorAll('.ingredient-item').forEach(i => {
+                const n = i.querySelector('.ingredient-name').textContent.toLowerCase();
+                i.style.display = n.includes(v) ? '' : 'none';
+            });
+        });
     }
 
-    // 添加制作步骤
-    function addPreparationStep() {
+    // 添加原料逻辑
+    function addIngredientToSelection(id) {
+        if (selectedIngredients.some(i => i.id == id)) return showErrorMessage('已添加该原料');
+        
+        let item = null;
+        let cat = 'other';
+        // 在所有分类里找这个ID
+        if(allIngredients.ingredients) {
+            for(const c of allIngredients.ingredients) {
+                const f = c.items.find(i => i.id == id);
+                if(f) { item = f; cat = c.category; break; }
+            }
+        }
+        if (!item) return;
+
+        selectedIngredients.push({
+            id: item.id,
+            name: item.name,
+            volume: 30,
+            abv: item.abv,
+            category: cat,
+            unit: item.unit
+        });
+        renderSelectedIngredients();
+        updateAbvCalculation();
+        
+        // 高亮左侧
+        const el = document.querySelector(`.ingredient-item[data-id="${id}"]`);
+        if(el) el.classList.add('selected');
+    }
+
+    function removeIngredientFromSelection(id) {
+        selectedIngredients = selectedIngredients.filter(i => i.id != id);
+        renderSelectedIngredients();
+        updateAbvCalculation();
+        const el = document.querySelector(`.ingredient-item[data-id="${id}"]`);
+        if(el) el.classList.remove('selected');
+    }
+
+    function renderSelectedIngredients() {
+        const list = document.getElementById('selected-ingredients-list');
+        const count = document.getElementById('selected-count');
+        if(!list) return;
+        
+        count.textContent = selectedIngredients.length;
+        list.innerHTML = '';
+        
+        if (selectedIngredients.length === 0) {
+            list.innerHTML = '<div class="empty-selection-message">请选择原料</div>';
+            return;
+        }
+
+        // 简单分组渲染逻辑 (为了代码简洁，这里不按分类分组了，直接列出)
+        // 如果您希望按分类分组，可以参考之前的逻辑，或者直接平铺显示
+        selectedIngredients.forEach(ing => {
+            const div = document.createElement('div');
+            div.className = 'selected-ingredient-item';
+            div.dataset.id = ing.id;
+            div.innerHTML = `
+                <div class="selected-ingredient-name">${ing.name}</div>
+                <div class="selected-ingredient-volume">
+                    <input type="number" class="volume-input" value="${ing.volume}" min="0" step="5">
+                    <span class="volume-unit">${ing.unit||'ml'}</span>
+                </div>
+                <button class="remove-selected-btn">×</button>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    // [新增] 辅助高亮函数
+    function highlightSelectedItemsInList() {
+        const currentItems = document.querySelectorAll('.ingredient-item');
+        currentItems.forEach(item => {
+            if (selectedIngredients.some(sel => sel.id === item.dataset.id)) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    // [修改] 添加步骤 (支持默认值)
+    function addPreparationStep(defaultValue = '') {
         const stepsContainer = document.getElementById('steps-container');
+        if (!stepsContainer) return;
+        
         const stepItems = stepsContainer.querySelectorAll('.step-item');
         const newStepNumber = stepItems.length + 1;
 
@@ -618,164 +444,53 @@ document.addEventListener('DOMContentLoaded', function () {
 
         newStep.innerHTML = `
             <div class="step-number">${newStepNumber}</div>
-            <input type="text" class="step-input" placeholder="添加制作鸡尾酒的步骤说明">
-            <button class="remove-step-btn" title="删除此步骤">×</button>
+            <input type="text" class="step-input" placeholder="输入步骤说明" value="${defaultValue}">
+            <button class="remove-step-btn" title="删除">×</button>
         `;
-
         stepsContainer.appendChild(newStep);
     }
 
-    // 重新编号步骤
+    function updateAbvCalculation() {
+        const abvEl = document.getElementById('calculated-abv');
+        const descEl = document.getElementById('abv-description');
+        const anim = document.querySelector('.cocktail-glass');
+        if(!abvEl) return;
+
+        let totalVol = 0, totalAlc = 0;
+        selectedIngredients.forEach(i => {
+            totalVol += i.volume;
+            totalAlc += i.volume * (i.abv||0) / 100;
+        });
+        
+        const abv = totalVol > 0 ? (totalAlc/totalVol)*100 : 0;
+        abvEl.textContent = abv.toFixed(1) + '%';
+        
+        let desc = '无酒精';
+        if (anim) anim.className = 'cocktail-glass'; 
+        if (abv > 0 && abv < 10) { desc = '低度微醺'; if(anim) anim.classList.add('abv-low'); }
+        else if (abv >= 10 && abv < 30) { desc = '中等烈度'; if(anim) anim.classList.add('abv-medium'); }
+        else if (abv >= 30) { desc = '高烈度'; if(anim) anim.classList.add('abv-high'); }
+        
+        if(descEl) descEl.textContent = desc;
+        abvEl.style.color = abv > 20 ? '#FF5722' : '#4CAF50';
+    }
+
     function renumberSteps() {
-        const stepItems = document.querySelectorAll('.step-item');
-        stepItems.forEach((item, index) => {
-            const number = index + 1;
-            item.dataset.step = number;
-            item.querySelector('.step-number').textContent = number;
+        document.querySelectorAll('.step-item').forEach((item, idx) => {
+            item.querySelector('.step-number').textContent = idx + 1;
         });
     }
 
-    // 保存自定义鸡尾酒
-    async function saveCustomCocktail() {
-        // 获取鸡尾酒基本信息
-        const name = document.getElementById('cocktail-name').value.trim();
-        const description = document.getElementById('cocktail-description').value.trim();
-
-        // 验证名称
-        if (!name) {
-            showErrorMessage('请输入鸡尾酒名称');
-            return;
-        }
-
-        // 验证是否有选择原料
-        if (selectedIngredients.length === 0) {
-            showErrorMessage('请至少选择一种原料');
-            return;
-        }
-
-        // 获取所有步骤输入
-        const stepInputs = document.querySelectorAll('.step-input');
-        const steps = Array.from(stepInputs).map(input => input.value.trim()).filter(step => step);
-
-        // 验证是否有至少一个步骤
-        if (steps.length === 0) {
-            showErrorMessage('请至少添加一个制作步骤');
-            return;
-        }
-
-        // 计算预估的酒精含量
-        let totalVolume = 0;
-        let totalAlcoholVolume = 0;
-
-        selectedIngredients.forEach(ingredient => {
-            const volume = ingredient.volume || 0;
-            const abv = ingredient.abv || 0;
-
-            totalVolume += volume;
-            totalAlcoholVolume += (volume * abv / 100);
+    function updateTabStyles() {
+        document.querySelectorAll('.category-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.category === currentCategoryTab);
         });
-
-        const estimatedAbv = totalVolume > 0 ? (totalAlcoholVolume / totalVolume) * 100 : 0;
-        const roundedAbv = Math.round(estimatedAbv * 10) / 10;
-
-        // 准备发送的数据
-        const cocktailData = {
-            name: name,
-            description: description,
-            ingredients: selectedIngredients.map(ingredient => ({
-                id: ingredient.id,
-                name: ingredient.name,
-                volume: ingredient.volume,
-                abv: ingredient.abv,
-                category: ingredient.category
-            })),
-            steps: steps,
-            estimatedAbv: roundedAbv
-        };
-
-        try {
-            // 检查用户是否已登录
-            const authStatusResponse = await fetch('/api/auth/status');
-            const authStatus = await authStatusResponse.json();
-
-            if (!authStatus.loggedIn) {
-                // 如果没有登录，显示提示并跳转到登录页面
-                showErrorMessage('请先登录后再保存鸡尾酒配方');
-
-                // 保存当前表单数据到sessionStorage（可选）
-                sessionStorage.setItem('pendingCocktail', JSON.stringify(cocktailData));
-
-                setTimeout(() => {
-                    window.location.href = '/auth/login/';
-                }, 1500);
-
-                return;
-            }
-
-            // 用户已登录，发送请求创建鸡尾酒
-            const response = await fetch('/api/custom/cocktails', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(cocktailData)
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '创建鸡尾酒失败');
-            }
-
-            const result = await response.json();
-
-            // 显示成功信息并返回首页
-            alert('鸡尾酒创建成功！');
-            window.location.href = '/recipes/';
-
-        } catch (error) {
-            console.error('保存鸡尾酒时出错:', error);
-            showErrorMessage(error.message || '创建鸡尾酒失败，请稍后重试');
-        }
     }
 
-    // 显示错误消息
-    function showErrorMessage(message) {
-        console.error('错误:', message);
-
-        // 使用更友好的对话框而不是简单的alert
-        const dialogBox = document.createElement('div');
-        dialogBox.className = 'custom-dialog error-dialog';
-
-        dialogBox.innerHTML = `
-            <div class="dialog-content">
-                <div class="dialog-header">
-                    <h3>操作错误</h3>
-                </div>
-                <div class="dialog-body">
-                    <p>${message}</p>
-                </div>
-                <div class="dialog-footer">
-                    <button class="dialog-close-btn">确定</button>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(dialogBox);
-
-        // 添加关闭按钮事件
-        const closeBtn = dialogBox.querySelector('.dialog-close-btn');
-        closeBtn.addEventListener('click', function () {
-            document.body.removeChild(dialogBox);
-        });
-
-        // 5秒后自动关闭
-        setTimeout(() => {
-            if (document.body.contains(dialogBox)) {
-                document.body.removeChild(dialogBox);
-            }
-        }, 5000);
+    function showErrorMessage(msg) {
+        alert(msg); 
     }
 
     // 启动
     initialize();
-}); 
+});
