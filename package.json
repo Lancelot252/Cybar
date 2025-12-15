@@ -4,8 +4,8 @@
   "description": "鸡尾酒配方管理和酒精度计算工具",
   "main": "server.js",
   "scripts": {
-  "start": "node server/index.js", 
-  "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "cocktail",

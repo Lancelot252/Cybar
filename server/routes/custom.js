@@ -241,8 +241,10 @@ router.post('/api/custom/analyze-flavor', async (req, res) => {
 
         let analysis;
 
-        const apiKey = process.env.DEEPSEEK_API_KEY;
-        if (!apiKey || apiKey === 'sk-your-api-key-here') {
+        const deepseekKey = process.env.DEEPSEEK_API_KEY;
+        const qwenKey = process.env.QWEN_API_KEY;
+        
+        if ((!deepseekKey || deepseekKey === 'sk-your-api-key-here') && (!qwenKey || qwenKey === 'sk-your-api-key-here')) {
             // 演示模式
             analysis = `🤖 演示模式分析结果
 
@@ -258,9 +260,34 @@ router.post('/api/custom/analyze-flavor', async (req, res) => {
 **整体口感特征：**
 根据您选择的${ingredients.length}种原料，这款鸡尾酒呈现出丰富的层次感。
 
-⚠️ 这是演示模式的分析结果。要获得真实的AI分析，请配置有效的Deepseek API密钥。`;
+⚠️ 这是演示模式的分析结果。要获得真实的AI分析，请配置有效的 DeepSeek 或 Qwen API 密钥。`;
+        } else if (qwenKey && qwenKey !== 'sk-your-api-key-here') {
+            // 调用 Qwen API
+            const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                model: 'qwen-plus',
+                messages: [
+                    {
+                        role: 'system',
+                        content: '你是一位专业的调酒师和品酒师，拥有丰富的鸡尾酒知识和品鉴经验。请用专业、友好的语调提供详细的口味分析和建议。'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 1000
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${qwenKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 60000
+            });
+
+            analysis = response.data.choices[0].message.content;
         } else {
-            // 调用真实的Deepseek API
+            // 调用 DeepSeek API
             const response = await axios.post('https://api.deepseek.com/chat/completions', {
                 model: 'deepseek-chat',
                 messages: [
@@ -277,7 +304,7 @@ router.post('/api/custom/analyze-flavor', async (req, res) => {
                 max_tokens: 1000
             }, {
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${deepseekKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 60000
@@ -374,8 +401,10 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
 
         let recipe;
 
-        const apiKey = process.env.DEEPSEEK_API_KEY;
-        if (!apiKey || apiKey === 'sk-your-api-key-here') {
+        const deepseekKey = process.env.DEEPSEEK_API_KEY;
+        const qwenKey = process.env.QWEN_API_KEY;
+        
+        if ((!deepseekKey || deepseekKey === 'sk-your-api-key-here') && (!qwenKey || qwenKey === 'sk-your-api-key-here')) {
             // 演示模式
             recipe = {
                 name: "AI灵感特调",
@@ -404,8 +433,48 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
                 tips: "可根据个人喜好调整糖浆用量",
                 isDemo: true
             };
+        } else if (qwenKey && qwenKey !== 'sk-your-api-key-here') {
+            // 调用 Qwen API
+            const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                model: 'qwen-plus',
+                messages: [
+                    {
+                        role: 'system',
+                        content: '你是一位世界顶级的调酒师，拥有丰富的鸡尾酒创作经验。请根据用户的口味需求,创造出完美的鸡尾酒配方。'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.8,
+                max_tokens: 1500
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${qwenKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 35000
+            });
+
+            try {
+                const jsonMatch = response.data.choices[0].message.content.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    recipe = JSON.parse(jsonMatch[0]);
+                } else {
+                    throw new Error('无法找到JSON格式的配方');
+                }
+            } catch (parseError) {
+                console.error('JSON解析错误:', parseError);
+                recipe = {
+                    name: "AI推荐配方",
+                    description: "AI为您生成的特色配方",
+                    raw_response: response.data.choices[0].message.content,
+                    error: "配方解析失败，请稍后重试"
+                };
+            }
         } else {
-            // 调用真实的Deepseek API
+            // 调用 DeepSeek API
             const response = await axios.post('https://api.deepseek.com/chat/completions', {
                 model: 'deepseek-chat',
                 messages: [
@@ -422,7 +491,7 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
                 max_tokens: 1500
             }, {
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${deepseekKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 35000

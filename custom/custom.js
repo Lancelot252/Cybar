@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isEditMode) {
                 const titleEl = document.querySelector('h2');
                 if (titleEl) titleEl.textContent = '修改配方';
-                const saveBtn = document.getElementById('save-cocktail-btn');
+                const saveBtn = document.getElementById('create-cocktail-btn');
                 if (saveBtn) saveBtn.textContent = '保存修改';
             }
 
@@ -145,9 +145,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- 4. 保存/更新逻辑 ---
     async function saveCustomCocktail() {
         const nameInput = document.getElementById('cocktail-name');
+        const descInput = document.getElementById('cocktail-description');
         const imageInput = document.getElementById('cocktail-image');
         
         const name = nameInput ? nameInput.value.trim() : '';
+        const description = descInput ? descInput.value.trim() : '';
+        
         if (!name) return showErrorMessage('请输入鸡尾酒名称');
         if (selectedIngredients.length === 0) return showErrorMessage('请至少选择一种原料');
 
@@ -166,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // 构建 FormData
         const formData = new FormData();
         formData.append('name', name);
+        formData.append('description', description);
         formData.append('estimatedAbv', estimatedAbv);
         
         // 序列化原料 (只传必要字段)
@@ -188,6 +192,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const method = isEditMode ? 'PUT' : 'POST';
 
             console.log(`正在提交... URL: ${url}, Method: ${method}`);
+            console.log('提交数据:', {
+                name,
+                description,
+                estimatedAbv,
+                ingredients: ingredientsData,
+                steps
+            });
 
             const response = await fetch(url, {
                 method: method,
@@ -195,16 +206,34 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || '操作失败');
+                let errorMessage = '操作失败';
+                try {
+                    const err = await response.json();
+                    errorMessage = err.message || errorMessage;
+                    
+                    // 如果是401未授权错误，提示登录
+                    if (response.status === 401) {
+                        showErrorMessage('您尚未登录，请先登录');
+                        setTimeout(() => {
+                            window.location.href = '/auth/login/';
+                        }, 1500);
+                        return;
+                    }
+                } catch (e) {
+                    errorMessage = `服务器错误 (${response.status})`;
+                }
+                throw new Error(errorMessage);
             }
 
+            const result = await response.json();
+            console.log('保存成功:', result);
+            
             alert(isEditMode ? '修改成功！' : '创建成功！');
             window.location.href = '/profile/'; // 完成后返回个人中心
 
         } catch (error) {
             console.error('保存失败:', error);
-            showErrorMessage(error.message);
+            showErrorMessage('保存失败: ' + error.message);
         }
     }
 
@@ -295,6 +324,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function setupEventListeners() {
+        // 阻止表单默认提交行为
+        const form = document.getElementById('custom-cocktail-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('表单提交被阻止');
+                return false;
+            });
+        }
+        
         // 分类点击
         document.getElementById('ingredient-categories')?.addEventListener('click', e => {
             const tab = e.target.closest('.category-tab');
@@ -314,8 +353,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 renumberSteps();
             }
         });
-        // 保存
-        document.getElementById('save-cocktail-btn')?.addEventListener('click', saveCustomCocktail);
+        // 保存/创建按钮
+        document.getElementById('create-cocktail-btn')?.addEventListener('click', saveCustomCocktail);
         // 取消
         document.getElementById('cancel-btn')?.addEventListener('click', () => {
             if(confirm('确定要离开吗？未保存的内容将丢失。')) window.location.href = '/profile/';
@@ -346,6 +385,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 i.style.display = n.includes(v) ? '' : 'none';
             });
         });
+        
+        // 监听鸡尾酒名称输入，更新AI分析按钮状态
+        document.getElementById('cocktail-name')?.addEventListener('input', updateAnalyzeButtonState);
+
+        // AI生成配方按钮
+        document.getElementById('ai-generate-btn')?.addEventListener('click', generateAIRecipe);
+        
+        // 重新生成按钮
+        document.getElementById('regenerate-btn')?.addEventListener('click', generateAIRecipe);
+        
+        // 应用配方按钮
+        document.getElementById('apply-recipe-btn')?.addEventListener('click', applyAIRecipe);
+        
+        // AI口味分析按钮
+        document.getElementById('ai-analyze-btn')?.addEventListener('click', analyzeFlavorProfile);
     }
 
     // 添加原料逻辑
@@ -397,6 +451,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (selectedIngredients.length === 0) {
             list.innerHTML = '<div class="empty-selection-message">请选择原料</div>';
+            updateAnalyzeButtonState();
             return;
         }
 
@@ -416,6 +471,27 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             list.appendChild(div);
         });
+        
+        updateAnalyzeButtonState();
+    }
+
+    // 更新AI分析按钮和创建按钮的可用状态
+    function updateAnalyzeButtonState() {
+        const analyzeBtn = document.getElementById('ai-analyze-btn');
+        const createBtn = document.getElementById('create-cocktail-btn');
+        const nameInput = document.getElementById('cocktail-name');
+        
+        const hasIngredients = selectedIngredients.length > 0;
+        const hasName = nameInput && nameInput.value.trim().length > 0;
+        
+        if (analyzeBtn) {
+            analyzeBtn.disabled = !(hasIngredients && hasName);
+        }
+        
+        // 创建按钮需要名称和至少一个原料
+        if (createBtn) {
+            createBtn.disabled = !(hasIngredients && hasName);
+        }
     }
 
     // [新增] 辅助高亮函数
@@ -489,6 +565,297 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showErrorMessage(msg) {
         alert(msg); 
+    }
+
+    // AI 生成配方功能
+    async function generateAIRecipe() {
+        const tasteInput = document.getElementById('taste-description');
+        const occasionSelect = document.getElementById('occasion-select');
+        const strengthSelect = document.getElementById('strength-select');
+        const generateBtn = document.getElementById('ai-generate-btn');
+        const spinner = generateBtn?.querySelector('.loading-spinner');
+        const btnText = generateBtn?.querySelector('.btn-text');
+
+        const tasteDescription = tasteInput?.value.trim();
+        if (!tasteDescription) {
+            showErrorMessage('请输入口味描述');
+            return;
+        }
+
+        try {
+            // 显示加载状态
+            if (generateBtn) generateBtn.disabled = true;
+            if (spinner) spinner.style.display = 'inline-block';
+            if (btnText) btnText.textContent = '生成中...';
+
+            const response = await fetch('/api/custom/generate-recipe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    tasteDescription: tasteDescription,
+                    occasion: occasionSelect?.value || '',
+                    alcoholStrength: strengthSelect?.value || ''
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'AI生成失败');
+            }
+
+            const result = await response.json();
+            displayAIRecipe(result.recipe);
+
+        } catch (error) {
+            console.error('AI生成配方错误:', error);
+            showErrorMessage(error.message || '生成失败，请稍后再试');
+        } finally {
+            // 恢复按钮状态
+            if (generateBtn) generateBtn.disabled = false;
+            if (spinner) spinner.style.display = 'none';
+            if (btnText) btnText.textContent = '生成AI配方';
+        }
+    }
+
+    // 显示 AI 生成的配方
+    let currentAIRecipe = null; // 保存当前AI生成的配方数据
+    
+    function displayAIRecipe(recipe) {
+        const resultSection = document.getElementById('ai-recipe-result');
+        if (!resultSection) return;
+
+        // 保存配方数据供后续使用
+        currentAIRecipe = recipe;
+
+        // 填充配方名称和描述
+        const nameEl = document.getElementById('generated-recipe-name');
+        const descEl = document.getElementById('generated-recipe-description');
+        if (nameEl) nameEl.textContent = recipe.name || 'AI推荐配方';
+        if (descEl) descEl.textContent = recipe.description || '';
+
+        // 填充原料列表
+        const ingredientsEl = document.getElementById('generated-ingredients');
+        if (ingredientsEl && recipe.ingredients) {
+            ingredientsEl.innerHTML = recipe.ingredients.map(ing => `
+                <div class="ingredient-row">
+                    <span class="ingredient-name">${ing.name}</span>
+                    <span class="ingredient-amount">${ing.volume || ing.amount || '适量'}${ing.volume ? 'ml' : ''}</span>
+                </div>
+            `).join('');
+        }
+
+        // 填充制作步骤
+        const stepsEl = document.getElementById('generated-steps');
+        if (stepsEl && recipe.steps) {
+            stepsEl.innerHTML = recipe.steps.map(step => `<li>${step}</li>`).join('');
+        }
+
+        // 填充口味特征
+        const tasteProfileEl = document.getElementById('taste-profile');
+        if (tasteProfileEl && recipe.taste_profile) {
+            const profile = recipe.taste_profile;
+            tasteProfileEl.innerHTML = `
+                <div class="taste-bar">
+                    <span>甜度:</span>
+                    <div class="bar"><div class="fill" style="width: ${(profile.sweetness || 0) * 20}%"></div></div>
+                    <span>${profile.sweetness || 0}/5</span>
+                </div>
+                <div class="taste-bar">
+                    <span>酸度:</span>
+                    <div class="bar"><div class="fill" style="width: ${(profile.sourness || 0) * 20}%"></div></div>
+                    <span>${profile.sourness || 0}/5</span>
+                </div>
+                <div class="taste-bar">
+                    <span>苦度:</span>
+                    <div class="bar"><div class="fill" style="width: ${(profile.bitterness || 0) * 20}%"></div></div>
+                    <span>${profile.bitterness || 0}/5</span>
+                </div>
+                <div class="taste-bar">
+                    <span>烈度:</span>
+                    <div class="bar"><div class="fill" style="width: ${(profile.strength || 0) * 20}%"></div></div>
+                    <span>${profile.strength || 0}/5</span>
+                </div>
+            `;
+        }
+
+        // 填充小贴士
+        const tipsEl = document.getElementById('recipe-tips');
+        if (tipsEl) {
+            tipsEl.innerHTML = `<p>${recipe.tips || '暂无提示'}</p>`;
+        }
+
+        // 显示结果区域
+        resultSection.style.display = 'block';
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // 应用 AI 配方到表单
+    function applyAIRecipe() {
+        if (!currentAIRecipe) {
+            showErrorMessage('没有可用的AI配方');
+            return;
+        }
+
+        const nameEl = document.getElementById('generated-recipe-name');
+        const descEl = document.getElementById('generated-recipe-description');
+        const stepsEl = document.getElementById('generated-steps');
+
+        // 应用名称
+        const nameInput = document.getElementById('cocktail-name');
+        if (nameInput && nameEl) {
+            nameInput.value = nameEl.textContent;
+        }
+
+        // 应用描述
+        const descInput = document.getElementById('cocktail-description');
+        if (descInput && descEl) {
+            descInput.value = descEl.textContent;
+        }
+
+        // 清空并重新添加原料
+        selectedIngredients = [];
+        if (currentAIRecipe.ingredients && Array.isArray(currentAIRecipe.ingredients)) {
+            currentAIRecipe.ingredients.forEach((aiIng, index) => {
+                // 尝试在原料库中查找匹配的原料
+                let matchedItem = null;
+                let matchedCategory = 'other';
+                
+                if (allIngredients.ingredients) {
+                    for (const cat of allIngredients.ingredients) {
+                        const found = cat.items.find(item => 
+                            item.name.toLowerCase().includes(aiIng.name.toLowerCase()) ||
+                            aiIng.name.toLowerCase().includes(item.name.toLowerCase())
+                        );
+                        if (found) {
+                            matchedItem = found;
+                            matchedCategory = cat.category;
+                            break;
+                        }
+                    }
+                }
+
+                // 如果找到匹配的原料，使用原料库的数据；否则创建新的
+                if (matchedItem) {
+                    selectedIngredients.push({
+                        id: matchedItem.id,
+                        name: matchedItem.name,
+                        volume: aiIng.volume || 30,
+                        abv: matchedItem.abv || aiIng.abv || 0,
+                        category: matchedCategory,
+                        unit: matchedItem.unit || 'ml'
+                    });
+                } else {
+                    // 创建临时原料（不在原料库中的）
+                    selectedIngredients.push({
+                        id: `temp-${Date.now()}-${index}`,
+                        name: aiIng.name,
+                        volume: aiIng.volume || 30,
+                        abv: aiIng.abv || 0,
+                        category: aiIng.category || 'other',
+                        unit: 'ml'
+                    });
+                }
+            });
+        }
+
+        // 渲染已选原料列表
+        renderSelectedIngredients();
+        updateAbvCalculation();
+        highlightSelectedItemsInList();
+
+        // 应用步骤
+        const stepsContainer = document.getElementById('steps-container');
+        if (stepsContainer && stepsEl) {
+            stepsContainer.innerHTML = '';
+            const stepItems = stepsEl.querySelectorAll('li');
+            stepItems.forEach(li => {
+                addPreparationStep(li.textContent);
+            });
+        }
+
+        // 提示用户
+        alert('✅ AI配方已应用到下方表单！\n\n包括：\n- 配方名称和描述\n- 原料及用量\n- 制作步骤\n\n请检查并调整后保存。');
+        
+        // 滚动到表单区域
+        document.querySelector('h2')?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // AI 口味分析功能
+    async function analyzeFlavorProfile() {
+        const nameInput = document.getElementById('cocktail-name');
+        const descInput = document.getElementById('cocktail-description');
+        const analyzeBtn = document.getElementById('ai-analyze-btn');
+        const spinner = analyzeBtn?.querySelector('.loading-spinner');
+        const btnText = analyzeBtn?.querySelector('.btn-text');
+        const resultDiv = document.getElementById('ai-analysis-result');
+        const contentDiv = document.getElementById('analysis-content');
+
+        const name = nameInput?.value.trim() || '未命名配方';
+        const description = descInput?.value.trim() || '';
+
+        if (selectedIngredients.length === 0) {
+            showErrorMessage('请先选择原料');
+            return;
+        }
+
+        // 收集步骤
+        const stepInputs = document.querySelectorAll('.step-input');
+        const steps = Array.from(stepInputs)
+            .map(input => input.value.trim())
+            .filter(step => step.length > 0);
+
+        try {
+            // 显示加载状态
+            if (analyzeBtn) analyzeBtn.disabled = true;
+            if (spinner) spinner.style.display = 'inline-block';
+            if (btnText) btnText.textContent = '分析中...';
+
+            const response = await fetch('/api/custom/analyze-flavor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description,
+                    ingredients: selectedIngredients.map(ing => ({
+                        name: ing.name,
+                        volume: ing.volume,
+                        abv: ing.abv
+                    })),
+                    steps: steps
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'AI分析失败');
+            }
+
+            const result = await response.json();
+            
+            // 显示分析结果
+            if (contentDiv && result.analysis) {
+                // 将换行符转换为 <br> 或使用 <pre> 标签保持格式
+                contentDiv.innerHTML = `<pre style="white-space: pre-wrap; font-family: inherit;">${result.analysis}</pre>`;
+            }
+
+            if (resultDiv) {
+                resultDiv.style.display = 'block';
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+        } catch (error) {
+            console.error('AI口味分析错误:', error);
+            showErrorMessage(error.message || '分析失败，请稍后再试');
+        } finally {
+            // 恢复按钮状态
+            if (analyzeBtn) analyzeBtn.disabled = false;
+            if (spinner) spinner.style.display = 'none';
+            if (btnText) btnText.textContent = '分析口味特征';
+        }
     }
 
     // 启动
