@@ -4,8 +4,8 @@
   "description": "鸡尾酒配方管理和酒精度计算工具",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "start": "node server/index.js", 
+  "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "cocktail",
@@ -23,6 +23,7 @@
     "express": "~4.17.1",
     "express-session": "^1.18.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "mysql2": "^3.6.0"
   }
 }
