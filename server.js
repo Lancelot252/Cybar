@@ -1,6 +1,6 @@
 // 自动配置AI密钥
-const fs = require('fs').promises; 
-const fsSync = require('fs'); 
+const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
 const multer = require('multer'); // [新增] 引入 multer
 
@@ -12,54 +12,86 @@ try {
 }
 
 // AI密钥配置
-let apiKey = null;
+let deepseekApiKey = null;
+let qwenApiKey = null;
+
+// 从配置文件获取API密钥
 const configFile = path.join(__dirname, 'config.json');
-if (!apiKey && fsSync.existsSync(configFile)) {
+if (fsSync.existsSync(configFile)) {
     try {
         const config = JSON.parse(fsSync.readFileSync(configFile, 'utf8'));
+
+        // 加载DeepSeek密钥
         if (config.DEEPSEEK_API_KEY && config.DEEPSEEK_API_KEY !== 'sk-your-api-key-here') {
-            apiKey = config.DEEPSEEK_API_KEY;
-            console.log('🤖 从配置文件加载了AI密钥');
+            deepseekApiKey = config.DEEPSEEK_API_KEY;
+            console.log('🤖 从配置文件加载了DeepSeek API密钥');
+        }
+
+        // 加载千问密钥
+        if (config.QWEN_API_KEY && config.QWEN_API_KEY !== 'sk-your-api-key-here') {
+            qwenApiKey = config.QWEN_API_KEY;
+            console.log('🤖 从配置文件加载了千问 API密钥');
         }
     } catch (error) {
         console.log('⚠️ 配置文件读取失败:', error.message);
     }
 }
 
-if (apiKey) {
-    process.env.DEEPSEEK_API_KEY = apiKey;
-    console.log('🤖 已配置AI密钥环境变量');
+// ============================================================
+// 🔧 AI模型切换开关 - 在这里选择使用哪个AI模型
+// ============================================================
+// 可选值: 'deepseek' 或 'qwen'
+const AI_MODEL_PREFERENCE = 'qwen';  // ← 修改这里切换模型
+// ============================================================
+
+// 根据偏好设置环境变量
+if (AI_MODEL_PREFERENCE === 'deepseek' && deepseekApiKey) {
+    process.env.DEEPSEEK_API_KEY = deepseekApiKey;
+    process.env.AI_PROVIDER = 'deepseek';
+    console.log('🤖 将使用 DeepSeek 模型');
+} else if (AI_MODEL_PREFERENCE === 'qwen' && qwenApiKey) {
+    process.env.QWEN_API_KEY = qwenApiKey;
+    process.env.AI_PROVIDER = 'qwen';
+    console.log('🤖 将使用千问Turbo模型 (响应更快)');
+} else if (deepseekApiKey) {
+    process.env.DEEPSEEK_API_KEY = deepseekApiKey;
+    process.env.AI_PROVIDER = 'deepseek';
+    console.log('🤖 将使用 DeepSeek 模型 (备选)');
+} else if (qwenApiKey) {
+    process.env.QWEN_API_KEY = qwenApiKey;
+    process.env.AI_PROVIDER = 'qwen';
+    console.log('🤖 将使用千问Turbo模型 (备选)');
 } else {
     console.log('⚠️ 未找到有效的AI密钥，将使用演示模式');
 }
 
 const express = require('express');
-const session = require('express-session'); 
-const mysql = require('mysql2/promise'); 
-const axios = require('axios'); 
+const session = require('express-session');
+const mysql = require('mysql2/promise');
+const axios = require('axios');
 
 const app = express();
-const port = 8080; 
+const port = 8080;
 
 // 数据库连接池
 const dbPool = mysql.createPool({
     host: 'localhost',
     user: 'root',
-    password: 'abc1146164913',
-    database: 'cybar',
+    password: 'zqd20040504',
+    database: 'zqd_cybar',
     port: 3306,
     charset: 'utf8mb4'
 });
 
-// --- [新增] 配置 Multer (图片存储策略) ---
-const uploadDir = path.join(__dirname, 'uploads', 'avatars');
-const storage = multer.diskStorage({
+// --- [新增] 配置 Multer (头像存储策略) ---
+const avatarUploadDir = path.join(__dirname, 'uploads', 'avatars');
+const avatarStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         // 确保路径存在
-        if (!fsSync.existsSync(uploadDir)){
-            fsSync.mkdirSync(uploadDir, { recursive: true });
+        if (!fsSync.existsSync(avatarUploadDir)) {
+            fsSync.mkdirSync(avatarUploadDir, { recursive: true });
         }
-        cb(null, uploadDir);
+        cb(null, avatarUploadDir);
     },
     filename: function (req, file, cb) {
         // 重命名文件: avatar-用户ID-时间戳.后缀
@@ -69,8 +101,38 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ 
-    storage: storage,
+const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 限制 5MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('只允许上传图片文件！'));
+        }
+    }
+});
+
+// --- [新增] 配置 Multer (鸡尾酒配方图片存储策略) ---
+const cocktailUploadDir = path.join(__dirname, 'uploads', 'cocktails');
+const cocktailStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // 确保路径存在
+        if (!fsSync.existsSync(cocktailUploadDir)) {
+            fsSync.mkdirSync(cocktailUploadDir, { recursive: true });
+        }
+        cb(null, cocktailUploadDir);
+    },
+    filename: function (req, file, cb) {
+        // 重命名文件: recipe-用户ID-时间戳.后缀
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `recipe-${req.session.userId}-${uniqueSuffix}${ext}`);
+    }
+});
+
+const cocktailUpload = multer({
+    storage: cocktailStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 限制 5MB
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
@@ -83,10 +145,10 @@ const upload = multer({
 
 // --- 访问计数器 ---
 const pageVisitCounts = {
-    '/': 0, 
+    '/': 0,
     '/recipes/': 0,
     '/calculator/': 0,
-    '/admin/': 0, 
+    '/admin/': 0,
 };
 
 // 文件路径常量
@@ -100,37 +162,37 @@ const CUSTOM_COCKTAILS_FILE = path.join(__dirname, 'custom', 'custom_cocktails.j
 
 // 中间件
 app.use((req, res, next) => {
-    const pathKey = req.path.endsWith('/') ? req.path : req.path + '/'; 
+    const pathKey = req.path.endsWith('/') ? req.path : req.path + '/';
     if (req.method === 'GET' && pageVisitCounts.hasOwnProperty(pathKey)) {
         pageVisitCounts[pathKey]++;
-        console.log(`Visit counts: ${JSON.stringify(pageVisitCounts)}`); 
+        console.log(`Visit counts: ${JSON.stringify(pageVisitCounts)}`);
     }
-    next(); 
+    next();
 });
 
-app.use(express.static(__dirname)); 
-app.use(express.json()); 
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.static(__dirname));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Session 配置
 app.use(session({
-    secret: 'your secret key', 
+    secret: 'your secret key',
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false } 
+    cookie: { secure: false }
 }));
 
 // 鉴权中间件
 const isAuthenticated = (req, res, next) => {
     if (req.session.userId) {
-        return next(); 
+        return next();
     }
     const isApiRequest = req.accepts('json') || req.path.startsWith('/api/');
     if (isApiRequest) {
-        console.log(`Authentication failed for API request: ${req.method} ${req.originalUrl}`); 
+        console.log(`Authentication failed for API request: ${req.method} ${req.originalUrl}`);
         res.status(401).json({ message: 'Authentication required. Please log in.' });
     } else {
-        console.log(`Redirecting unauthenticated page request to login: ${req.method} ${req.originalUrl}`); 
+        console.log(`Redirecting unauthenticated page request to login: ${req.method} ${req.originalUrl}`);
         res.redirect('/auth/login/');
     }
 };
@@ -141,17 +203,17 @@ const isAdmin = (req, res, next) => {
         if (req.accepts('json') || req.path.startsWith('/api/')) {
             return res.status(401).json({ message: 'Authentication required.' });
         } else {
-            return res.redirect('/auth/login/'); 
+            return res.redirect('/auth/login/');
         }
     }
 
     const userRole = req.session.role;
-    if (userRole !== 'admin') { 
+    if (userRole !== 'admin') {
         if (req.accepts('json') || req.path.startsWith('/api/')) {
             return res.status(403).json({ message: 'Forbidden: Administrator access required.' });
         } else {
             res.status(403).send('<script>alert("仅管理员可用！");window.location.href="/";</script>');
-            return; 
+            return;
         }
     }
     next();
@@ -162,11 +224,11 @@ const isAdmin = (req, res, next) => {
 // Auth Status
 app.get('/api/auth/status', (req, res) => {
     if (req.session.userId) {
-        console.log(`Auth Status Check: User ${req.session.username}, Role: ${req.session.role}`); 
+        console.log(`Auth Status Check: User ${req.session.username}, Role: ${req.session.role}`);
         res.json({
             loggedIn: true,
             username: req.session.username,
-            role: req.session.role 
+            role: req.session.role
         });
     } else {
         res.json({ loggedIn: false });
@@ -243,7 +305,7 @@ app.post('/api/logout', (req, res) => {
         if (err) {
             return res.status(500).json({ message: '无法注销，请稍后重试' });
         }
-        res.clearCookie('connect.sid'); 
+        res.clearCookie('connect.sid');
         res.status(200).json({ message: '注销成功' });
     });
 });
@@ -251,7 +313,7 @@ app.post('/api/logout', (req, res) => {
 // --- 用户头像和信息相关 API (修复版) ---
 
 // [新增] 头像上传接口
-app.post('/api/user/avatar', isAuthenticated, upload.single('avatar'), async (req, res) => {
+app.post('/api/user/avatar', isAuthenticated, avatarUpload.single('avatar'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: '请选择一张图片' });
@@ -260,7 +322,7 @@ app.post('/api/user/avatar', isAuthenticated, upload.single('avatar'), async (re
         const userId = req.session.userId;
         // 生成网页可访问的路径
         let webPath = '/uploads/avatars/' + req.file.filename;
-        
+
         // 更新数据库路径
         await dbPool.query(
             'UPDATE users SET avatar = ? WHERE id = ?',
@@ -301,7 +363,7 @@ app.get('/api/user/likes', isAuthenticated, async (req, res) => {
     try {
         const userId = req.session.userId;
         const [rows] = await dbPool.query(
-            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv
+            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv, c.image
              FROM likes l
              JOIN cocktails c ON l.recipe_id = c.id
              WHERE l.user_id = ?`, [userId]
@@ -318,7 +380,7 @@ app.get('/api/user/favorites', isAuthenticated, async (req, res) => {
     try {
         const userId = req.session.userId;
         const [rows] = await dbPool.query(
-            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv
+            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv, c.image
              FROM favorites f
              JOIN cocktails c ON f.recipe_id = c.id
              WHERE f.user_id = ?`, [userId]
@@ -333,11 +395,11 @@ app.get('/api/user/favorites', isAuthenticated, async (req, res) => {
 // 获取用户创建
 app.get('/api/user/created-recipes', isAuthenticated, async (req, res) => {
     try {
-        const username = req.session.username; 
+        const username = req.session.username;
         const [rows] = await dbPool.query(
-            `SELECT id, name, created_by AS createdBy, instructions, estimated_abv AS estimatedAbv
+            `SELECT id, name, created_by AS createdBy, instructions, estimated_abv AS estimatedAbv, image
              FROM cocktails
-             WHERE created_by = ?`, [username] 
+             WHERE created_by = ?`, [username]
         );
         res.json(rows);
     } catch (error) {
@@ -348,8 +410,8 @@ app.get('/api/user/created-recipes', isAuthenticated, async (req, res) => {
 
 // --- 管理员路由 ---
 
-app.get('/admin/', isAuthenticated, isAdmin, (req, res) => { 
-    res.sendFile(path.join(__dirname, 'admin', 'index.html')); 
+app.get('/admin/', isAuthenticated, isAdmin, (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin', 'index.html'));
 });
 
 // 删除配方
@@ -371,7 +433,7 @@ app.delete('/api/recipes/:id', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 // 统计数据
-app.get('/api/admin/stats', isAuthenticated, isAdmin, async (req, res) => { 
+app.get('/api/admin/stats', isAuthenticated, isAdmin, async (req, res) => {
     const stats = {
         totalRecipes: 0,
         visits: pageVisitCounts,
@@ -416,7 +478,7 @@ app.get('/api/admin/comments', isAuthenticated, isAdmin, async (req, res) => {
     const limit = parseInt(req.query.limit) || 15;
     const offset = (page - 1) * limit;
     const recipeId = (req.query.recipeId || '').trim();
-    const userQuery = (req.query.userQuery || '').trim(); 
+    const userQuery = (req.query.userQuery || '').trim();
 
     let whereClauses = [];
     let params = [];
@@ -527,11 +589,11 @@ app.put('/api/admin/users/:userId/role', isAuthenticated, isAdmin, async (req, r
 // --- 配方相关路由 ---
 
 app.get('/recipes/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'recipes', 'index.html')); 
+    res.sendFile(path.join(__dirname, 'recipes', 'index.html'));
 });
 
 app.get('/calculator/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'calculator', 'index.html')); 
+    res.sendFile(path.join(__dirname, 'calculator', 'index.html'));
 });
 
 // 获取配方列表
@@ -547,7 +609,7 @@ app.get('/api/recipes', async (req, res) => {
     let orderBy = '';
 
     if (search) {
-        where = 'WHERE name LIKE ?';
+        where = 'WHERE c.name LIKE ?';
         params.push(`%${search}%`);
     }
 
@@ -578,6 +640,7 @@ app.get('/api/recipes', async (req, res) => {
                 c.created_by AS createdBy,
                 c.instructions,
                 c.estimated_abv AS estimatedAbv,
+                c.image,
                 (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount,
                 (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount,
                 GROUP_CONCAT(DISTINCT i.name) AS ingredients
@@ -597,11 +660,11 @@ app.get('/api/recipes', async (req, res) => {
         res.json({
             recipes: recipes.map(r => ({
                 ...r,
-                estimatedAbv: Number(r.estimatedAbv) 
+                estimatedAbv: Number(r.estimatedAbv)
             })),
             totalPages: Math.ceil(total / limit),
             currentPage: page,
-            sortBy: sort 
+            sortBy: sort
         });
     } catch (error) {
         console.error("读取配方时出错:", error);
@@ -614,7 +677,7 @@ app.get('/api/recipes/:id', async (req, res) => {
     const recipeId = req.params.id;
     try {
         const [recipes] = await dbPool.query(
-            'SELECT c.id, c.name, c.instructions, c.estimated_abv AS estimatedAbv, c.created_by AS createdBy, (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount, (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount FROM cocktails c WHERE c.id = ?', [recipeId]
+            'SELECT c.id, c.name, c.description, c.instructions, c.estimated_abv AS estimatedAbv, c.created_by AS createdBy, c.image, (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount, (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount FROM cocktails c WHERE c.id = ?', [recipeId]
         );
         if (recipes.length === 0) {
             console.warn(`Recipe with ID ${recipeId} not found.`);
@@ -683,6 +746,8 @@ app.post('/api/recipes', isAuthenticated, async (req, res) => {
     const newRecipe = req.body;
     const creatorUsername = req.session.username;
 
+    console.log('[API] POST /api/recipes - 收到数据:', JSON.stringify(newRecipe, null, 2));
+
     if (!newRecipe || !newRecipe.name) {
         return res.status(400).json({ message: '无效的配方数据' });
     }
@@ -692,21 +757,48 @@ app.post('/api/recipes', isAuthenticated, async (req, res) => {
 
     try {
         const recipeId = Date.now().toString();
+
+        // 插入配方基本信息
         await dbPool.query(
-            `INSERT INTO cocktails (id, name, created_by, instructions,estimated_abv)
-             VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO cocktails (id, name, description, created_by, instructions, estimated_abv)
+             VALUES (?, ?, ?, ?, ?, ?)`,
             [
                 recipeId,
                 newRecipe.name,
+                newRecipe.description || '',
                 creatorUsername,
                 newRecipe.instructions || '',
                 newRecipe.estimatedAbv || 0,
             ]
         );
+
+        // 插入配料数据
+        if (newRecipe.ingredients && Array.isArray(newRecipe.ingredients)) {
+            for (const ing of newRecipe.ingredients) {
+                // 解析 volume 和 abv，处理可能带单位的情况
+                let volume = ing.volume;
+                let abv = ing.abv;
+
+                if (typeof volume === 'string') {
+                    volume = parseFloat(volume.replace(/[^\d.]/g, '')) || 0;
+                }
+                if (typeof abv === 'string') {
+                    abv = parseFloat(abv.replace(/[^\d.]/g, '')) || 0;
+                }
+
+                await dbPool.query(
+                    `INSERT INTO ingredients (cocktail_id, name, volume, abv)
+                     VALUES (?, ?, ?, ?)`,
+                    [recipeId, ing.name, volume || 0, abv || 0]
+                );
+            }
+        }
+
+        console.log('[API] 配方创建成功, ID:', recipeId, 'description:', newRecipe.description);
         res.status(201).json({ message: '配方添加成功', recipe: { id: recipeId, ...newRecipe, createdBy: creatorUsername } });
     } catch (error) {
         console.error("Error adding recipe:", error);
-        res.status(500).json({ message: '无法添加配方' });
+        res.status(500).json({ message: '无法添加配方: ' + error.message });
     }
 });
 
@@ -739,7 +831,7 @@ app.post('/api/recipes/:id/like', isAuthenticated, async (req, res) => {
 
         res.json({
             success: true,
-            isLiked: rows.length === 0, 
+            isLiked: rows.length === 0,
             likeCount,
             favoriteCount
         });
@@ -774,7 +866,7 @@ app.post('/api/recipes/:id/favorite', isAuthenticated, async (req, res) => {
 
         res.json({
             success: true,
-            isFavorited: rows.length === 0, 
+            isFavorited: rows.length === 0,
             likeCount,
             favoriteCount
         });
@@ -815,7 +907,6 @@ app.get('/api/recipes/:id/interactions', isAuthenticated, async (req, res) => {
 });
 
 // --- 自定义鸡尾酒路由 ---
-
 app.get('/custom/', (req, res) => {
     res.sendFile(path.join(__dirname, 'custom', 'index.html'));
 });
@@ -850,7 +941,7 @@ app.get('/api/custom/ingredients', async (req, res) => {
                 if (allowedNonLiquidCategories.has(catKey)) {
                     filtered.ingredients.push({
                         category: cat.category,
-                        items: cat.items.slice() 
+                        items: cat.items.slice()
                     });
                     continue;
                 }
@@ -870,41 +961,79 @@ app.get('/api/custom/ingredients', async (req, res) => {
     }
 });
 
-// 创建自定义鸡尾酒
-app.post('/api/custom/cocktails', isAuthenticated, async (req, res) => {
+// 创建自定义鸡尾酒 (使用multer解析FormData)
+app.post('/api/custom/cocktails', isAuthenticated, cocktailUpload.single('image'), async (req, res) => {
     try {
-        const newCocktail = req.body;
-        if (!newCocktail.name || !newCocktail.ingredients || newCocktail.ingredients.length === 0) {
+        console.log('[创建鸡尾酒] 收到请求');
+        console.log('[创建鸡尾酒] req.file:', req.file ? JSON.stringify(req.file) : 'undefined');
+        console.log('[创建鸡尾酒] req.body keys:', Object.keys(req.body));
+
+        const name = req.body.name;
+        const description = req.body.description || '';
+        const estimatedAbv = parseFloat(req.body.estimatedAbv) || 0;
+        let ingredients = [];
+        let steps = [];
+
+        try {
+            if (req.body.ingredients) {
+                ingredients = JSON.parse(req.body.ingredients);
+            }
+            if (req.body.steps) {
+                steps = JSON.parse(req.body.steps);
+            }
+        } catch (parseError) {
+            console.error('JSON解析错误:', parseError);
+            return res.status(400).json({ message: '数据格式错误' });
+        }
+
+        if (!name || !ingredients || ingredients.length === 0) {
             return res.status(400).json({ message: '鸡尾酒名称和至少一种原料是必填的' });
         }
+
+        // 构建 newCocktail 对象
+        const newCocktail = {
+            name,
+            description,
+            estimatedAbv,
+            ingredients,
+            steps,
+            image: req.file ? `/uploads/cocktails/${req.file.filename}` : null
+        };
         const cocktailId = Date.now().toString();
         const creator = req.session.username;
 
         await dbPool.query(
-            `INSERT INTO cocktails (id, name, instructions, estimated_abv, created_by)
-             VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO cocktails (id, name, description, instructions, estimated_abv, created_by, image)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
                 cocktailId,
                 newCocktail.name,
+                newCocktail.description || '',
                 (newCocktail.steps || []).join('\n'),
                 newCocktail.estimatedAbv || 0,
-                creator
+                creator,
+                newCocktail.image || null
             ]
         );
 
         for (const ing of newCocktail.ingredients) {
+            let volume = ing.volume;
+            let abv = ing.abv;
+
+            if (typeof volume === 'string') {
+                volume = parseFloat(volume.replace(/[^\d.]/g, '')) || 0;
+            }
+            if (typeof abv === 'string') {
+                abv = parseFloat(abv.replace(/[^\d.]/g, '')) || 0;
+            }
+
             await dbPool.query(
-                `INSERT INTO ingredients (cocktail_id, name, volume, abv)
-                 VALUES (?, ?, ?, ?)`,
-                [
-                    cocktailId,
-                    ing.name,
-                    ing.volume,
-                    ing.abv
-                ]
+                `INSERT INTO ingredients (cocktail_id, name, volume, abv) VALUES (?, ?, ?, ?)`,
+                [cocktailId, ing.name, volume || 0, abv || 0]
             );
         }
 
+        console.log('[创建鸡尾酒] 成功, ID:', cocktailId, '图片:', newCocktail.image);
         res.status(201).json({
             message: '鸡尾酒创建成功',
             id: cocktailId
@@ -912,7 +1041,8 @@ app.post('/api/custom/cocktails', isAuthenticated, async (req, res) => {
 
     } catch (error) {
         console.error("Error creating custom cocktail:", error);
-        res.status(500).json({ message: '创建鸡尾酒失败' });
+        console.error("Error details:", error.message);
+        res.status(500).json({ message: '创建鸡尾酒失败: ' + error.message });
     }
 });
 
@@ -990,33 +1120,50 @@ app.post('/api/custom/analyze-flavor', async (req, res) => {
 7. 与经典鸡尾酒的相似度对比`;
 
         let analysis;
-        const apiKey = process.env.DEEPSEEK_API_KEY;
-        if (!apiKey || apiKey === 'sk-your-api-key-here') {
-            analysis = `🤖 演示模式分析结果...`; 
-        } else {
+        const aiProvider = process.env.AI_PROVIDER;
+        const qwenKey = process.env.QWEN_API_KEY;
+        const deepseekKey = process.env.DEEPSEEK_API_KEY;
+
+        if (!qwenKey && !deepseekKey) {
+            analysis = `🤖 演示模式分析结果...`;
+        } else if (aiProvider === 'qwen' && qwenKey) {
+            console.log('🤖 正在调用千问API进行口味分析...');
+            const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                model: 'qwen-plus',
+                messages: [
+                    { role: 'system', content: '你是一位专业的调酒师和品酒师，拥有丰富的鸡尾酒知识和品鉴经验。' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 1500
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${qwenKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 30000
+            });
+            analysis = response.data.choices[0].message.content;
+        } else if (deepseekKey) {
+            console.log('🤖 正在调用DeepSeek API进行口味分析...');
             const response = await axios.post('https://api.deepseek.com/chat/completions', {
                 model: 'deepseek-chat',
                 messages: [
-                    {
-                        role: 'system',
-                        content: '你是一位专业的调酒师和品酒师。'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
+                    { role: 'system', content: '你是一位专业的调酒师和品酒师，拥有丰富的鸡尾酒知识和品鉴经验。' },
+                    { role: 'user', content: prompt }
                 ],
                 temperature: 0.7,
-                max_tokens: 1000
+                max_tokens: 1500
             }, {
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${deepseekKey}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 60000 
+                timeout: 60000
             });
             analysis = response.data.choices[0].message.content;
         }
+
         res.json({
             success: true,
             analysis: analysis,
@@ -1024,7 +1171,7 @@ app.post('/api/custom/analyze-flavor', async (req, res) => {
         });
     } catch (error) {
         console.error('AI分析错误:', error);
-        res.status(500).json({ message: 'AI分析失败' });
+        res.status(500).json({ message: 'AI分析失败: ' + error.message });
     }
 });
 
@@ -1043,44 +1190,73 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
 请使用JSON格式返回。`;
 
         let recipe;
-        const apiKey = process.env.DEEPSEEK_API_KEY;
-        if (!apiKey || apiKey === 'sk-your-api-key-here') {
+        const aiProvider = process.env.AI_PROVIDER;
+        const qwenKey = process.env.QWEN_API_KEY;
+        const deepseekKey = process.env.DEEPSEEK_API_KEY;
+
+        if (!qwenKey && !deepseekKey) {
+            // 演示模式
             recipe = {
                 name: "AI灵感特调(演示)",
                 description: "演示模式生成的配方",
-                ingredients: [],
-                steps: ["步骤1"],
+                ingredients: [
+                    { name: "伏特加", volume: 45, abv: 40 },
+                    { name: "蔓越莓汁", volume: 30, abv: 0 },
+                    { name: "柠檬汁", volume: 15, abv: 0 }
+                ],
+                steps: ["在调酒器中加入冰块", "倒入所有原料", "摇匀后倒入杯中"],
                 isDemo: true
             };
-        } else {
-            const response = await axios.post('https://api.deepseek.com/chat/completions', {
-                model: 'deepseek-chat',
+        } else if (aiProvider === 'qwen' && qwenKey) {
+            // 使用千问模型
+            console.log('🤖 正在调用千问API生成配方...');
+            const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+                model: 'qwen-plus',
                 messages: [
-                    {
-                        role: 'system',
-                        content: '你是一位世界顶级的调酒师。'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
+                    { role: 'system', content: '你是一位世界顶级的调酒师。请根据用户的口味需求，创造出完美的鸡尾酒配方。只返回JSON格式，不要其他文字。JSON格式包含：name(名称), description(描述), ingredients(原料数组，每个包含name/volume/abv), steps(步骤数组), glassware(杯具), garnish(装饰)' },
+                    { role: 'user', content: prompt }
                 ],
                 temperature: 0.8,
                 max_tokens: 1500
             }, {
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${qwenKey}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 35000 
+                timeout: 30000
             });
             const jsonMatch = response.data.choices[0].message.content.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 recipe = JSON.parse(jsonMatch[0]);
             } else {
-                throw new Error('无法找到JSON格式的配方');
+                throw new Error('无法解析AI返回的配方');
+            }
+        } else if (deepseekKey) {
+            // 使用DeepSeek模型
+            console.log('🤖 正在调用DeepSeek API生成配方...');
+            const response = await axios.post('https://api.deepseek.com/chat/completions', {
+                model: 'deepseek-chat',
+                messages: [
+                    { role: 'system', content: '你是一位世界顶级的调酒师。请根据用户的口味需求，创造出完美的鸡尾酒配方。只返回JSON格式，不要其他文字。JSON格式包含：name(名称), description(描述), ingredients(原料数组，每个包含name/volume/abv), steps(步骤数组), glassware(杯具), garnish(装饰)' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.8,
+                max_tokens: 1500
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${deepseekKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 35000
+            });
+            const jsonMatch = response.data.choices[0].message.content.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                recipe = JSON.parse(jsonMatch[0]);
+            } else {
+                throw new Error('无法解析AI返回的配方');
             }
         }
+
         res.json({
             success: true,
             recipe: recipe,
@@ -1088,7 +1264,7 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
         });
     } catch (error) {
         console.error('AI配方生成错误:', error);
-        res.status(500).json({ message: 'AI配方生成失败' });
+        res.status(500).json({ message: 'AI配方生成失败: ' + error.message });
     }
 });
 
@@ -1142,7 +1318,7 @@ app.get('/api/recommendations', isAuthenticated, async (req, res) => {
         // ... 此处为了代码简洁省略了复杂的协同过滤计算逻辑，
         // ... 如果您需要那个复杂的推荐算法，请保留您原文件里从 "2) 汇总用户偏好" 开始到最后的代码。
         // ... 但为了让服务器跑起来，我们至少先返回一个简单的结果。
-        
+
         // 简单获取一些热门配方作为推荐
         const [popularRecipes] = await dbPool.query(`
             SELECT c.id, c.name, c.estimated_abv, COUNT(l.id) as likes
