@@ -76,9 +76,9 @@ const port = 8080;
 // 数据库连接池
 const dbPool = mysql.createPool({
     host: 'localhost',
-    user: 'cybar_user',
-    password: '2025',
-    database: 'cybar',
+    user: 'root',
+    password: 'zqd20040504',
+    database: 'zqd_cybar',
     port: 3306,
     charset: 'utf8mb4'
 });
@@ -363,7 +363,7 @@ app.get('/api/user/likes', isAuthenticated, async (req, res) => {
     try {
         const userId = req.session.userId;
         const [rows] = await dbPool.query(
-            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv
+            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv, c.image
              FROM likes l
              JOIN cocktails c ON l.recipe_id = c.id
              WHERE l.user_id = ?`, [userId]
@@ -380,7 +380,7 @@ app.get('/api/user/favorites', isAuthenticated, async (req, res) => {
     try {
         const userId = req.session.userId;
         const [rows] = await dbPool.query(
-            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv
+            `SELECT c.id, c.name, c.created_by AS createdBy, c.estimated_abv AS estimatedAbv, c.image
              FROM favorites f
              JOIN cocktails c ON f.recipe_id = c.id
              WHERE f.user_id = ?`, [userId]
@@ -397,7 +397,7 @@ app.get('/api/user/created-recipes', isAuthenticated, async (req, res) => {
     try {
         const username = req.session.username;
         const [rows] = await dbPool.query(
-            `SELECT id, name, created_by AS createdBy, instructions, estimated_abv AS estimatedAbv
+            `SELECT id, name, created_by AS createdBy, instructions, estimated_abv AS estimatedAbv, image
              FROM cocktails
              WHERE created_by = ?`, [username]
         );
