@@ -256,12 +256,27 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
             row.dataset.userId = user.id;
             row.dataset.username = user.username;
             row.dataset.currentRole = user.role || 'user';
+            
+            // 创建头像 img 元素
+            const avatarImg = document.createElement('img');
+            avatarImg.src = user.avatar || '/uploads/avatars/default-avatar.png';
+            avatarImg.alt = '头像';
+            avatarImg.style.cssText = 'width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 8px;';
+            
+            // 创建用户名单元格（包含头像）
+            const usernameCell = document.createElement('td');
+            usernameCell.style.display = 'flex';
+            usernameCell.style.alignItems = 'center';
+            usernameCell.appendChild(avatarImg);
+            usernameCell.appendChild(document.createTextNode(user.username));
+            
             row.innerHTML = `
                 <td>${user.id || 'N/A'}</td>
-                <td>${user.username}</td>
                 <td>${user.role || 'user'}</td>
                 <td><button class="manage-user-btn" data-user-id="${user.id}" title="管理用户 ${user.username}">管理</button></td>
             `;
+            // 将用户名单元格插入到第二列
+            row.insertBefore(usernameCell, row.children[1]);
             container.appendChild(row);
         });
 
@@ -466,6 +481,27 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
 
         recipes.forEach(recipe => {
             const row = document.createElement('tr');
+            
+            // 创建图片单元格
+            const imgCell = document.createElement('td');
+            imgCell.style.textAlign = 'center';
+            const img = document.createElement('img');
+            img.src = recipe.image || '/uploads/cocktails/jiu.jpg';
+            img.alt = '酒品图片';
+            img.style.cssText = 'width: 40px; height: 40px; border-radius: 4px; object-fit: cover;';
+            imgCell.appendChild(img);
+            
+            // 创建创建者单元格（包含头像）
+            const creatorCell = document.createElement('td');
+            creatorCell.style.display = 'flex';
+            creatorCell.style.alignItems = 'center';
+            const creatorAvatar = document.createElement('img');
+            creatorAvatar.src = recipe.creatorAvatar || '/uploads/avatars/default-avatar.png';
+            creatorAvatar.alt = '头像';
+            creatorAvatar.style.cssText = 'width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; object-fit: cover;';
+            creatorCell.appendChild(creatorAvatar);
+            creatorCell.appendChild(document.createTextNode(recipe.createdBy || '未知'));
+            
             row.innerHTML = `
                 <td>${recipe.id || 'N/A'}</td>
                 <td>${recipe.name}</td>
@@ -473,6 +509,9 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
                     <button class="delete-recipe-btn" data-id="${recipe.id}">删除</button>
                 </td>
             `;
+            // 将图片单元格和创建者单元格插入
+            row.insertBefore(creatorCell, row.children[1]);
+            row.insertBefore(imgCell, row.children[1]);
             container.appendChild(row);
         });
 
@@ -638,9 +677,8 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
             const timestampFormatted = comment.timestamp ? new Date(comment.timestamp).toLocaleString('zh-CN') : 'N/A';
 
             row.innerHTML = `
-                <td>${comment.id || 'N/A'}</td>
                 <td><button class="link-like comment-filter-by-user" data-username="${comment.username || ''}" title="按此用户筛选">${comment.username || 'N/A'}</button></td>
-                <td><button class="link-like comment-filter-by-recipe" data-recipe-id="${comment.recipeId || ''}" title="按此配方筛选">${comment.recipeId || 'N/A'}</button></td>
+                <td><button class="link-like comment-filter-by-recipe" data-recipe-id="${comment.recipeId || ''}" title="按此配方筛选">${comment.recipeName || 'N/A'}</button></td>
                 <td title="${comment.text}">${commentTextShort}</td>
                 <td>${timestampFormatted}</td>
                 <td>

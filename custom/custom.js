@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- 1. 全局变量 & 编辑模式检测 ---
     let allIngredients = {}; 
     let selectedIngredients = []; 
-    let currentCategoryTab = 'base_alcohol'; 
+    let currentCategoryTab = 'base_alcohol';
+    let originalImagePath = null; // 保存原图片路径 
 
     // [核心] 检查 URL 是否包含 ?id=xxx
     const urlParams = new URLSearchParams(window.location.search);
@@ -42,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
             renderCategoryTabs();
             setupEventListeners();
             updateAbvCalculation();
+                updateSubmitState(); // Call updateSubmitState after initializing
 
             // 2.4 [关键] 如果是编辑模式，去后台拉取旧数据并填入
             if (isEditMode) {
@@ -82,8 +84,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (steps.length > 0) {
                     steps.forEach(stepText => addPreparationStep(stepText));
-                } else {
-                    addPreparationStep();
                 }
             }
 
@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // 渲染回显结果
                 renderSelectedIngredients();
                 updateAbvCalculation();
+                    updateSubmitState(); // Call updateSubmitState after loading edit recipe
                 
                 // 高亮左侧列表 (如果匹配到了)
                 highlightSelectedItemsInList();
@@ -130,10 +131,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // >>> 回显图片提示 <<<
             if (recipe.image) {
-                const imgLabel = document.querySelector('label[for="cocktail-image"]');
-                if (imgLabel) {
-                    imgLabel.innerHTML = `当前已有封面图 (不上传则保留原图) <span style="color:#00f2fe">✔</span>`;
-                }
+                originalImagePath = recipe.image; // 保存原图片路径
+                showImagePreview(recipe.image); // 显示图片预览
             }
 
         } catch (error) {
@@ -151,8 +150,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!name) return showErrorMessage('请输入鸡尾酒名称');
         if (selectedIngredients.length === 0) return showErrorMessage('请至少选择一种原料');
 
-        // 收集步骤
-        const stepInputs = document.querySelectorAll('.step-input');
+        // 收集步骤（只从 steps-container 里收集，不包括输入框）
+        const stepsContainer = document.getElementById('steps-container');
+        const stepInputs = stepsContainer ? stepsContainer.querySelectorAll('.step-input') : [];
         const steps = Array.from(stepInputs).map(input => input.value.trim()).filter(step => step);
 
         // 计算ABV
@@ -166,6 +166,13 @@ document.addEventListener('DOMContentLoaded', function () {
         // 构建 FormData
         const formData = new FormData();
         formData.append('name', name);
+        
+        // 添加描述
+        const descInput = document.getElementById('cocktail-description');
+        if (descInput) {
+            formData.append('description', descInput.value.trim());
+        }
+        
         formData.append('estimatedAbv', estimatedAbv);
         
         // 序列化原料 (只传必要字段)
@@ -180,6 +187,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // 图片处理
         if (imageInput && imageInput.files[0]) {
             formData.append('image', imageInput.files[0]);
+        } else if (isEditMode && originalImagePath) {
+            // 编辑模式下，如果没有上传新图但有原图，告诉后端保留原图
+            formData.append('keepOriginalImage', 'true');
         }
 
         try {
@@ -284,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <div class="ingredient-name">${ing.name}</div>
                         <div class="ingredient-abv">${ing.abv > 0 ? ing.abv + '%' : (ing.unit||'ml')}</div>
                     </div>
-                    <button class="add-ingredient-btn">+</button>
+                    <button type="button" class="add-ingredient-btn">+</button>
                 </div>
             `;
             grid.appendChild(item);
@@ -314,8 +324,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 renumberSteps();
             }
         });
-        // 保存
-        document.getElementById('save-cocktail-btn')?.addEventListener('click', saveCustomCocktail);
+        // 表单提交与按钮点击：统一走 saveCustomCocktail，阻止默认提交刷新
+        const form = document.getElementById('custom-cocktail-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveCustomCocktail();
+            });
+        }
+        document.getElementById('create-cocktail-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            saveCustomCocktail();
+        });
+        // 兼容旧的保存按钮 ID（如果存在）
+        document.getElementById('save-cocktail-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            saveCustomCocktail();
+        });
         // 取消
         document.getElementById('cancel-btn')?.addEventListener('click', () => {
             if(confirm('确定要离开吗？未保存的内容将丢失。')) window.location.href = '/profile/';
@@ -346,6 +371,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 i.style.display = n.includes(v) ? '' : 'none';
             });
         });
+
+        // 名称输入变更时更新提交按钮状态
+        document.getElementById('cocktail-name')?.addEventListener('input', updateSubmitState);
+        
+        // 图片上传相关事件
+        setupImageUpload();
     }
 
     // 添加原料逻辑
@@ -373,6 +404,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         renderSelectedIngredients();
         updateAbvCalculation();
+        updateSubmitState();
         
         // 高亮左侧
         const el = document.querySelector(`.ingredient-item[data-id="${id}"]`);
@@ -383,6 +415,7 @@ document.addEventListener('DOMContentLoaded', function () {
         selectedIngredients = selectedIngredients.filter(i => i.id != id);
         renderSelectedIngredients();
         updateAbvCalculation();
+        updateSubmitState();
         const el = document.querySelector(`.ingredient-item[data-id="${id}"]`);
         if(el) el.classList.remove('selected');
     }
@@ -487,8 +520,60 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // 控制提交按钮的可用状态
+    function updateSubmitState() {
+        const submitBtn = document.getElementById('create-cocktail-btn');
+        const nameInput = document.getElementById('cocktail-name');
+        if (!submitBtn || !nameInput) return;
+
+        const hasName = nameInput.value.trim().length > 0;
+        const hasIngredients = selectedIngredients.length > 0;
+        submitBtn.disabled = !(hasName && hasIngredients);
+    }
+
     function showErrorMessage(msg) {
         alert(msg); 
+    }
+
+    // --- 图片上传相关功能 ---
+    function setupImageUpload() {
+        const fileInput = document.getElementById('cocktail-image');
+        const uploadBtn = document.getElementById('upload-image-btn');
+        const previewImg = document.getElementById('preview-img');
+
+        // 点击上传按钮 -> 触发文件选择
+        uploadBtn?.addEventListener('click', () => {
+            fileInput?.click();
+        });
+
+        // 点击预览图片 -> 触发文件选择
+        previewImg?.addEventListener('click', () => {
+            fileInput?.click();
+        });
+
+        // 文件选择后 -> 显示预览
+        fileInput?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    showImagePreview(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    function showImagePreview(imageSrc) {
+        const previewContainer = document.getElementById('image-preview');
+        const uploadBtn = document.getElementById('upload-image-btn');
+        const previewImg = document.getElementById('preview-img');
+
+        if (previewImg && previewContainer && uploadBtn) {
+            previewImg.src = imageSrc;
+            previewContainer.style.display = 'block';
+            uploadBtn.style.display = 'none';
+        }
     }
 
     // 启动
