@@ -76,22 +76,22 @@ const port = 8080;
 // 数据库连接池
 const dbPool = mysql.createPool({
     host: 'localhost',
-    user: 'root',
-    password: 'zqd20040504',
-    database: 'zqd_cybar',
+    user: 'cybar_user',
+    password: '2025',
+    database: 'cybar',
     port: 3306,
     charset: 'utf8mb4'
 });
 
-// --- [新增] 配置 Multer (图片存储策略) ---
-const uploadDir = path.join(__dirname, 'uploads', 'avatars');
-const storage = multer.diskStorage({
+// --- [新增] 配置 Multer (头像存储策略) ---
+const avatarUploadDir = path.join(__dirname, 'uploads', 'avatars');
+const avatarStorage = multer.diskStorage({
     destination: function (req, file, cb) {
         // 确保路径存在
-        if (!fsSync.existsSync(uploadDir)) {
-            fsSync.mkdirSync(uploadDir, { recursive: true });
+        if (!fsSync.existsSync(avatarUploadDir)) {
+            fsSync.mkdirSync(avatarUploadDir, { recursive: true });
         }
-        cb(null, uploadDir);
+        cb(null, avatarUploadDir);
     },
     filename: function (req, file, cb) {
         // 重命名文件: avatar-用户ID-时间戳.后缀
@@ -101,8 +101,38 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({
-    storage: storage,
+const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 限制 5MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('只允许上传图片文件！'));
+        }
+    }
+});
+
+// --- [新增] 配置 Multer (鸡尾酒配方图片存储策略) ---
+const cocktailUploadDir = path.join(__dirname, 'uploads', 'cocktails');
+const cocktailStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // 确保路径存在
+        if (!fsSync.existsSync(cocktailUploadDir)) {
+            fsSync.mkdirSync(cocktailUploadDir, { recursive: true });
+        }
+        cb(null, cocktailUploadDir);
+    },
+    filename: function (req, file, cb) {
+        // 重命名文件: recipe-用户ID-时间戳.后缀
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `recipe-${req.session.userId}-${uniqueSuffix}${ext}`);
+    }
+});
+
+const cocktailUpload = multer({
+    storage: cocktailStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 限制 5MB
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/')) {
@@ -283,7 +313,7 @@ app.post('/api/logout', (req, res) => {
 // --- 用户头像和信息相关 API (修复版) ---
 
 // [新增] 头像上传接口
-app.post('/api/user/avatar', isAuthenticated, upload.single('avatar'), async (req, res) => {
+app.post('/api/user/avatar', isAuthenticated, avatarUpload.single('avatar'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: '请选择一张图片' });
@@ -610,6 +640,7 @@ app.get('/api/recipes', async (req, res) => {
                 c.created_by AS createdBy,
                 c.instructions,
                 c.estimated_abv AS estimatedAbv,
+                c.image,
                 (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount,
                 (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount,
                 GROUP_CONCAT(DISTINCT i.name) AS ingredients
@@ -646,7 +677,7 @@ app.get('/api/recipes/:id', async (req, res) => {
     const recipeId = req.params.id;
     try {
         const [recipes] = await dbPool.query(
-            'SELECT c.id, c.name, c.description, c.instructions, c.estimated_abv AS estimatedAbv, c.created_by AS createdBy, (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount, (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount FROM cocktails c WHERE c.id = ?', [recipeId]
+            'SELECT c.id, c.name, c.description, c.instructions, c.estimated_abv AS estimatedAbv, c.created_by AS createdBy, c.image, (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount, (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount FROM cocktails c WHERE c.id = ?', [recipeId]
         );
         if (recipes.length === 0) {
             console.warn(`Recipe with ID ${recipeId} not found.`);
@@ -931,7 +962,7 @@ app.get('/api/custom/ingredients', async (req, res) => {
 });
 
 // 创建自定义鸡尾酒 (使用multer解析FormData)
-app.post('/api/custom/cocktails', isAuthenticated, upload.single('image'), async (req, res) => {
+app.post('/api/custom/cocktails', isAuthenticated, cocktailUpload.single('image'), async (req, res) => {
     try {
         console.log('[创建鸡尾酒] 收到请求');
         console.log('[创建鸡尾酒] req.file:', req.file ? JSON.stringify(req.file) : 'undefined');
@@ -966,7 +997,7 @@ app.post('/api/custom/cocktails', isAuthenticated, upload.single('image'), async
             estimatedAbv,
             ingredients,
             steps,
-            image: req.file ? `/uploads/avatars/${req.file.filename}` : null
+            image: req.file ? `/uploads/cocktails/${req.file.filename}` : null
         };
         const cocktailId = Date.now().toString();
         const creator = req.session.username;
