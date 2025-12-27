@@ -73,6 +73,12 @@ router.post('/api/custom/cocktails', isAuthenticated, upload.single('image'), as
             return res.status(400).json({ message: '数据格式错误' });
         }
 
+        // 计算总容量
+        const totalVolume = ingredients.reduce((sum, ing) => {
+            const v = parseFloat(ing.volume);
+            return sum + (isNaN(v) ? 0 : v);
+        }, 0);
+
         let imagePath = null;
         if (req.file) imagePath = '/uploads/cocktails/' + req.file.filename;
 
@@ -85,9 +91,9 @@ router.post('/api/custom/cocktails', isAuthenticated, upload.single('image'), as
 
         // 插入主表
         await dbPool.query(
-            `INSERT INTO cocktails (id, name, description, instructions, estimated_abv, created_by, image)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [cocktailId, name, description, Array.isArray(steps) ? steps.join('\n') : steps, estimatedAbv, creator, imagePath]
+            `INSERT INTO cocktails (id, name, description, instructions, estimated_abv, total_volume, created_by, image)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [cocktailId, name, description, Array.isArray(steps) ? steps.join('\n') : steps, estimatedAbv, totalVolume, creator, imagePath]
         );
 
         // 插入原料表
@@ -126,6 +132,11 @@ router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'),
             steps = req.body.steps ? JSON.parse(req.body.steps) : [];
         } catch (e) { return res.status(400).json({ message: '数据格式错误' }); }
 
+        const totalVolume = ingredients.reduce((sum, ing) => {
+            const v = parseFloat(ing.volume);
+            return sum + (isNaN(v) ? 0 : v);
+        }, 0);
+
         let imagePath = rows[0].image;
         if (req.file) imagePath = '/uploads/cocktails/' + req.file.filename;
 
@@ -133,8 +144,8 @@ router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'),
         await conn.beginTransaction();
         try {
             await conn.query(
-                `UPDATE cocktails SET name=?, description=?, instructions=?, estimated_abv=?, image=? WHERE id=?`,
-                [name, description, Array.isArray(steps) ? steps.join('\n') : steps, estimatedAbv, imagePath, recipeId]
+                `UPDATE cocktails SET name=?, description=?, instructions=?, estimated_abv=?, total_volume=?, image=? WHERE id=?`,
+                [name, description, Array.isArray(steps) ? steps.join('\n') : steps, estimatedAbv, totalVolume, imagePath, recipeId]
             );
             await conn.query('DELETE FROM ingredients WHERE cocktail_id = ?', [recipeId]);
             for (const ing of ingredients) {
@@ -580,6 +591,7 @@ router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'),
 
         // 2. 准备数据
         const name = req.body.name;
+        const description = req.body.description || '';
         let ingredients = [];
         try {
             ingredients = JSON.parse(req.body.ingredients || '[]');
@@ -588,6 +600,11 @@ router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'),
         }
         const steps = req.body.steps ? JSON.parse(req.body.steps) : [];
         const estimatedAbv = req.body.estimatedAbv || 0;
+
+        const totalVolume = ingredients.reduce((sum, ing) => {
+            const v = parseFloat(ing.volume);
+            return sum + (isNaN(v) ? 0 : v);
+        }, 0);
 
         // 3. 处理图片逻辑
         // 如果上传了新图，用新图；如果没有上传，保持原图路径 (imagePath = rows[0].image)
@@ -611,12 +628,14 @@ router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'),
             // 更新主表
             await connection.query(
                 `UPDATE cocktails 
-                 SET name = ?, instructions = ?, estimated_abv = ?, image = ? 
+                 SET name = ?, description = ?, instructions = ?, estimated_abv = ?, total_volume = ?, image = ? 
                  WHERE id = ?`,
                 [
-                    name, 
+                    name,
+                    description,
                     Array.isArray(steps) ? steps.join('\n') : steps, 
                     estimatedAbv, 
+                    totalVolume,
                     imagePath, 
                     recipeId
                 ]

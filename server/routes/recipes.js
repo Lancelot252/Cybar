@@ -66,15 +66,15 @@ router.get('/api/recipes', async (req, res) => {
                 c.image,
                 c.instructions,
                 c.estimated_abv AS estimatedAbv,
+                u.avatar AS creatorAvatar,
                 (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount,
                 (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount,
                 GROUP_CONCAT(DISTINCT i.name) AS ingredients
             FROM cocktails c
-            LEFT JOIN likes l ON c.id = l.recipe_id
-            LEFT JOIN favorites f ON c.id = f.recipe_id
+            LEFT JOIN users u ON c.created_by COLLATE utf8mb4_unicode_ci = u.username COLLATE utf8mb4_unicode_ci
             LEFT JOIN ingredients i ON c.id = i.cocktail_id
             ${where}
-            GROUP BY c.id
+            GROUP BY c.id, c.name, c.created_by, c.image, c.instructions, c.estimated_abv, u.avatar
             ${orderBy}
             LIMIT ? OFFSET ?
         `;
@@ -101,15 +101,18 @@ router.get('/api/recipes', async (req, res) => {
 router.get('/api/recipes/:id', async (req, res) => {
     const recipeId = req.params.id;
     try {
-        // 👇 关键修改：SQL里加上了 c.description 和 c.image
+        // 👇 关键修改：SQL里加上了 c.description 和 c.image，并 JOIN users 获取头像（统一排序规则）
         const [recipes] = await dbPool.query(
             `SELECT 
                 c.id, c.name, c.description, c.image, 
                 c.instructions, c.estimated_abv AS estimatedAbv, 
-                c.created_by AS createdBy, 
+                c.created_by AS createdBy,
+                u.avatar AS creatorAvatar,
                 (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount, 
                 (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount 
-             FROM cocktails c WHERE c.id = ?`,
+             FROM cocktails c
+             LEFT JOIN users u ON c.created_by COLLATE utf8mb4_unicode_ci = u.username COLLATE utf8mb4_unicode_ci
+             WHERE c.id = ?`, 
             [recipeId]
         );
 

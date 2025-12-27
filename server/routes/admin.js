@@ -72,7 +72,7 @@ router.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
     const offset = (page - 1) * limit;
     try {
         const [users] = await dbPool.query(
-            'SELECT id, username, role FROM users LIMIT ? OFFSET ?', [limit, offset]
+            'SELECT id, username, role, avatar FROM users LIMIT ? OFFSET ?', [limit, offset]
         );
         const [[{ total }]] = await dbPool.query('SELECT COUNT(*) AS total FROM users');
         res.json({
@@ -113,12 +113,20 @@ router.get('/api/admin/comments', isAuthenticated, isAdmin, async (req, res) => 
         const countSql = `SELECT COUNT(*) AS total FROM comment ${whereSql}`;
         const [[{ total }]] = await dbPool.query(countSql, params);
 
-        // 查询当前页评论（带筛选）
+        // 查询当前页评论（带筛选）JOIN 酒单表获取酒名
         const dataSql = `
-            SELECT id, thread_id AS recipeId, user_id, username, text, timestamp
+            SELECT 
+                comment.id, 
+                comment.thread_id AS recipeId, 
+                cocktails.name AS recipeName,
+                comment.user_id, 
+                comment.username, 
+                comment.text, 
+                comment.timestamp
             FROM comment
+            LEFT JOIN cocktails ON comment.thread_id = cocktails.id
             ${whereSql}
-            ORDER BY timestamp DESC
+            ORDER BY comment.timestamp DESC
             LIMIT ? OFFSET ?`;
         const dataParams = params.concat([limit, offset]);
         const [comments] = await dbPool.query(dataSql, dataParams);

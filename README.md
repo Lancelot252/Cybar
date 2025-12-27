@@ -16,6 +16,7 @@ Cybar是一个功能丰富的鸡尾酒配方管理和酒精度计算平台，集
 **在使用AI智能推荐功能之前，您需要配置Deepseek API密钥：**
 
 ### 快速配置（推荐）
+
 ```bash
 # Windows用户 - 运行配置脚本
 setup-api-key.bat

@@ -87,9 +87,9 @@ function displayRecipeDetail(recipe) {
     imageContainer.style.marginBottom = '20px';
 
     const image = document.createElement('img');
-
-    // 👇 逻辑：有图用图，没图用默认 default.png
-    // 请确保您的 uploads/cocktails/ 文件夹里确实放了一张 default.png
+    
+    // 👇 逻辑：有图用图，没图用默认 jiu.jpg
+    // 请确保您的 uploads/cocktails/ 文件夹里确实放了一张 jiu.jpg
     image.src = recipe.image ? recipe.image : '/uploads/cocktails/jiu.jpg';
 
     image.alt = recipe.name;
@@ -134,7 +134,17 @@ function displayRecipeDetail(recipe) {
     // 添加创建者信息
     const creatorInfo = document.createElement('p');
     creatorInfo.classList.add('recipe-creator-detail');
-    creatorInfo.innerHTML = `<strong>创建者:</strong> ${recipe.createdBy || '未知用户'}`;
+    
+    // 添加头像
+    const avatarImg = document.createElement('img');
+    avatarImg.src = recipe.creatorAvatar || '/uploads/avatars/default-avatar.png';
+    avatarImg.alt = '头像';
+    avatarImg.style.cssText = 'width: 32px; height: 32px; border-radius: 50%; vertical-align: middle; margin-right: 10px; object-fit: cover; border: 2px solid #00e5ff;';
+    
+    creatorInfo.appendChild(avatarImg);
+    const creatorText = document.createElement('span');
+    creatorText.innerHTML = `<strong>创建者:</strong> ${recipe.createdBy || '未知用户'}`;
+    creatorInfo.appendChild(creatorText);
     contentContainer.appendChild(creatorInfo);
 
     // 添加描述信息（在创建者下方、配料上方）
