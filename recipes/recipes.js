@@ -35,7 +35,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- Add Creator Info ---
             const creatorInfo = document.createElement('p');
             creatorInfo.classList.add('recipe-creator'); // Add class for styling
-            creatorInfo.textContent = `由 ${recipe.createdBy || '未知用户'} 创建`;
+            
+            // 添加头像
+            const avatarImg = document.createElement('img');
+            avatarImg.src = recipe.creatorAvatar || '/uploads/avatars/default-avatar.png';
+            avatarImg.alt = '头像';
+            avatarImg.style.cssText = 'width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 8px; object-fit: cover;';
+            
+            creatorInfo.appendChild(avatarImg);
+            creatorInfo.appendChild(document.createTextNode(`由 ${recipe.createdBy || '未知用户'} 创建`));
             article.appendChild(creatorInfo);
             // --- End Creator Info ---
 

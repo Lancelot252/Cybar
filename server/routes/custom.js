@@ -1,165 +1,172 @@
 const express = require('express');
 const router = express.Router();
 const dbPool = require('../config/db');
-const fs = require('fs').promises;
 const path = require('path');
-const axios = require('axios');
+const fs = require('fs');
+const multer = require('multer');
 const { isAuthenticated } = require('../middleware/auth');
+const axios = require('axios');
 
-// 项目根目录 (server 的上级目录)
+// 定义根目录
 const ROOT_DIR = path.join(__dirname, '..', '..');
-
-// 文件路径常量
+// 定义 JSON 文件路径 (修复之前可能的 undefined 错误)
 const INGREDIENTS_FILE = path.join(ROOT_DIR, 'custom', 'ingredients.json');
-const CUSTOM_COCKTAILS_FILE = path.join(ROOT_DIR, 'custom', 'custom_cocktails.json');
 
-// --- Page Routes ---
-router.get('/custom/', (req, res) => {
-    res.sendFile(path.join(ROOT_DIR, 'custom', 'index.html'));
+// --- [配置 Multer] ---
+const uploadDir = path.join(ROOT_DIR, 'uploads', 'cocktails');
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `recipe-${req.session.userId}-${uniqueSuffix}${ext}`);
+    }
 });
 
-// --- API Routes ---
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('只允许上传图片文件！'));
+        }
+    }
+});
 
-// 获取所有原料
+// --- 1. 获取原料列表 API ---
 router.get('/api/custom/ingredients', async (req, res) => {
     try {
-        let data = await fs.readFile(INGREDIENTS_FILE, 'utf8');
-        if (data.charCodeAt(0) === 0xFEFF) {
-            data = data.slice(1);
+        if (!fs.existsSync(INGREDIENTS_FILE)) {
+            console.error("找不到原料文件:", INGREDIENTS_FILE);
+            return res.status(404).json({ message: '原料文件不存在' });
         }
+        let data = await fs.promises.readFile(INGREDIENTS_FILE, 'utf8');
+        // 去除 BOM 头 (如果有)
+        if (data.charCodeAt(0) === 0xFEFF) data = data.slice(1);
         const ingredients = JSON.parse(data);
-
-        // Filter helper: decide if an item should be considered a liquid
-        const isLiquidItem = (item) => {
-            if (!item) return false;
-            const unit = (item.unit || '').toString().toLowerCase();
-
-            if (unit.includes('毫') || unit.includes('ml') || unit.includes('cl') || unit === 'l') {
-                return true;
-            }
-            if (typeof item.volume === 'number' && item.volume > 0) return true;
-            if (typeof item.abv === 'number' && item.abv > 0) return true;
-
-            return false;
-        };
-
-        const filtered = { ingredients: [] };
-        const allowedNonLiquidCategories = new Set(['garnish', 'dairy_cream', 'other', 'spice_herb']);
-
-        if (Array.isArray(ingredients.ingredients)) {
-            for (const cat of ingredients.ingredients) {
-                if (!cat || !Array.isArray(cat.items)) continue;
-
-                const catKey = (cat.category || '').toString();
-
-                if (allowedNonLiquidCategories.has(catKey)) {
-                    filtered.ingredients.push({
-                        category: cat.category,
-                        items: cat.items.slice()
-                    });
-                    continue;
-                }
-
-                const liquidItems = cat.items.filter(isLiquidItem);
-                if (liquidItems.length > 0) {
-                    filtered.ingredients.push({
-                        category: cat.category,
-                        items: liquidItems
-                    });
-                }
-            }
-        }
-
-        // Consolidate leftovers
-        try {
-            const includedIds = new Set();
-            for (const c of filtered.ingredients) {
-                for (const it of c.items || []) {
-                    if (it && it.id) includedIds.add(it.id);
-                }
-            }
-
-            const leftovers = [];
-            for (const origCat of (ingredients.ingredients || [])) {
-                for (const it of (origCat.items || [])) {
-                    if (it && it.id && !includedIds.has(it.id)) {
-                        leftovers.push(it);
-                    }
-                }
-            }
-
-            if (leftovers.length > 0) {
-                let otherCat = filtered.ingredients.find(c => c.category === 'other');
-                if (!otherCat) {
-                    otherCat = { category: 'other', items: [] };
-                    filtered.ingredients.push(otherCat);
-                }
-                const existing = new Set((otherCat.items || []).map(i => i.id));
-                for (const it of leftovers) {
-                    if (!existing.has(it.id)) otherCat.items.push(it);
-                }
-            }
-        } catch (e) {
-            console.error('Error while consolidating leftover ingredients:', e);
-        }
-
-        res.json(filtered);
+        res.json(ingredients); 
     } catch (error) {
-        console.error("Error reading ingredients:", error);
+        console.error("读取原料失败:", error);
         res.status(500).json({ message: '加载原料数据失败' });
     }
 });
 
-// 创建自定义鸡尾酒
-router.post('/api/custom/cocktails', isAuthenticated, async (req, res) => {
+// --- 2. 创建配方 API ---
+router.post('/api/custom/cocktails', isAuthenticated, upload.single('image'), async (req, res) => {
     try {
-        const newCocktail = req.body;
+        const name = req.body.name;
+        const description = req.body.description || ''; 
+        const estimatedAbv = req.body.estimatedAbv || 0;
+        
+        let ingredients = [], steps = [];
+        try {
+            ingredients = JSON.parse(req.body.ingredients || '[]');
+            steps = req.body.steps ? JSON.parse(req.body.steps) : [];
+        } catch (e) {
+            return res.status(400).json({ message: '数据格式错误' });
+        }
 
-        if (!newCocktail.name || !newCocktail.ingredients || newCocktail.ingredients.length === 0) {
-            return res.status(400).json({ message: '鸡尾酒名称和至少一种原料是必填的' });
+        // 计算总容量
+        const totalVolume = ingredients.reduce((sum, ing) => {
+            const v = parseFloat(ing.volume);
+            return sum + (isNaN(v) ? 0 : v);
+        }, 0);
+
+        let imagePath = null;
+        if (req.file) imagePath = '/uploads/cocktails/' + req.file.filename;
+
+        if (!name || ingredients.length === 0) {
+            return res.status(400).json({ message: '名称和至少一种原料是必填的' });
         }
 
         const cocktailId = Date.now().toString();
         const creator = req.session.username;
 
-        // 插入主表 cocktails
+        // 插入主表
         await dbPool.query(
-            `INSERT INTO cocktails (id, name, instructions, estimated_abv, created_by)
-             VALUES (?, ?, ?, ?, ?)`,
-            [
-                cocktailId,
-                newCocktail.name,
-                (newCocktail.steps || []).join('\n'),
-                newCocktail.estimatedAbv || 0,
-                creator
-            ]
+            `INSERT INTO cocktails (id, name, description, instructions, estimated_abv, total_volume, created_by, image)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [cocktailId, name, description, Array.isArray(steps) ? steps.join('\n') : steps, estimatedAbv, totalVolume, creator, imagePath]
         );
 
-        // 插入 ingredients 表
-        for (const ing of newCocktail.ingredients) {
+        // 插入原料表
+        for (const ing of ingredients) {
             await dbPool.query(
-                `INSERT INTO ingredients (cocktail_id, name, volume, abv)
-                 VALUES (?, ?, ?, ?)`,
-                [
-                    cocktailId,
-                    ing.name,
-                    ing.volume,
-                    ing.abv
-                ]
+                `INSERT INTO ingredients (cocktail_id, name, volume, abv) VALUES (?, ?, ?, ?)`,
+                [cocktailId, ing.name, ing.volume, ing.abv]
             );
         }
 
-        res.status(201).json({
-            message: '鸡尾酒创建成功',
-            id: cocktailId
-        });
-
+        res.status(201).json({ message: '创建成功', id: cocktailId });
     } catch (error) {
-        console.error("Error creating custom cocktail:", error);
-        res.status(500).json({ message: '创建鸡尾酒失败' });
+        console.error("创建失败:", error);
+        res.status(500).json({ message: '创建失败: ' + error.message });
     }
 });
 
+// --- 3. 修改配方 API (PUT) ---
+router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'), async (req, res) => {
+    const recipeId = req.params.id;
+    const username = req.session.username;
+
+    try {
+        const [rows] = await dbPool.query('SELECT created_by, image FROM cocktails WHERE id = ?', [recipeId]);
+        if (rows.length === 0) return res.status(404).json({ message: '配方不存在' });
+        if (rows[0].created_by !== username && req.session.role !== 'admin') {
+            return res.status(403).json({ message: '无权修改' });
+        }
+
+        const name = req.body.name;
+        const description = req.body.description || '';
+        const estimatedAbv = req.body.estimatedAbv || 0;
+        let ingredients = [], steps = [];
+        try {
+            ingredients = JSON.parse(req.body.ingredients || '[]');
+            steps = req.body.steps ? JSON.parse(req.body.steps) : [];
+        } catch (e) { return res.status(400).json({ message: '数据格式错误' }); }
+
+        const totalVolume = ingredients.reduce((sum, ing) => {
+            const v = parseFloat(ing.volume);
+            return sum + (isNaN(v) ? 0 : v);
+        }, 0);
+
+        let imagePath = rows[0].image;
+        if (req.file) imagePath = '/uploads/cocktails/' + req.file.filename;
+
+        const conn = await dbPool.getConnection();
+        await conn.beginTransaction();
+        try {
+            await conn.query(
+                `UPDATE cocktails SET name=?, description=?, instructions=?, estimated_abv=?, total_volume=?, image=? WHERE id=?`,
+                [name, description, Array.isArray(steps) ? steps.join('\n') : steps, estimatedAbv, totalVolume, imagePath, recipeId]
+            );
+            await conn.query('DELETE FROM ingredients WHERE cocktail_id = ?', [recipeId]);
+            for (const ing of ingredients) {
+                await conn.query(
+                    `INSERT INTO ingredients (cocktail_id, name, volume, abv) VALUES (?, ?, ?, ?)`,
+                    [recipeId, ing.name, ing.volume, ing.abv]
+                );
+            }
+            await conn.commit();
+            res.json({ message: '修改成功', id: recipeId });
+        } catch (err) {
+            await conn.rollback();
+            throw err;
+        } finally {
+            conn.release();
+        }
+    } catch (error) {
+        console.error("更新失败:", error);
+        res.status(500).json({ message: '更新失败' });
+    }
+});
 // 获取所有自定义鸡尾酒
 router.get('/api/custom/cocktails', async (req, res) => {
     try {
@@ -487,6 +494,108 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
                 error: 'UNKNOWN_ERROR'
             });
         }
+    }
+});
+
+// [新增] 编辑/更新配方接口
+router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'), async (req, res) => {
+    const recipeId = req.params.id;
+    const userId = req.session.userId;
+    const username = req.session.username; // 用于检查权限
+
+    try {
+        console.log(`尝试更新配方 ID: ${recipeId}, 用户: ${username}`);
+
+        // 1. 检查权限：配方是否存在？是否是当前用户创建的？
+        const [rows] = await dbPool.query(
+            'SELECT created_by, image FROM cocktails WHERE id = ?', 
+            [recipeId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: '配方不存在' });
+        }
+
+        if (rows[0].created_by !== username && req.session.role !== 'admin') {
+            return res.status(403).json({ message: '您无权编辑此配方' });
+        }
+
+        // 2. 准备数据
+        const name = req.body.name;
+        const description = req.body.description || '';
+        let ingredients = [];
+        try {
+            ingredients = JSON.parse(req.body.ingredients || '[]');
+        } catch (e) {
+            return res.status(400).json({ message: '原料数据格式错误' });
+        }
+        const steps = req.body.steps ? JSON.parse(req.body.steps) : [];
+        const estimatedAbv = req.body.estimatedAbv || 0;
+
+        const totalVolume = ingredients.reduce((sum, ing) => {
+            const v = parseFloat(ing.volume);
+            return sum + (isNaN(v) ? 0 : v);
+        }, 0);
+
+        // 3. 处理图片逻辑
+        // 如果上传了新图，用新图；如果没有上传，保持原图路径 (imagePath = rows[0].image)
+        // 如果想支持“删除图片”，前端需要传个标志，这里简化处理：只支持覆盖或保留
+        let imagePath = rows[0].image; 
+        if (req.file) {
+            imagePath = '/uploads/cocktails/' + req.file.filename;
+            // (可选) 这里可以顺便把 rows[0].image 指向的旧文件删掉，清理硬盘空间
+        }
+
+        // 验证
+        if (!name || ingredients.length === 0) {
+            return res.status(400).json({ message: '名称和至少一种原料是必填的' });
+        }
+
+        // 4. 执行更新 (使用事务保证原子性)
+        const connection = await dbPool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            // 更新主表
+            await connection.query(
+                `UPDATE cocktails 
+                 SET name = ?, description = ?, instructions = ?, estimated_abv = ?, total_volume = ?, image = ? 
+                 WHERE id = ?`,
+                [
+                    name,
+                    description,
+                    Array.isArray(steps) ? steps.join('\n') : steps, 
+                    estimatedAbv, 
+                    totalVolume,
+                    imagePath, 
+                    recipeId
+                ]
+            );
+
+            // 更新原料表：策略是“先删后加”
+            await connection.query('DELETE FROM ingredients WHERE cocktail_id = ?', [recipeId]);
+
+            for (const ing of ingredients) {
+                await connection.query(
+                    `INSERT INTO ingredients (cocktail_id, name, volume, abv)
+                     VALUES (?, ?, ?, ?)`,
+                    [recipeId, ing.name, ing.volume, ing.abv]
+                );
+            }
+
+            await connection.commit();
+            res.json({ message: '配方修改成功', id: recipeId });
+
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+
+    } catch (error) {
+        console.error("更新配方出错:", error);
+        res.status(500).json({ message: '更新失败: ' + error.message });
     }
 });
 
