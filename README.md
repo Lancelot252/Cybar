@@ -156,6 +156,7 @@ mysql -u root -p cybar < cybar.sql
 **3.3 配置数据库连接**
 
 在 `server.js` 文件中找到数据库连接配置部分（约第53-60行）：
+现在应该是在`Cybar\server\config\db.js`中了：
 
 ```javascript
 // 数据库连接池配置

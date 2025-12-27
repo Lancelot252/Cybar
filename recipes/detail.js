@@ -155,6 +155,15 @@ function displayRecipeDetail(recipe) {
     creatorInfo.appendChild(creatorText);
     contentContainer.appendChild(creatorInfo);
 
+    // 添加描述信息（在创建者下方、配料上方）
+    if (recipe.description) {
+        const descElement = document.createElement('p');
+        descElement.classList.add('recipe-description');
+        descElement.style.cssText = 'color: #b0cfff; margin: 15px 0; padding: 10px; background: rgba(0, 229, 255, 0.1); border-radius: 8px; border-left: 3px solid #00e5ff;';
+        descElement.innerHTML = `<strong>description:</strong> ${recipe.description}`;
+        contentContainer.appendChild(descElement);
+    }
+
     // 添加配料标题和列表
     const ingredientsTitle = document.createElement('h3');
     ingredientsTitle.textContent = '配料:';
@@ -189,7 +198,7 @@ function displayRecipeDetail(recipe) {
 
     // 重新绑定事件监听器
     setupInteractionListeners(recipe.id);
-    
+
     // 启动AI口味分析
     if (window.startAITasteAnalysis) {
         startAITasteAnalysis(recipe);
@@ -340,8 +349,8 @@ function setupCommentForm(recipeId) {
         if (loginPrompt) loginPrompt.style.display = 'block';
         return; 
     } else {
-         if (commentForm) commentForm.style.display = 'block';
-         if (loginPrompt) loginPrompt.style.display = 'none';
+        if (commentForm) commentForm.style.display = 'block';
+        if (loginPrompt) loginPrompt.style.display = 'none';
     }
 
     if (commentForm && commentText) {
@@ -425,7 +434,7 @@ async function deleteComment(commentId, buttonElement) {
             
             const commentsListContainer = document.getElementById('comments-list');
             if (commentsListContainer && !commentsListContainer.hasChildNodes()) {
-                 commentsListContainer.innerHTML = '<p>暂无评论。</p>';
+                commentsListContainer.innerHTML = '<p>暂无评论。</p>';
             }
             alert('评论删除成功！');
         } else {
@@ -466,7 +475,7 @@ async function loadInteractionData(recipeId) {
 async function startAITasteAnalysis(recipe) {
     // 保存当前配方到全局变量供其他函数使用
     window.currentRecipe = recipe;
-    
+
     const analysisSection = document.getElementById('ai-taste-analysis');
     const loadingElement = document.getElementById('ai-analysis-loading');
     const contentElement = document.getElementById('ai-analysis-content');
@@ -475,7 +484,7 @@ async function startAITasteAnalysis(recipe) {
 
     // 显示分析区域
     analysisSection.style.display = 'block';
-    
+
     // 显示加载状态
     loadingElement.style.display = 'flex';
     contentElement.style.display = 'none';
@@ -504,7 +513,7 @@ async function startAITasteAnalysis(recipe) {
         const result = await response.json();
 
         // 隐藏加载状态
-        loadingElement.style.display = 'none';        if (response.ok && result.success) {
+        loadingElement.style.display = 'none'; if (response.ok && result.success) {
             // 显示分析结果
             displayAIAnalysisResult(result.analysis, result.analyzedAt);
         } else {
@@ -550,7 +559,7 @@ function displayAIAnalysisResult(analysis, analyzedAt) {
         const defaultTasteData = generateDefaultTasteData(window.currentRecipe || {});
         displayTasteVisualization(defaultTasteData);
     }
-    
+
     // 显示结果容器
     const resultsElement = document.getElementById('ai-analysis-results');
     resultsElement.style.display = 'block';
@@ -576,7 +585,7 @@ function extractTasteDataFromAnalysis(analysis) {
             strength: /酒精感[：:\s]*([0-5])|烈性[：:\s]*([0-5])|酒精度感受[：:\s]*([0-5])|强度[：:\s]*([0-5])/gi,
             freshness: /清新[：:\s]*([0-5])|爽口[：:\s]*([0-5])|清香[：:\s]*([0-5])/gi
         };
-        
+
         // 描述性文本映射
         const descriptiveMapping = {
             sweetness: {
@@ -600,7 +609,7 @@ function extractTasteDataFromAnalysis(analysis) {
                 '清新': 4, '爽口': 4, '清香': 3, '淡雅': 2
             }
         };
-        
+
         const tasteData = {
             sweetness: null,
             sourness: null,
@@ -608,7 +617,7 @@ function extractTasteDataFromAnalysis(analysis) {
             strength: null,
             freshness: null
         };
-        
+
         // 首先尝试提取标准化格式的数值
         for (const [dimension, pattern] of Object.entries(standardPatterns)) {
             let match;
@@ -625,7 +634,7 @@ function extractTasteDataFromAnalysis(analysis) {
                 if (tasteData[dimension] !== null) break;
             }
         }
-        
+
         // 如果标准格式没找到，尝试备用格式
         for (const [dimension, pattern] of Object.entries(fallbackPatterns)) {
             if (tasteData[dimension] === null) {
@@ -644,7 +653,7 @@ function extractTasteDataFromAnalysis(analysis) {
                 }
             }
         }
-        
+
         // 最后尝试描述性文本匹配
         for (const [dimension, mapping] of Object.entries(descriptiveMapping)) {
             if (tasteData[dimension] === null) {
@@ -656,7 +665,7 @@ function extractTasteDataFromAnalysis(analysis) {
                 }
             }
         }
-        
+
         // 如果提取到了至少一个有效值，返回数据
         const validValues = Object.values(tasteData).filter(v => v !== null);
         if (validValues.length > 0) {
@@ -669,7 +678,7 @@ function extractTasteDataFromAnalysis(analysis) {
                 freshness: tasteData.freshness ?? 3
             };
         }
-        
+
         return null;
     } catch (error) {
         console.warn('无法从AI分析中提取口味数据:', error);
@@ -683,7 +692,7 @@ function generateDefaultTasteData(recipe) {
     let sweetness = 0, sourness = 0, bitterness = 0, strength = 0, freshness = 0;
     let totalVolume = 0;
     let alcoholContent = 0;
-    
+
     // 原料口味特征数据库
     const ingredientProfiles = {
         // 烈酒类
@@ -693,13 +702,13 @@ function generateDefaultTasteData(recipe) {
         '白兰地': { sweetness: 2, sourness: 0, bitterness: 1, strength: 4, freshness: 1 },
         '朗姆酒': { sweetness: 3, sourness: 0, bitterness: 0, strength: 4, freshness: 2 },
         '龙舌兰': { sweetness: 1, sourness: 0, bitterness: 1, strength: 4, freshness: 2 },
-        
+
         // 利口酒类
         '君度': { sweetness: 4, sourness: 1, bitterness: 0, strength: 3, freshness: 3 },
         '橙皮酒': { sweetness: 4, sourness: 2, bitterness: 1, strength: 3, freshness: 3 },
         '咖啡利口酒': { sweetness: 4, sourness: 0, bitterness: 3, strength: 2, freshness: 0 },
         '薄荷利口酒': { sweetness: 3, sourness: 0, bitterness: 0, strength: 2, freshness: 5 },
-        
+
         // 果汁类
         '柠檬汁': { sweetness: 1, sourness: 5, bitterness: 0, strength: 0, freshness: 4 },
         '青柠汁': { sweetness: 0, sourness: 5, bitterness: 1, strength: 0, freshness: 5 },
@@ -707,23 +716,23 @@ function generateDefaultTasteData(recipe) {
         '蔓越莓汁': { sweetness: 3, sourness: 3, bitterness: 1, strength: 0, freshness: 3 },
         '菠萝汁': { sweetness: 5, sourness: 1, bitterness: 0, strength: 0, freshness: 3 },
         '番茄汁': { sweetness: 2, sourness: 2, bitterness: 0, strength: 0, freshness: 2 },
-        
+
         // 糖浆类
         '简单糖浆': { sweetness: 5, sourness: 0, bitterness: 0, strength: 0, freshness: 0 },
         '蜂蜜糖浆': { sweetness: 5, sourness: 0, bitterness: 0, strength: 0, freshness: 1 },
         '薄荷糖浆': { sweetness: 4, sourness: 0, bitterness: 0, strength: 0, freshness: 5 },
         '香草糖浆': { sweetness: 5, sourness: 0, bitterness: 0, strength: 0, freshness: 1 },
-        
+
         // 汽水类
         '苏打水': { sweetness: 0, sourness: 0, bitterness: 0, strength: 0, freshness: 5 },
         '汤力水': { sweetness: 2, sourness: 0, bitterness: 2, strength: 0, freshness: 4 },
         '姜汁汽水': { sweetness: 3, sourness: 0, bitterness: 1, strength: 0, freshness: 4 },
         '可乐': { sweetness: 4, sourness: 0, bitterness: 0, strength: 0, freshness: 2 },
-        
+
         // 苦精类
         '安格斯图拉苦精': { sweetness: 0, sourness: 0, bitterness: 5, strength: 1, freshness: 0 },
         '橙子苦精': { sweetness: 1, sourness: 1, bitterness: 4, strength: 1, freshness: 2 },
-        
+
         // 其他
         '柠檬皮': { sweetness: 0, sourness: 2, bitterness: 1, strength: 0, freshness: 4 },
         '橙皮': { sweetness: 1, sourness: 1, bitterness: 1, strength: 0, freshness: 3 },
@@ -731,19 +740,19 @@ function generateDefaultTasteData(recipe) {
         '盐': { sweetness: 0, sourness: 0, bitterness: 0, strength: 0, freshness: 1 },
         '黑胡椒': { sweetness: 0, sourness: 0, bitterness: 2, strength: 0, freshness: 0 }
     };
-    
+
     if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
         recipe.ingredients.forEach(ing => {
             const name = ing.name;
             const volume = parseFloat(ing.volume) || 0;
             const abv = parseFloat(ing.abv) || 0;
-            
+
             totalVolume += volume;
             alcoholContent += volume * (abv / 100);
-            
+
             // 查找精确匹配的原料配置
             let profile = ingredientProfiles[name];
-            
+
             // 如果没有精确匹配，尝试模糊匹配
             if (!profile) {
                 const lowerName = name.toLowerCase();
@@ -754,11 +763,11 @@ function generateDefaultTasteData(recipe) {
                     }
                 }
             }
-            
+
             // 如果还是没有匹配，根据名称特征推断
             if (!profile) {
                 profile = { sweetness: 1, sourness: 1, bitterness: 1, strength: 1, freshness: 1 };
-                
+
                 const lowerName = name.toLowerCase();
                 if (lowerName.includes('糖') || lowerName.includes('蜜') || lowerName.includes('甜')) {
                     profile.sweetness = 4;
@@ -776,7 +785,7 @@ function generateDefaultTasteData(recipe) {
                     profile.freshness = 4;
                 }
             }
-            
+
             // 按体积比例加权
             const weight = volume / Math.max(totalVolume, 1);
             sweetness += profile.sweetness * weight;
@@ -785,20 +794,20 @@ function generateDefaultTasteData(recipe) {
             strength += profile.strength * weight;
             freshness += profile.freshness * weight;
         });
-        
+
         // 根据总酒精含量调整烈度
         if (totalVolume > 0) {
             const finalAbv = (alcoholContent / totalVolume) * 100;
             strength = Math.max(strength, finalAbv / 10);
         }
-        
+
         // 如果配方有预估酒精度，以此为准调整烈度
         if (recipe.estimatedAbv && !isNaN(parseFloat(recipe.estimatedAbv))) {
             const estimatedAbv = parseFloat(recipe.estimatedAbv);
             strength = Math.max(strength, estimatedAbv / 10);
         }
     }
-    
+
     return {
         sweetness: Math.min(5, Math.max(0, Math.round(sweetness * 10) / 10)),
         sourness: Math.min(5, Math.max(0, Math.round(sourness * 10) / 10)),
@@ -812,7 +821,7 @@ function generateDefaultTasteData(recipe) {
 function displayTasteVisualization(tasteData) {
     // 更新口味条形图
     updateTasteBars(tasteData);
-    
+
     // 更新雷达图
     updateRadarChart(tasteData);
 }
@@ -820,11 +829,11 @@ function displayTasteVisualization(tasteData) {
 // 更新口味条形图
 function updateTasteBars(tasteData) {
     const tasteDimensions = ['sweetness', 'sourness', 'bitterness', 'strength', 'freshness'];
-    
+
     tasteDimensions.forEach((dimension, index) => {
         const value = tasteData[dimension] || 0;
         const percentage = (value / 5) * 100;
-        
+
         // 更新数值显示
         const valueElement = document.getElementById(`${dimension}-value`);
         if (valueElement) {
@@ -832,14 +841,14 @@ function updateTasteBars(tasteData) {
             const displayValue = value % 1 === 0 ? value.toString() : value.toFixed(1);
             valueElement.textContent = `${displayValue}/5`;
         }
-        
+
         // 更新进度条
         const fillElement = document.getElementById(`${dimension}-fill`);
         if (fillElement) {
             // 添加动画延迟，让每个条形图依次显示
             setTimeout(() => {
                 fillElement.style.width = `${percentage}%`;
-                
+
                 // 根据数值添加动态颜色效果
                 if (value >= 4) {
                     fillElement.style.boxShadow = `0 0 10px ${fillElement.style.background.split(',')[0].split('(')[1]}`;
@@ -853,15 +862,15 @@ function updateTasteBars(tasteData) {
 function updateRadarChart(tasteData) {
     const canvas = document.getElementById('taste-radar');
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const radius = 80;
-    
+
     // 清除画布
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // 口味维度
     const dimensions = [
         { name: '甜度', value: tasteData.sweetness, angle: 0, color: '#ff6b9d' },
@@ -870,30 +879,30 @@ function updateRadarChart(tasteData) {
         { name: '烈度', value: tasteData.strength, angle: Math.PI * 6 / 5, color: '#ff9f43' },
         { name: '清爽度', value: tasteData.freshness, angle: Math.PI * 8 / 5, color: '#4bcffa' }
     ];
-    
+
     // 绘制背景网格
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 1;
-    
+
     for (let i = 1; i <= 5; i++) {
         ctx.beginPath();
         const gridRadius = (radius / 5) * i;
-        
+
         dimensions.forEach((dim, index) => {
             const x = centerX + gridRadius * Math.cos(dim.angle - Math.PI / 2);
             const y = centerY + gridRadius * Math.sin(dim.angle - Math.PI / 2);
-            
+
             if (index === 0) {
                 ctx.moveTo(x, y);
             } else {
                 ctx.lineTo(x, y);
             }
         });
-        
+
         ctx.closePath();
         ctx.stroke();
     }
-    
+
     // 绘制轴线
     dimensions.forEach(dim => {
         ctx.beginPath();
@@ -903,40 +912,40 @@ function updateRadarChart(tasteData) {
         ctx.lineTo(endX, endY);
         ctx.stroke();
     });
-    
+
     // 绘制数据多边形
     ctx.beginPath();
     ctx.strokeStyle = '#00e5ff';
     ctx.fillStyle = 'rgba(0, 229, 255, 0.2)';
     ctx.lineWidth = 2;
-    
+
     dimensions.forEach((dim, index) => {
         const dataRadius = (radius / 5) * dim.value;
         const x = centerX + dataRadius * Math.cos(dim.angle - Math.PI / 2);
         const y = centerY + dataRadius * Math.sin(dim.angle - Math.PI / 2);
-        
+
         if (index === 0) {
             ctx.moveTo(x, y);
         } else {
             ctx.lineTo(x, y);
         }
     });
-    
+
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    
+
     // 绘制数据点
     dimensions.forEach(dim => {
         const dataRadius = (radius / 5) * dim.value;
         const x = centerX + dataRadius * Math.cos(dim.angle - Math.PI / 2);
         const y = centerY + dataRadius * Math.sin(dim.angle - Math.PI / 2);
-        
+
         ctx.beginPath();
         ctx.fillStyle = dim.color;
         ctx.arc(x, y, 4, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // 添加发光效果
         ctx.shadowColor = dim.color;
         ctx.shadowBlur = 10;
@@ -950,7 +959,7 @@ function updateRadarChart(tasteData) {
 // 添加CSS动画样式
 function addAnimationStyles() {
     if (document.getElementById('taste-animation-styles')) return;
-    
+
     const style = document.createElement('style');
     style.id = 'taste-animation-styles';
     style.textContent = `
@@ -988,7 +997,7 @@ function addAnimationStyles() {
             }
         }
     `;
-    
+
     document.head.appendChild(style);
 }
 
@@ -1013,18 +1022,18 @@ function formatAnalysisText(text) {
         .split('\n\n')
         .map(paragraph => {
             if (paragraph.trim() === '') return '';
-            
+
             // 检查是否为标题（以**开头和结尾的文本）
             if (paragraph.includes('**')) {
                 paragraph = paragraph.replace(/\*\*(.*?)\*\*/g, '<h4 style="color: #00e5ff; margin: 20px 0 10px 0;">$1</h4>');
             }
-            
+
             // 处理列表项（以-开头的行）
             if (paragraph.includes('- ')) {
                 const lines = paragraph.split('\n');
                 let formattedLines = [];
                 let inList = false;
-                
+
                 for (let line of lines) {
                     line = line.trim();
                     if (line.startsWith('- ')) {
@@ -1048,7 +1057,7 @@ function formatAnalysisText(text) {
                 }
                 return formattedLines.join('');
             }
-            
+
             // 普通段落
             return `<p style="margin: 15px 0; line-height: 1.6;">${paragraph.trim()}</p>`;
         })

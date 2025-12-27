@@ -18,12 +18,22 @@ const ROOT_DIR = path.join(__dirname, '..');
 
 // 从配置文件获取
 const configFile = path.join(ROOT_DIR, 'config.json');
-if (!apiKey && fsSync.existsSync(configFile)) {
+let qwenApiKey = null;
+
+if (fsSync.existsSync(configFile)) {
     try {
         const config = JSON.parse(fsSync.readFileSync(configFile, 'utf8'));
+        
+        // 加载 DEEPSEEK API KEY
         if (config.DEEPSEEK_API_KEY && config.DEEPSEEK_API_KEY !== 'sk-your-api-key-here') {
             apiKey = config.DEEPSEEK_API_KEY;
-            console.log('🤖 从配置文件加载了AI密钥');
+            console.log('🤖 从配置文件加载了 DeepSeek AI 密钥');
+        }
+        
+        // 加载 QWEN API KEY
+        if (config.QWEN_API_KEY && config.QWEN_API_KEY !== 'sk-your-api-key-here') {
+            qwenApiKey = config.QWEN_API_KEY;
+            console.log('🤖 从配置文件加载了 Qwen AI 密钥');
         }
     } catch (error) {
         console.log('⚠️ 配置文件读取失败:', error.message);
@@ -33,10 +43,17 @@ if (!apiKey && fsSync.existsSync(configFile)) {
 // 设置API密钥到环境变量
 if (apiKey) {
     process.env.DEEPSEEK_API_KEY = apiKey;
-    console.log('🤖 已配置AI密钥环境变量');
-} else {
+    console.log('🤖 已配置 DeepSeek AI 密钥环境变量');
+}
+
+if (qwenApiKey) {
+    process.env.QWEN_API_KEY = qwenApiKey;
+    console.log('🤖 已配置 Qwen AI 密钥环境变量');
+}
+
+if (!apiKey && !qwenApiKey) {
     console.log('⚠️ 未找到有效的AI密钥，将使用演示模式');
-    console.log('   请在config.json文件中配置{"DEEPSEEK_API_KEY": "您的密钥"}');
+    console.log('   请在config.json文件中配置{"DEEPSEEK_API_KEY": "您的密钥"} 或 {"QWEN_API_KEY": "您的密钥"}');
 }
 
 const express = require('express');

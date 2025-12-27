@@ -449,6 +449,8 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             list.appendChild(div);
         });
+        
+        updateAnalyzeButtonState();
     }
 
     // [新增] 辅助高亮函数

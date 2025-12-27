@@ -14,12 +14,20 @@ try {
 // AI密钥配置
 let apiKey = null;
 const configFile = path.join(__dirname, 'config.json');
-if (!apiKey && fsSync.existsSync(configFile)) {
+if (fsSync.existsSync(configFile)) {
     try {
         const config = JSON.parse(fsSync.readFileSync(configFile, 'utf8'));
+
+        // 加载DeepSeek密钥
         if (config.DEEPSEEK_API_KEY && config.DEEPSEEK_API_KEY !== 'sk-your-api-key-here') {
-            apiKey = config.DEEPSEEK_API_KEY;
-            console.log('🤖 从配置文件加载了AI密钥');
+            deepseekApiKey = config.DEEPSEEK_API_KEY;
+            console.log('🤖 从配置文件加载了DeepSeek API密钥');
+        }
+
+        // 加载千问密钥
+        if (config.QWEN_API_KEY && config.QWEN_API_KEY !== 'sk-your-api-key-here') {
+            qwenApiKey = config.QWEN_API_KEY;
+            console.log('🤖 从配置文件加载了千问 API密钥');
         }
     } catch (error) {
         console.log('⚠️ 配置文件读取失败:', error.message);
@@ -547,7 +555,7 @@ app.get('/api/recipes', async (req, res) => {
     let orderBy = '';
 
     if (search) {
-        where = 'WHERE name LIKE ?';
+        where = 'WHERE c.name LIKE ?';
         params.push(`%${search}%`);
     }
 
@@ -578,6 +586,7 @@ app.get('/api/recipes', async (req, res) => {
                 c.created_by AS createdBy,
                 c.instructions,
                 c.estimated_abv AS estimatedAbv,
+                c.image,
                 (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount,
                 (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount,
                 GROUP_CONCAT(DISTINCT i.name) AS ingredients
@@ -614,7 +623,7 @@ app.get('/api/recipes/:id', async (req, res) => {
     const recipeId = req.params.id;
     try {
         const [recipes] = await dbPool.query(
-            'SELECT c.id, c.name, c.instructions, c.estimated_abv AS estimatedAbv, c.created_by AS createdBy, (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount, (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount FROM cocktails c WHERE c.id = ?', [recipeId]
+            'SELECT c.id, c.name, c.description, c.instructions, c.estimated_abv AS estimatedAbv, c.created_by AS createdBy, c.image, (SELECT COUNT(*) FROM likes WHERE recipe_id = c.id) AS likeCount, (SELECT COUNT(*) FROM favorites WHERE recipe_id = c.id) AS favoriteCount FROM cocktails c WHERE c.id = ?', [recipeId]
         );
         if (recipes.length === 0) {
             console.warn(`Recipe with ID ${recipeId} not found.`);
@@ -683,6 +692,8 @@ app.post('/api/recipes', isAuthenticated, async (req, res) => {
     const newRecipe = req.body;
     const creatorUsername = req.session.username;
 
+    console.log('[API] POST /api/recipes - 收到数据:', JSON.stringify(newRecipe, null, 2));
+
     if (!newRecipe || !newRecipe.name) {
         return res.status(400).json({ message: '无效的配方数据' });
     }
@@ -692,12 +703,15 @@ app.post('/api/recipes', isAuthenticated, async (req, res) => {
 
     try {
         const recipeId = Date.now().toString();
+
+        // 插入配方基本信息
         await dbPool.query(
-            `INSERT INTO cocktails (id, name, created_by, instructions,estimated_abv)
-             VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO cocktails (id, name, description, created_by, instructions, estimated_abv)
+             VALUES (?, ?, ?, ?, ?, ?)`,
             [
                 recipeId,
                 newRecipe.name,
+                newRecipe.description || '',
                 creatorUsername,
                 newRecipe.instructions || '',
                 newRecipe.estimatedAbv || 0,
@@ -706,7 +720,7 @@ app.post('/api/recipes', isAuthenticated, async (req, res) => {
         res.status(201).json({ message: '配方添加成功', recipe: { id: recipeId, ...newRecipe, createdBy: creatorUsername } });
     } catch (error) {
         console.error("Error adding recipe:", error);
-        res.status(500).json({ message: '无法添加配方' });
+        res.status(500).json({ message: '无法添加配方: ' + error.message });
     }
 });
 
@@ -881,30 +895,37 @@ app.post('/api/custom/cocktails', isAuthenticated, async (req, res) => {
         const creator = req.session.username;
 
         await dbPool.query(
-            `INSERT INTO cocktails (id, name, instructions, estimated_abv, created_by)
-             VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO cocktails (id, name, description, instructions, estimated_abv, created_by, image)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
                 cocktailId,
                 newCocktail.name,
+                newCocktail.description || '',
                 (newCocktail.steps || []).join('\n'),
                 newCocktail.estimatedAbv || 0,
-                creator
+                creator,
+                newCocktail.image || null
             ]
         );
 
         for (const ing of newCocktail.ingredients) {
+            let volume = ing.volume;
+            let abv = ing.abv;
+
+            if (typeof volume === 'string') {
+                volume = parseFloat(volume.replace(/[^\d.]/g, '')) || 0;
+            }
+            if (typeof abv === 'string') {
+                abv = parseFloat(abv.replace(/[^\d.]/g, '')) || 0;
+            }
+
             await dbPool.query(
-                `INSERT INTO ingredients (cocktail_id, name, volume, abv)
-                 VALUES (?, ?, ?, ?)`,
-                [
-                    cocktailId,
-                    ing.name,
-                    ing.volume,
-                    ing.abv
-                ]
+                `INSERT INTO ingredients (cocktail_id, name, volume, abv) VALUES (?, ?, ?, ?)`,
+                [cocktailId, ing.name, volume || 0, abv || 0]
             );
         }
 
+        console.log('[创建鸡尾酒] 成功, ID:', cocktailId, '图片:', newCocktail.image);
         res.status(201).json({
             message: '鸡尾酒创建成功',
             id: cocktailId
@@ -912,7 +933,8 @@ app.post('/api/custom/cocktails', isAuthenticated, async (req, res) => {
 
     } catch (error) {
         console.error("Error creating custom cocktail:", error);
-        res.status(500).json({ message: '创建鸡尾酒失败' });
+        console.error("Error details:", error.message);
+        res.status(500).json({ message: '创建鸡尾酒失败: ' + error.message });
     }
 });
 
@@ -1007,10 +1029,10 @@ app.post('/api/custom/analyze-flavor', async (req, res) => {
                     }
                 ],
                 temperature: 0.7,
-                max_tokens: 1000
+                max_tokens: 1500
             }, {
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${deepseekKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 60000 
@@ -1069,7 +1091,7 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
                 max_tokens: 1500
             }, {
                 headers: {
-                    'Authorization': `Bearer ${apiKey}`,
+                    'Authorization': `Bearer ${deepseekKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 35000 
