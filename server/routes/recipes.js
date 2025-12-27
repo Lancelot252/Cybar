@@ -115,16 +115,16 @@ router.get('/api/recipes/:id', async (req, res) => {
              WHERE c.id = ?`, 
             [recipeId]
         );
-    
+
         if (recipes.length === 0) {
             return res.status(404).json({ message: '未找到配方' });
         }
-        
+
         const [ingredients] = await dbPool.query(
-            'SELECT id, cocktail_id, name, volume, abv FROM ingredients WHERE cocktail_id = ?', 
+            'SELECT id, cocktail_id, name, volume, abv FROM ingredients WHERE cocktail_id = ?',
             [recipeId]
         );
-        
+
         res.json({
             ...recipes[0],
             ingredients

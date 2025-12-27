@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isEditMode) {
                 const titleEl = document.querySelector('h2');
                 if (titleEl) titleEl.textContent = '修改配方';
-                const saveBtn = document.getElementById('save-cocktail-btn');
+                const saveBtn = document.getElementById('create-cocktail-btn');
                 if (saveBtn) saveBtn.textContent = '保存修改';
             }
 
@@ -144,9 +144,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- 4. 保存/更新逻辑 ---
     async function saveCustomCocktail() {
         const nameInput = document.getElementById('cocktail-name');
+        const descInput = document.getElementById('cocktail-description');
         const imageInput = document.getElementById('cocktail-image');
         
         const name = nameInput ? nameInput.value.trim() : '';
+        const description = descInput ? descInput.value.trim() : '';
+        
         if (!name) return showErrorMessage('请输入鸡尾酒名称');
         if (selectedIngredients.length === 0) return showErrorMessage('请至少选择一种原料');
 
@@ -198,6 +201,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const method = isEditMode ? 'PUT' : 'POST';
 
             console.log(`正在提交... URL: ${url}, Method: ${method}`);
+            console.log('提交数据:', {
+                name,
+                description,
+                estimatedAbv,
+                ingredients: ingredientsData,
+                steps
+            });
 
             const response = await fetch(url, {
                 method: method,
@@ -205,16 +215,34 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || '操作失败');
+                let errorMessage = '操作失败';
+                try {
+                    const err = await response.json();
+                    errorMessage = err.message || errorMessage;
+                    
+                    // 如果是401未授权错误，提示登录
+                    if (response.status === 401) {
+                        showErrorMessage('您尚未登录，请先登录');
+                        setTimeout(() => {
+                            window.location.href = '/auth/login/';
+                        }, 1500);
+                        return;
+                    }
+                } catch (e) {
+                    errorMessage = `服务器错误 (${response.status})`;
+                }
+                throw new Error(errorMessage);
             }
 
+            const result = await response.json();
+            console.log('保存成功:', result);
+            
             alert(isEditMode ? '修改成功！' : '创建成功！');
             window.location.href = '/profile/'; // 完成后返回个人中心
 
         } catch (error) {
             console.error('保存失败:', error);
-            showErrorMessage(error.message);
+            showErrorMessage('保存失败: ' + error.message);
         }
     }
 
@@ -305,6 +333,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function setupEventListeners() {
+        // 阻止表单默认提交行为
+        const form = document.getElementById('custom-cocktail-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('表单提交被阻止');
+                return false;
+            });
+        }
+        
         // 分类点击
         document.getElementById('ingredient-categories')?.addEventListener('click', e => {
             const tab = e.target.closest('.category-tab');
@@ -430,6 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (selectedIngredients.length === 0) {
             list.innerHTML = '<div class="empty-selection-message">请选择原料</div>';
+            updateAnalyzeButtonState();
             return;
         }
 
@@ -449,6 +488,27 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             list.appendChild(div);
         });
+        
+        updateAnalyzeButtonState();
+    }
+
+    // 更新AI分析按钮和创建按钮的可用状态
+    function updateAnalyzeButtonState() {
+        const analyzeBtn = document.getElementById('ai-analyze-btn');
+        const createBtn = document.getElementById('create-cocktail-btn');
+        const nameInput = document.getElementById('cocktail-name');
+        
+        const hasIngredients = selectedIngredients.length > 0;
+        const hasName = nameInput && nameInput.value.trim().length > 0;
+        
+        if (analyzeBtn) {
+            analyzeBtn.disabled = !(hasIngredients && hasName);
+        }
+        
+        // 创建按钮需要名称和至少一个原料
+        if (createBtn) {
+            createBtn.disabled = !(hasIngredients && hasName);
+        }
     }
 
     // [新增] 辅助高亮函数
