@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鸡尾酒配方 - Cybar</title> <!-- Updated Title -->
+    <link rel="stylesheet" href="../style.css">
+    <!-- Updated Google Fonts link -->
+    <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>鸡尾酒配方</h1>
+        <div id="user-status">
+            <!-- Status will be loaded here by global.js -->
+            <a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>
+        </div>
+    </header>
+
+    <nav>
+        <a href="../" class="back-link">返回主菜单</a>
+    </nav>
+
+    <main>
+        <!-- Remove the load button div -->
+        <!--
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button id="load-recipes-btn">加载所有配方</button>
+        </div>
+         -->
+        <!-- 添加推荐区域 -->
+        <section id="recommendations-section" style="display: none;">
+            <h2>推荐配方</h2>
+            <div id="recommendations-container"></div>
+        </section>        <section id="recipes-list">
+            <h2>经典配方</h2>
+            <!-- 搜索和排序区域 -->
+            <div id="search-bar" style="text-align: center; margin-bottom: 20px;">
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="search-input" placeholder="请输入关键字（如配方名称或原料）" style="width: 50%; padding: 8px; font-size: 16px;">
+                    <button id="search-button" type="button" style="padding: 8px 16px; font-size: 16px;">搜索</button>
+                </div>
+                <div style="margin-bottom: 10px;">
+                    <label for="sort-select" style="margin-right: 10px; font-weight: bold; color: #00e5ff;">排序方式：</label>
+                    <select id="sort-select" style="padding: 6px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #00e5ff; background-color: rgba(10, 30, 70, 0.8); color: white;">
+                        <option value="default">默认排序（按创建时间）</option>
+                        <option value="likes">按点赞数排序</option>
+                        <option value="favorites">按收藏数排序</option>
+                        <option value="name">按名称排序</option>
+                    </select>
+                </div>
+                <!-- 原料筛选功能已移除 -->
+            </div>
+            <!-- 配方将由 JavaScript 动态加载到这里 -->
+            <div id="recipes-container" style="display: none;"> <!-- Container for recipes, initially hidden -->
+                <!-- Recipe articles will be added here -->
+            </div>
+            <div id="loading-message">正在加载配方...</div> <!-- Update initial message -->
+
+            <!-- Add Pagination Controls Container -->
+            <div id="pagination-controls" style="text-align: center; margin-top: 20px;">
+                <!-- Pagination buttons/info will be loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Cybar<br>made by 252</p>
+    </footer>
+
+    <!-- 引用 JS 文件 -->
+    <script src="/js/global.js"></script> <!-- Add global script -->
+    <script src="recipes.js"></script>   <!-- Keep recipe script -->
+</body>
+</html>

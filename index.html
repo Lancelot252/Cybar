@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybar - 主菜单</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Updated Google Fonts link -->
+    <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <h1>Cybar</h1>
+        <div id="user-status">
+            <!-- Status will be loaded here by global.js -->
+            <a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>
+        </div>
+    </header>
+
+    <nav id="main-menu">
+        <h2>主菜单</h2>
+        <div class="main-menu-items"> <!-- Add a wrapper for main items -->
+            <a href="recipes/" class="menu-link main-function">
+                <span class="icon">🍹</span> 查看配方
+            </a>
+            <!-- Add specific class 'calculator-link' -->
+            <a href="calculator/" class="menu-link main-function calculator-link">
+                <span class="icon">🧪</span> 计算酒精度
+            </a>
+            <!-- 添加自定义鸡尾酒创建器的链接 -->
+            <a href="custom/" class="menu-link main-function custom-link">
+                <span class="icon">✨</span> 新配方
+            </a>
+            <!-- Hide profile link by default. global.js should show it if logged in. -->
+            <a href="profile/" class="menu-link profile-link" style="display: none;">
+                <span class="icon">👤</span> 用户界面
+            </a>
+        </div>
+        <!-- Move Admin link outside the main group -->
+        <a href="admin/" class="menu-link admin-link admin-corner-link">后台管理</a>
+    </nav>
+
+    <main id="content-area">
+        <h2>欢迎来到 Cybar</h2>
+        <p>请使用上方导航链接访问不同功能。</p>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Cybar<br>made by 252</p>
+    </footer>
+
+    <!-- global.js needs to check login status and show elements like .profile-link if logged in -->
+    <script src="/js/global.js"></script>
+</body>
+
+</html>

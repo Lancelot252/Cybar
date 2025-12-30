@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Cybar</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="/">Cybar</a></h1>
+        <nav>
+            <!-- Add navigation links if needed -->
+        </nav>
+    </header>
+    <main>
+        <h2>用户登录</h2>
+        <form id="login-form">
+            <div>
+                <label for="username">用户名:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div>
+                <label for="password">密码:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">登录</button>
+        </form>
+        <p id="login-message" class="message" style="display: none;"></p>
+        <p>还没有账户? <a href="/auth/register/">立即注册</a></p>
+
+        <!-- Add Back Link -->
+        <div style="text-align: center; margin-top: 20px;">
+             <a href="/" class="back-link">返回主菜单</a>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; 2025 Cybar<br>made by 252</p>
+    </footer>
+    <script src="/auth/auth.js"></script>
+</body>
+</html>

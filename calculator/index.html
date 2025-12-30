@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>酒精度计算器 - Cybar</title>
+    <link rel="stylesheet" href="../style.css">
+    <!-- Updated Google Fonts link -->
+    <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>酒精度计算器</h1>
+        <div id="user-status">
+            <!-- Status will be loaded here by global.js -->
+            <a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>
+        </div>
+    </header>
+
+    <nav>
+        <a href="../" class="back-link">返回主菜单</a>
+    </nav>
+
+    <main>
+        <section id="calculator">
+            <h2>输入成分计算最终酒精度</h2>
+            <form id="abv-form">
+                <!-- Container for dynamic ingredient inputs -->
+                <div id="ingredients-container">
+                    <!-- Template Ingredient Group -->
+                    <div class="ingredient-group">
+                        <div class="inputs-wrapper"> <!-- Wrapper for inputs -->
+                            <div class="form-group">
+                                <label>成分 1 体积 (ml):</label>
+                                <input type="number" class="ingredient-volume" min="0" step="any" required>
+                            </div>
+                            <div class="form-group">
+                                <label>成分 1 酒精度 (%):</label>
+                                <input type="number" class="ingredient-abv" min="0" max="100" step="any" value="0" required>
+                            </div>
+                        </div>
+                        <!-- Remove button will be added dynamically below for subsequent rows -->
+                    </div>
+                    <!-- End Template Ingredient Group -->
+                </div> <!-- End ingredients-container -->
+
+                <button type="button" id="add-ingredient-btn">添加成分</button> <!-- Changed type to button -->
+                <button type="submit" id="calculate-btn">计算 ABV</button>
+            </form>
+        </section>
+
+        <section id="result" style="display: none;"> <!-- Initially hidden -->
+            <h3>计算结果:</h3>
+            <p>最终酒精度 (ABV): <strong id="final-abv"></strong> %</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Cybar<br>made by 252</p>
+    </footer>
+
+    <!-- Add specific JS for this page if needed -->
+    <script src="/calculator/calculator.js"></script> <!-- Or your actual script name -->
+    <script src="/js/global.js"></script> <!-- Add global script -->
+</body>
+</html>

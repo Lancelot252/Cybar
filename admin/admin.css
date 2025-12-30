@@ -1,0 +1,397 @@
+/* Apply dark theme overrides */
+body {
+    background-color: #1a1a1a; /* Dark background */
+    color: #e0e0e0; /* Light text */
+}
+
+#admin-dashboard {
+    padding: 20px;
+}
+
+.admin-section {
+    background-color: #2a2a2a; /* Slightly lighter dark background */
+    border: 1px solid #444; /* Darker border */
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #e0e0e0; /* Ensure text color */
+}
+
+.admin-section h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #444; /* Darker border */
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    color: #ffffff; /* Brighter heading color */
+}
+
+#admin-stats ul {
+    list-style: none;
+    padding: 0;
+}
+
+#admin-stats li {
+    margin-bottom: 8px;
+}
+
+.table-container {
+    overflow-x: auto; /* Allow horizontal scrolling on small screens */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th, td {
+    border: 1px solid #444; /* Darker border */
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: middle; /* Align content vertically */
+}
+
+th {
+    background-color: #333; /* Darker header background */
+    color: #ffffff; /* Light header text */
+}
+
+tbody tr {
+     background-color: #2a2a2a; /* Match section background */
+}
+
+tbody tr:nth-child(even) {
+    background-color: #303030; /* Slightly different dark for even rows */
+}
+
+tbody tr:hover {
+    background-color: #3f3f3f; /* Darker hover */
+}
+
+.delete-recipe-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.delete-recipe-btn:hover {
+    background-color: #c82333;
+}
+
+.message {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* Adjust message styles for dark theme */
+#admin-message[style*="color: red"],
+#admin-stats[style*="color: red"] {
+    background-color: #581a20; /* Dark red background */
+    border: 1px solid #f5c6cb;
+    color: #f8d7da; /* Light red text */
+}
+
+#admin-message[style*="color: green"] {
+    background-color: #1e4b27; /* Dark green background */
+    border: 1px solid #c3e6cb;
+    color: #d4edda; /* Light green text */
+}
+
+/* Ensure links are visible */
+a {
+    color: #64b5f6; /* Light blue for links */
+}
+a:hover {
+    color: #90caf9;
+}
+.back-link {
+    color: #64b5f6;
+}
+
+/* Refresh Button Style */
+#admin-dashboard h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.refresh-btn {
+    background: none;
+    border: 1px solid #00e5ff;
+    color: #00e5ff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.2em; /* Adjust size as needed */
+    line-height: 1;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    background-color: rgba(0, 229, 255, 0.1);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+}
+
+/* Styles for user action buttons */
+#admin-user-list .god-actions button {
+    padding: 3px 8px;
+    font-size: 0.8em;
+    margin-right: 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+#admin-user-list .god-actions button:last-child {
+    margin-right: 0;
+}
+
+#admin-user-list .change-role-btn {
+    background-color: #1e88e5; /* Blue */
+    border-color: #1e88e5;
+    color: white;
+}
+#admin-user-list .change-role-btn:hover {
+    background-color: #1565c0;
+}
+
+#admin-user-list .delete-user-btn {
+    background-color: #e53935; /* Red */
+    border-color: #e53935;
+    color: white;
+}
+#admin-user-list .delete-user-btn:hover {
+    background-color: #c62828;
+}
+
+#admin-user-list .god-actions button:disabled {
+    background-color: #555;
+    border-color: #555;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Hide GOD actions column and buttons by default */
+/* #users-management-section table th.god-actions,
+#users-management-section table td.god-actions {
+    display: none;
+} */
+
+/* Show GOD actions column and buttons only if body has 'is-god' class */
+/* body.is-god #users-management-section table th.god-actions,
+body.is-god #users-management-section table td.god-actions {
+    display: table-cell; /* Make column visible */
+/*} */
+
+/* Style buttons inside the cell */
+/* body.is-god #admin-user-list td.god-actions button {
+     /* Ensure buttons inside are visible if the cell is */
+     /* display: inline-block; /* Or block, depending on desired layout */
+     /* Add other button styles if needed */
+/*} */
+
+/* Hide GOD actions column and buttons by default */
+/* .god-actions {
+    display: none;
+} */
+
+/* Show GOD actions column and buttons only if body has 'is-god' class */
+/* body.is-god .god-actions {
+    display: table-cell; /* Make column visible */
+/*} */
+
+/* Remove styles for inline user action buttons and god-actions column */
+/*
+#admin-user-list .god-actions button { ... }
+#admin-user-list .change-role-btn { ... }
+#admin-user-list .delete-user-btn { ... }
+.god-actions { ... }
+body.is-god .god-actions { ... }
+body.is-god #admin-user-list td.god-actions button { ... }
+*/
+
+/* Make user rows clickable for admin users */
+body.is-admin #admin-user-list tr { /* Change from is-god to is-admin */
+    cursor: pointer;
+}
+body.is-admin #admin-user-list tr:hover {
+    background-color: #4a4a4a;
+}
+
+/* Ensure Actions column is always visible for admins */
+/* Remove the default hiding rule */
+/* #users-management-section table th.god-actions, ... { display: none; } */
+
+/* Ensure the column header and cells are displayed */
+#users-management-section table th:last-child, /* Assuming Actions is last */
+#users-management-section table td:last-child {
+    display: table-cell;
+}
+
+/* Style the manage button inside the cell */
+#admin-user-list .manage-user-btn {
+    padding: 3px 8px;
+    font-size: 0.8em;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid #555;
+    background-color: #444;
+    color: #eee;
+    transition: all 0.2s ease;
+}
+#admin-user-list .manage-user-btn:hover {
+    background-color: #555;
+    border-color: #777;
+}
+
+/* Make user rows clickable for god users */
+body.is-god #admin-user-list tr {
+    cursor: pointer;
+}
+body.is-god #admin-user-list tr:hover {
+    background-color: #4a4a4a; /* Slightly lighter hover for clickable rows */
+}
+
+/* --- Modal Styles --- */
+.overlay {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 100; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+}
+
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 101; /* Sit on top of overlay */
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 500px; /* Maximum width */
+}
+
+.modal-content {
+    background-color: #2a2a3a; /* Dark modal background */
+    margin: auto;
+    padding: 25px;
+    border: 1px solid #555;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    position: relative;
+    color: #e0e0e0;
+}
+
+.modal-content h4 {
+    margin-top: 0;
+    color: #00e5ff; /* Match theme */
+    border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+.close-modal-btn {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.close-modal-btn:hover,
+.close-modal-btn:focus {
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal .form-group {
+    margin-bottom: 15px;
+}
+.modal label {
+    display: block;
+    margin-bottom: 5px;
+    color: #b0cfff;
+}
+.modal select {
+     width: calc(100% - 130px); /* Adjust width based on button */
+     padding: 10px;
+     border: 1px solid #164a8a;
+     border-radius: 5px;
+     background-color: rgba(10, 30, 70, 0.8);
+     color: #ffffff;
+     font-size: 1em;
+     margin-right: 10px;
+     vertical-align: middle;
+}
+.modal select:focus {
+    outline: none;
+    border-color: #00e5ff;
+    background-color: rgba(10, 30, 70, 1);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.modal-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    vertical-align: middle;
+}
+.modal-button.save {
+    background-color: #1e88e5; /* Blue */
+    color: white;
+}
+.modal-button.save:hover {
+    background-color: #1565c0;
+}
+.modal-button.delete {
+    background-color: #e53935; /* Red */
+    color: white;
+    display: block; /* Make delete button block level */
+    margin-top: 5px;
+}
+.modal-button.delete:hover {
+    background-color: #c62828;
+}
+.modal-button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.modal hr {
+    border: none;
+    border-top: 1px solid #444;
+    margin: 20px 0;
+}
+
+/* Chart Container Styles */
+.chart-container {
+    background-color: rgba(10, 30, 70, 0.3); /* Optional background */
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid rgba(0, 229, 255, 0.2); /* Optional border */
+    margin-top: 20px; /* Space above chart */
+}
+
+/* Ensure canvas is responsive within its container */
+#pageVisitsChart {
+    max-width: 100%;
+    height: auto; /* Maintain aspect ratio by default, but overridden by container height + maintainAspectRatio: false */
+}

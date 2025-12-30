@@ -1,0 +1,1327 @@
+body {
+    /* Updated font-family */
+    font-family: 'Electrolize', sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    background-color: #12121f; /* Dark background */
+    color: #e8e8e8; /* Bright default text */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background: linear-gradient(90deg, #1a1a2e, #0f3460, #1a1a2e);
+    color: #00e5ff; /* Bright Cyan */
+    padding: 1.5rem 1rem;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    border-bottom: 3px solid #00e5ff;
+    box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3);
+    position: relative;
+    display: flex; /* Use flexbox for easier alignment */
+    justify-content: space-between; /* Space between title and status */
+    align-items: center;
+}
+
+header h1 {
+    font-family: 'Orbitron', sans-serif; /* Keep Orbitron for main header */
+    font-size: 2.8rem;
+    margin: 0;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.7), 0 0 15px rgba(0, 229, 255, 0.5);
+    letter-spacing: 3px;
+}
+
+header h1 a {
+    color: white;
+    text-decoration: none;
+}
+
+/* Ensure other headings also use Orbitron */
+h2, h3 {
+    font-family: 'Orbitron', sans-serif; /* Apply Orbitron to h2, h3 */
+    color: #00e5ff; /* Bright Cyan */
+    border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+/* Make main content area flexible */
+main {
+    flex-grow: 1;
+    width: 100%;
+    max-width: 960px;
+    margin: 25px auto;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+/* General section styling (Apply dark theme) */
+section,
+#recipes, /* Ensure specific IDs inherit or use section styles */
+#calculator,
+#admin-add, /* Ensure admin-add uses section styles */
+#admin-delete,
+#current-recipes,
+#admin-stats {
+    background-color: rgba(15, 22, 46, 0.9); /* Dark background */
+    padding: 30px;
+    margin-bottom: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 229, 255, 0.25); /* Dark theme border */
+}
+
+.cocktail {
+    margin-bottom: 20px; /* Increased space */
+    border-bottom: 1px solid rgba(0, 229, 255, 0.2); /* Dark theme border */
+    padding-bottom: 20px;
+    /* Add background/border consistent with list items */
+    border: 1px solid rgba(15, 52, 96, 0.8);
+    background-color: rgba(15, 52, 96, 0.3);
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.cocktail:last-child {
+    border-bottom: none;
+}
+
+/* Ensure lists within cocktail sections use dark theme */
+.cocktail ul {
+    list-style: none; /* Or keep disc if preferred */
+    padding: 0; /* Reset padding if using custom list style */
+    margin-left: 10px; /* Indent list items */
+}
+
+.cocktail li {
+    margin-bottom: 8px; /* Increased space */
+    color: #d0d0d0; /* Ensure light text */
+}
+.cocktail li::before { /* Optional: custom bullet */
+    content: "» ";
+    color: #00e5ff; /* Cyan bullet */
+    margin-right: 5px;
+}
+
+/* Style for recipe creator info */
+.recipe-creator {
+    font-size: 0.9em;
+    color: #aaa; /* Lighter grey */
+    margin-top: -10px; /* Adjust spacing relative to heading */
+    margin-bottom: 10px;
+}
+
+/* Style for interaction counts (likes/favorites) */
+.interaction-info {
+    font-size: 0.9em;
+    color: #ccc; /* Slightly brighter grey */
+    margin-bottom: 10px;
+}
+
+/* Form Group and Label Styles (Dark Theme) */
+.form-group {
+    margin-bottom: 20px; /* Consistent spacing */
+}
+.form-group label,
+#calculator label { /* Apply to calculator labels too */
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #b0cfff; /* Brighter label color */
+    font-size: 0.95em;
+    letter-spacing: 0.5px;
+}
+
+/* Input Styles (Dark Theme) */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+textarea,
+select,
+#calculator input[type="number"] { /* Apply to calculator inputs */
+    width: 100%;
+    padding: 14px;
+    border: 1px solid #164a8a; /* Dark theme border */
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: rgba(10, 30, 70, 0.8); /* Dark input background */
+    color: #ffffff; /* White text */
+    font-size: 1em;
+    margin-top: 0;
+    transition: all 0.3s ease;
+}
+input:focus, textarea:focus, select:focus,
+#calculator input[type="number"]:focus {
+    outline: none;
+    border-color: #00e5ff;
+    background-color: rgba(10, 30, 70, 1);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+::placeholder { color: #7788aa; opacity: 1; }
+:-ms-input-placeholder { color: #7788aa; }
+::-ms-input-placeholder { color: #7788aa; }
+
+/* Button Styles (Dark Theme) */
+button,
+#calculate-btn, /* Apply to calculator button */
+#admin-add button[type="submit"],
+#admin-delete button[type="submit"],
+#refresh-list-btn,
+#load-recipes-btn,
+#refresh-stats-btn { /* Apply to stats button */
+    padding: 14px 28px;
+    background: linear-gradient(45deg, #00e5ff, #164a8a);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.05em;
+    font-weight: bold;
+    display: block;
+    margin: 25px auto 0 auto;
+    max-width: 300px;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    letter-spacing: 1px;
+}
+button:hover,
+#calculate-btn:hover,
+#admin-add button[type="submit"]:hover,
+#admin-delete button[type="submit"]:hover,
+#refresh-list-btn:hover,
+#load-recipes-btn:hover,
+#refresh-stats-btn:hover {
+    opacity: 0.9;
+    box-shadow: 0 6px 12px rgba(0, 229, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+/* Result Area Styles (Dark Theme) */
+#result {
+    margin-top: 25px;
+    padding: 18px;
+    background-color: rgba(10, 30, 70, 0.8); /* Dark background */
+    border-radius: 6px;
+    border-left: 5px solid #00e5ff; /* Cyan accent */
+    color: #f0f0f0; /* Light text */
+}
+
+#result h3 {
+    /* Inherits general h3 styling */
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: none;
+}
+#result p {
+    margin: 5px 0;
+    color: #e0e0e0;
+}
+
+#final-abv {
+    font-weight: bold;
+    color: #ff4081; /* Pink accent */
+    font-size: 1.1em;
+}
+
+/* Main Menu Styles (Already Dark Theme) */
+#main-menu {
+    background-color: rgba(15, 22, 46, 0.85); /* Darker, less transparent */
+    padding: 30px; /* More padding */
+    margin: 0 auto 35px auto; /* Center menu, add more bottom margin */
+    border-radius: 10px; /* Slightly more rounded corners */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+    text-align: center;
+    max-width: 450px; /* Slightly wider */
+    border: 1px solid rgba(0, 229, 255, 0.3); /* Subtle cyan border */
+    position: relative; /* Needed for absolute positioning of the admin link */
+    padding-bottom: 60px; /* Add padding at the bottom to make space for the corner link */
+    display: flex; /* Use flexbox for overall structure */
+    flex-direction: column; /* Stack title, items, and corner link vertically */
+    align-items: center; /* Center items horizontally */
+}
+#main-menu h2 {
+    font-family: 'Orbitron', sans-serif;
+    margin-top: 0;
+    margin-bottom: 30px; /* More space below title */
+    color: #00e5ff; /* Bright Cyan */
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.9rem;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.5);
+    padding-bottom: 12px;
+    letter-spacing: 1.5px;
+    width: 100%; /* Ensure title takes full width */
+    text-align: center;
+}
+.main-menu-items {
+    width: 100%; /* Allow wrapper to take full width */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center menu items */
+}
+
+.menu-link {
+    font-family: 'Electrolize', sans-serif; /* Apply body font to menu links */
+    display: block; /* Ensure vertical stacking */
+    padding: 18px 30px; /* Larger padding */
+    background-color: #0f3460; /* Darker blue */
+    color: #f0f0f0; /* Very light grey for high contrast */
+    border: 1px solid #00e5ff; /* Bright cyan border */
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2em; /* Slightly larger font */
+    margin: 18px auto; /* More space between links, centered */
+    text-decoration: none;
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    width: 95%; /* Wider */
+    max-width: 400px; /* Adjust max width */
+    box-sizing: border-box;
+    text-align: center;
+    letter-spacing: 1px;
+    position: relative; /* Needed for icon positioning if using absolute */
+    overflow: hidden; /* Hide overflow for potential effects */
+}
+.menu-link.main-function {
+    padding: 25px 35px; /* Increase padding for larger size */
+    font-size: 1.4em; /* Increase font size */
+    max-width: 450px; /* Allow them to be slightly wider */
+    display: flex; /* Use flexbox for alignment */
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center items horizontally */
+}
+
+/* Reduce font size for the calculator link */
+.calculator-link {
+    font-size: 1.12em; /* 1.4em * 0.8 = 1.12em */
+    white-space: nowrap; /* Prevent text wrapping */
+    /* Adjust padding if needed to maintain visual balance */
+    /* padding: 22px 30px; */
+}
+
+.menu-link .icon {
+    display: inline-block;
+    margin-right: 15px; /* Space between icon and text */
+    font-size: 1.5em; /* Make icon larger */
+    line-height: 1; /* Adjust line height for vertical alignment */
+    /* Optional: Add specific color or effects */
+    /* color: #ff4081; */
+}
+.menu-link:hover {
+    background-color: #164a8a; /* Slightly lighter blue on hover */
+    color: #ffffff; /* White text on hover */
+    border-color: #ff4081; /* Accent Pink on hover */
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.6), 0 0 6px rgba(255, 64, 129, 0.4); /* Glow effect */
+    transform: translateY(-3px); /* More lift */
+}
+
+/* Admin Link Styles */
+.admin-link {
+    /* Inherit base .menu-link styles */
+    display: none; /* Hide admin links by default */
+}
+
+/* Show "Add Recipe" link if body has 'logged-in' class */
+/* This targets the link inside .main-menu-items */
+body.logged-in .main-menu-items .admin-link {
+    display: flex; /* Or block, depending on its desired layout */
+}
+
+/* Keep the corner admin link hidden by default */
+.admin-corner-link {
+    position: absolute; /* Position relative to #main-menu */
+    bottom: 15px; /* Distance from bottom */
+    left: 15px; /* Distance from left */
+    padding: 8px 15px; /* Smaller padding */
+    font-size: 0.9em; /* Smaller font size */
+    width: auto; /* Auto width */
+    max-width: none; /* Remove max-width */
+    margin: 0; /* Reset margin */
+    background: linear-gradient(45deg, #6a1b9a, #ab47bc); /* Purple gradient */
+    border-color: #ab47bc;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.5px;
+    /* Ensure it's hidden by default and shown only for admins */
+    display: none;
+}
+body.is-admin .admin-corner-link {
+    display: inline-block; /* Show for admins */
+}
+
+.admin-corner-link:hover {
+    background: linear-gradient(45deg, #7b1fa2, #ba68c8);
+    border-color: #ce93d8;
+    box-shadow: 0 4px 8px rgba(171, 71, 188, 0.5);
+    transform: translateY(-1px); /* Subtle lift */
+}
+
+/* Back Link Styles (Already Dark Theme) */
+.back-link {
+    display: inline-block;
+    margin: 20px 0; /* Increased margin */
+    padding: 12px 20px; /* Adjusted padding */
+    background-color: #00e5ff; /* Bright Cyan */
+    color: #12121f; /* Dark background color for text */
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    border: 1px solid #00e5ff;
+    font-weight: bold; /* Make text bolder */
+}
+.back-link:hover {
+    background-color: #12121f; /* Dark background on hover */
+    color: #00e5ff; /* Cyan text on hover */
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+/* Message Area Styles (Already Dark Theme) */
+.message,
+#add-message,
+#delete-message {
+    margin-top: 25px;
+    padding: 18px;
+    background-color: rgba(10, 30, 70, 0.8);
+    border-radius: 6px;
+    border-left-width: 5px;
+    color: #f0f0f0;
+    font-weight: bold;
+}
+.message[style*="color: green"] {
+    border-left-color: #00e676;
+    color: #dcedc8;
+    background-color: rgba(0, 80, 0, 0.5);
+}
+.message[style*="color: red"] {
+     border-left-color: #ff4081;
+     color: #ffcdd2;
+     background-color: rgba(80, 0, 0, 0.5);
+}
+
+/* Current Recipe List Styles (Already Dark Theme) */
+#current-recipes ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 15px; /* Keep margin */
+}
+#current-recipes li {
+    background-color: rgba(10, 30, 70, 0.6);
+    padding: 12px 18px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    border-left: 4px solid #00e5ff;
+    color: #e0e0e0;
+    font-size: 1em;
+    word-wrap: break-word;
+}
+
+/* Recipe List Link Styling (Already Dark Theme) */
+#recipes-list .cocktail h3 a {
+    text-decoration: none;
+    color: #40c4ff; /* Light Blue link */
+    transition: color 0.3s ease;
+}
+#recipes-list .cocktail h3 a:hover {
+    text-decoration: none;
+    color: #ff4081; /* Pink on hover */
+}
+
+
+#recipe-detail ul {
+    list-style: none; /* Use custom bullets or none */
+    padding-left: 10px; /* Indent */
+}
+#recipe-detail li {
+    margin-bottom: 10px; /* Increased space */
+    color: #d0d0d0; /* Ensure light text */
+}
+#recipe-detail li::before { /* Optional: custom bullet */
+    content: "» ";
+    color: #00e5ff; /* Cyan bullet */
+    margin-right: 5px;
+}
+
+/* Dynamic Ingredient Inputs (Already Dark Theme) */
+
+#add-ingredient-btn {
+    /* Inherit specific button styles */
+    padding: 10px 18px;
+    font-size: 0.9em;
+    margin-top: 15px; /* Ensure margin */
+    display: inline-block;
+    width: auto;
+    max-width: none;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+}
+
+/* Style the wrapper for ABV input and % sign */
+.abv-input-group {
+    display: flex; /* Align input and % sign horizontally */
+    align-items: center; /* Center items vertically */
+    flex: 1 1 100px; /* Same flex properties as other inputs */
+    max-width: 120px; /* Same max-width */
+    margin-right: 10px; /* Spacing similar to other inputs */
+    margin-bottom: 10px; /* Spacing when wrapped */
+}
+
+.ingredient-entry .ingredient-abv {
+    /* Adjust ABV input width to make space for % */
+    flex-grow: 1; /* Allow input to take available space */
+    width: auto; /* Override width: 100% from general input style */
+    margin-right: 5px; /* Small space before % */
+    margin-bottom: 0; /* Remove bottom margin as it's handled by the group */
+}
+
+.percent-sign {
+    color: #a8c0ff; /* Match label color or choose another */
+    font-weight: bold;
+    margin-left: 2px; /* Adjust spacing */
+}
+
+/* Dynamic Ingredient Inputs (Admin) */
+.ingredient-entry {
+    display: flex;
+    flex-direction: column; /* Stack inputs wrapper and remove button vertically */
+    margin-bottom: 8px; /* Further reduced space between entries */
+    padding: 8px 12px; /* Further reduced padding */
+    border: 1px dashed rgba(0, 229, 255, 0.3); /* Dashed border for visual separation */
+    border-radius: 4px; /* Slightly less rounded corners */
+    background-color: rgba(10, 30, 70, 0.3); /* Slightly different background */
+    position: relative; /* Needed for absolute positioning of remove button if desired */
+}
+
+/* Wrapper for inputs in Admin */
+.ingredient-entry .inputs-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-bottom: 5px; /* Further reduced space between inputs and remove button */
+    gap: 5px 8px; /* Reduced vertical and horizontal gap */
+}
+
+/* Style for each input column */
+.input-column {
+    display: flex;
+    flex-direction: column; /* Stack label and input vertically */
+    flex: 1 1 100px; /* Default flex properties */
+    min-width: 100px; /* Minimum width before wrapping */
+}
+.input-column.name-column {
+    flex: 2 1 150px; /* Allow name column to be wider */
+    min-width: 150px;
+}
+.input-column.volume-column,
+.input-column.abv-column {
+    flex: 1 1 100px;
+    max-width: 140px; /* Slightly wider max-width */
+}
+
+/* Style for the new labels */
+.ingredient-label {
+    font-size: 0.8em; /* Slightly smaller label */
+    color: #a8c0ff; /* Lighter blue */
+    margin-bottom: 3px; /* Further reduced margin */
+    font-weight: normal;
+    display: block; /* Ensure it takes its own line */
+}
+
+/* Adjust input styles within the entry */
+.ingredient-entry input {
+    margin: 0; /* Reset margins */
+    padding: 4px 6px; /* Further reduced padding */
+    width: 100%; /* Full width within its column */
+    box-sizing: border-box;
+    line-height: 1.2; /* Further adjusted line-height */
+    font-size: 0.9em; /* Slightly smaller input font */
+}
+
+/* Remove old ABV Column Styles and related input adjustments */
+/* .abv-column { ... } */
+/* .ingredient-entry .ingredient-abv { ... } */
+
+/* Admin Remove Button Styling (Below inputs) */
+.ingredient-entry .remove-ingredient-btn {
+    padding: 4px 8px; /* Further reduced padding */
+    font-size: 0.7em; /* Further smaller font */
+    font-weight: normal;
+    width: auto; /* Auto width */
+    max-width: none;
+    margin: 0; /* Reset margin */
+    display: block; /* Ensure it takes its own line if needed */
+    background: linear-gradient(45deg, #ff4081, #c9302c); /* Keep red gradient */
+    color: #fff;
+    border: none;
+    border-radius: 3px; /* Smaller radius */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 4px; /* Further reduced margin-top */
+    align-self: flex-start; /* Align button to the start (left) below inputs */
+}
+.ingredient-entry .remove-ingredient-btn:hover {
+    opacity: 0.9;
+    box-shadow: 0 3px 6px rgba(255, 64, 129, 0.5);
+    transform: translateY(-1px);
+}
+
+/* Dynamic Ingredient Inputs (Admin) */
+#refresh-stats-btn {
+    /* Inherit button styles */
+    background: linear-gradient(45deg, #ff9800, #ef6c00); /* Keep orange gradient */
+    display: inline-block;
+    width: auto;
+    max-width: none;
+    margin: 0;
+}
+
+/* Calculator Section Styles */
+
+#ingredients-container {
+    margin-bottom: 20px; /* Space before Add button */
+}
+
+.ingredient-group {
+    padding: 20px 0; /* Add vertical padding */
+    border-bottom: 1px dashed rgba(0, 229, 255, 0.35); /* Separator */
+    position: relative; /* For potential absolute positioning of remove button */
+    display: flex; /* Use flex for overall group layout */
+    flex-wrap: wrap; /* Allow wrapping */
+}
+.ingredient-group:first-child {
+    padding-top: 0; /* No top padding for the first group */
+}
+.ingredient-group:last-child {
+    border-bottom: none; /* No border for the last group */
+    padding-bottom: 0;
+}
+/* Add horizontal rule style */
+.ingredient-group hr {
+    border: none;
+    border-top: 1px solid rgba(0, 229, 255, 0.5);
+    margin: 20px 0;
+}
+
+/* Wrapper for inputs in Calculator */
+.ingredient-group .inputs-wrapper {
+    display: flex;
+    flex-wrap: wrap; /* Allow inputs to wrap */
+    width: 100%; /* Take full width */
+    margin-bottom: 10px; /* Space before remove button */
+}
+
+#calculator .form-group {
+    margin-bottom: 15px;
+    flex: 1 1 200px; /* Allow form groups to grow/shrink */
+    margin-right: 15px; /* Space between form groups */
+}
+#calculator .form-group:last-child {
+    margin-right: 0;
+}
+
+
+/* Style for dynamically added remove button */
+.remove-ingredient-btn {
+    /* Inherit general button styles but make it smaller and specific color */
+    padding: 8px 14px;
+    font-size: 0.85em;
+    font-weight: normal;
+    background: linear-gradient(45deg, #ff4081, #c9302c); /* Pink/Red gradient */
+    display: inline-block; /* Make it inline */
+    width: auto;
+    max-width: none;
+    margin: 10px 0 0 0; /* Adjust margin */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.remove-ingredient-btn:hover {
+    opacity: 0.9;
+    box-shadow: 0 3px 6px rgba(255, 64, 129, 0.5);
+    transform: translateY(-1px);
+}
+
+.ingredient-group .remove-ingredient-btn {
+    /* Inherit general remove button styles */
+    width: 100%; /* Make button full width */
+    max-width: 180px; /* Limit width */
+    margin: 5px auto 0 0; /* Align left, add top margin */
+}
+
+#add-ingredient-btn {
+    /* Inherit specific button styles */
+    padding: 10px 18px;
+    font-size: 0.9em;
+    margin-top: 0; /* Reset margin if needed */
+    margin-right: 15px; /* Space between add and calculate */
+    display: inline-block;
+    width: auto;
+    max-width: none;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+    background: linear-gradient(45deg, #40c4ff, #0f3460); /* Keep blue gradient */
+}
+
+#calculate-btn {
+    /* Inherits general button styling */
+    display: inline-block; /* Make inline */
+    width: auto;
+    max-width: none;
+    margin: 0; /* Reset margin */
+}
+
+/* Admin Add Section Specific Styles */
+#admin-add h2 {
+    text-align: center; /* Center the section title */
+    margin-bottom: 30px;
+}
+
+#admin-add h3 {
+    margin-top: 30px; /* Add space above Ingredients title */
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.3); /* Lighter border */
+    padding-bottom: 8px;
+    color: #a8c0ff; /* Lighter blue for subtitle */
+}
+
+/* Style for the button group at the bottom of the form */
+#admin-add .button-group {
+    display: flex;
+    flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+    gap: 15px; /* Space between buttons */
+    justify-content: center; /* Center buttons */
+    margin-top: 30px; /* Space above the button group */
+    padding-top: 20px; /* Add padding above buttons */
+    border-top: 1px solid rgba(0, 229, 255, 0.3); /* Separator line */
+}
+
+/* Style for the main submit button in the add form */
+#admin-add #submit-recipe-btn {
+    /* Inherit general button styles */
+    /* Make it potentially stand out more */
+    padding: 15px 35px;
+    font-size: 1.1em;
+    /* Reset margin if inheriting from general button */
+    margin: 0;
+}
+
+/* Style for the secondary action button (Add Ingredient) */
+#admin-add #add-ingredient-btn {
+    /* Inherit general button styles but make it less prominent */
+    padding: 12px 25px;
+    font-size: 1em;
+    background: linear-gradient(45deg, #40c4ff, #0f3460); /* Blue gradient */
+    font-weight: normal;
+    /* Reset margin if inheriting from general button */
+    margin: 0;
+}
+#admin-add #add-ingredient-btn:hover {
+     background: linear-gradient(45deg, #5ad0ff, #164a8a);
+     box-shadow: 0 4px 10px rgba(64, 196, 255, 0.4);
+     transform: translateY(-1px);
+}
+
+/* Ensure footer is centered and has some padding */
+footer {
+    text-align: center; /* Center the text */
+    padding: 20px 0; /* Add some vertical padding */
+    margin-top: auto; /* Push footer to the bottom if content is short */
+    width: 100%;
+    background-color: rgba(15, 22, 46, 0.7); /* Match dark theme */
+    color: #a0a0a0; /* Dimmer text color for footer */
+    font-size: 0.9em;
+    border-top: 1px solid rgba(0, 229, 255, 0.2); /* Subtle top border */
+}
+
+footer p {
+    margin: 0; /* Remove default paragraph margin */
+    line-height: 1.4; /* Adjust line height for the two lines */
+}
+
+/* --- Comments Section Styles --- */
+#comments-section {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 229, 255, 0.3); /* Separator */
+}
+
+#comments-section h3 {
+    /* Inherits general h3 styles */
+    margin-bottom: 20px;
+}
+
+#comments-list .comment {
+    background-color: rgba(10, 30, 70, 0.5); /* Dark background for comments */
+    border: 1px solid rgba(15, 52, 96, 0.8);
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+#comments-list .comment-meta {
+    font-size: 0.9em;
+    color: #a8c0ff; /* Lighter blue for meta */
+    margin-bottom: 5px;
+}
+
+#comments-list .comment-meta strong {
+    color: #e0e0e0; /* Brighter username */
+}
+
+#comments-list .comment-meta span {
+    font-style: italic;
+    color: #8899bb; /* Dimmer timestamp */
+}
+
+#comments-list .comment-text {
+    margin: 0;
+    color: #d0d0d0; /* Main comment text color */
+    white-space: pre-wrap; /* Preserve line breaks */
+    word-wrap: break-word;
+}
+
+/* Comment Form Styles */
+.comment-form {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: rgba(15, 22, 46, 0.9); /* Match section background */
+    border-radius: 8px;
+    border: 1px solid rgba(0, 229, 255, 0.25);
+}
+
+.comment-form h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #a8c0ff;
+}
+
+.comment-form textarea {
+    /* Inherits general textarea styles */
+    min-height: 80px;
+}
+
+.comment-form button {
+    /* Inherits general button styles */
+    display: inline-block; /* Allow inline display */
+    width: auto;
+    max-width: none;
+    margin: 10px 0 0 0; /* Adjust margin */
+}
+
+/* Hide comment form and show login prompt for logged-out users */
+body.logged-out #comment-form {
+    display: none;
+}
+body.logged-out #login-prompt {
+    display: block; /* Show prompt */
+    margin-top: 20px;
+    color: #a8c0ff;
+}
+body.logged-out #login-prompt a {
+    color: #64b5f6;
+    font-weight: bold;
+}
+
+/* Ensure form is visible for logged-in users (default state or override) */
+body.logged-in #comment-form {
+    display: block;
+}
+body.logged-in #login-prompt {
+    display: none;
+}
+
+#comments-list .comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+#comments-list .comment-meta {
+    margin-bottom: 0; /* Remove bottom margin as it's handled by header */
+}
+
+.delete-comment-btn {
+    background: none;
+    border: none;
+    color: #ff4081; /* Pink/Red color */
+    font-size: 1.5em; /* Make it larger */
+    line-height: 1;
+    padding: 0 5px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.delete-comment-btn:hover {
+    opacity: 1;
+    color: #ff1744; /* Brighter red on hover */
+}
+
+.delete-comment-btn:disabled {
+    color: #666;
+    cursor: not-allowed;
+}
+
+/* --- Media Queries --- */
+/* Medium screens */
+@media (min-width: 768px) { /* Adjusted breakpoint */
+    /* Remove inline menu links for consistency */
+    /* .menu-link { display: inline-block; width: auto; margin: 5px 10px; } */
+
+    /* Allow buttons to be inline */
+    button,
+    #calculate-btn,
+    #admin-add button[type="submit"],
+    #admin-delete button[type="submit"],
+    #refresh-list-btn,
+    #load-recipes-btn,
+    #refresh-stats-btn {
+        width: auto;
+        display: inline-block;
+        margin-left: 0;
+        margin-right: 15px;
+        margin-top: 25px; /* Ensure consistent top margin */
+    }
+    #add-ingredient-btn {
+         margin-left: 10px;
+         margin-top: 15px; /* Adjust top margin */
+    }
+    #refresh-stats-btn {
+        margin-top: 0; /* Reset top margin for stats button */
+    }
+
+    /* Ingredient entry layout (Already Dark Theme) */
+    .ingredient-entry { flex-wrap: nowrap; }
+    .ingredient-entry input { margin-bottom: 0; }
+    .ingredient-entry .ingredient-name { flex: 3 1 150px; }
+    .ingredient-entry .ingredient-volume,
+    .ingredient-entry .ingredient-abv,
+    .ingredient-entry .abv-input-group { /* Apply flex to the group */
+        flex: 1 1 40px;
+    }
+
+    /* Ingredient entry layout (Admin) */
+    .ingredient-entry .inputs-wrapper {
+        flex-wrap: nowrap; /* Prevent inputs wrapping */
+        /* margin-bottom: 10px; */ /* Remove bottom margin */
+        align-items: flex-start; /* Keep top alignment */
+        gap: 10px; /* Adjusted gap for larger screens, keep it tight */
+        align-items: flex-end; /* Keep alignment */
+    }
+    .ingredient-entry input,
+    .ingredient-entry .abv-column {
+        margin-bottom: 0; /* No bottom margin when not wrapped */
+    }
+    .ingredient-entry .ingredient-name { flex: 3 1 40px; } /* Adjust flex */
+    .ingredient-entry .ingredient-volume { flex: 1 1 40px; }
+    .ingredient-entry .abv-column { flex: 1 1 40px; } /* Keep flex for column */
+
+    /* Remove positioning override for remove button */
+    /* .ingredient-entry .remove-ingredient-btn { ... old position styles ... } */
+
+    
+    /* Adjust ingredient group layout on larger screens */
+    .ingredient-group {
+        display: flex;
+        align-items: flex-start; /* Align items to the top */
+        flex-wrap: wrap; /* Allow wrapping if needed */
+        padding-bottom: 15px;
+    }
+    .ingredient-group .form-group {
+        flex: 1 1 200px; /* Allow groups to grow/shrink */
+        margin-right: 15px; /* Space between form groups */
+        margin-bottom: 0; /* Remove bottom margin */
+    }
+    .ingredient-group .remove-ingredient-btn {
+        margin-top: 0; /* Align button vertically */
+        align-self: center; /* Center button vertically within the flex line */
+        margin-left: auto; /* Push remove button to the right */
+        flex-shrink: 0; /* Prevent button from shrinking */
+    }
+    .ingredient-group hr {
+        width: 100%; /* Ensure hr spans full width */
+        order: -1; /* Place hr before the inputs in the flex order */
+        margin-bottom: 15px;
+    }
+
+    /* Ingredient group layout (Calculator) */
+    .ingredient-group .inputs-wrapper {
+        flex-wrap: nowrap; /* Prevent inputs wrapping */
+        margin-bottom: 10px; /* Keep space */
+    }
+     .ingredient-group .form-group {
+         margin-bottom: 0; /* No bottom margin when not wrapped */
+     }
+    .ingredient-group .remove-ingredient-btn {
+        width: auto; /* Auto width on larger screens */
+        max-width: none;
+        margin: 5px 0 0 auto; /* Align right below inputs */
+    }
+
+    #add-ingredient-btn, #calculate-btn {
+        margin-top: 25px; /* Restore top margin for buttons */
+    }
+
+    /* Ingredient entry layout (Admin) */
+    .ingredient-entry .inputs-wrapper {
+        flex-wrap: nowrap; /* Prevent columns wrapping */
+        gap: 20px; /* Increase gap */
+    }
+
+    /* Ensure button stays aligned right */
+    
+
+    /* ... rest of media query ... */
+    /* Ingredient entry layout (Admin) */
+    .ingredient-entry {
+        flex-direction: row; /* Change from column to row */
+        align-items: flex-end; /* Align items (wrapper and button) at the bottom */
+        flex-wrap: nowrap; /* Prevent the wrapper and button from wrapping */
+        padding: 8px 12px; /* Keep reduced padding */
+        margin-bottom: 8px; /* Keep reduced margin */
+    }
+
+    .ingredient-entry .inputs-wrapper {
+        flex-wrap: nowrap; /* Prevent columns wrapping */
+        gap: 12px; /* Adjusted gap for larger screens */
+        align-items: flex-end; /* Align input columns at the bottom */
+        flex-grow: 1; /* Allow wrapper to take available space */
+        margin-bottom: 0; /* Remove bottom margin as it's now in a row */
+    }
+    /* ... existing input column styles ... */
+
+    /* Adjust remove button alignment for row layout */
+    .ingredient-entry .remove-ingredient-btn {
+        margin-left: 10px; /* Adjusted gap from inputs wrapper */
+        margin-top: 0;
+        margin-bottom: 0; /* Align with bottom of inputs */
+        align-self: flex-end; /* Align button to the end (bottom) of the flex container */
+        flex-shrink: 0; /* Prevent button from shrinking */
+        width: auto; /* Ensure width is auto */
+        display: inline-block; /* Change display for row layout */
+        padding: 4px 8px; /* Keep reduced padding */
+        font-size: 0.7em; /* Keep smaller font */
+    }
+
+    /* Remove the duplicated block below */
+    /* Ingredient entry layout (Admin) */
+    /* .ingredient-entry .inputs-wrapper {
+        flex-wrap: nowrap; /* Prevent columns wrapping */
+    /* } */
+
+    /* Adjust button group layout */
+    #admin-add .button-group {
+        justify-content: flex-end; /* Align buttons to the right on larger screens */
+    }
+
+    /* Ensure corner link stays in corner */
+    .admin-corner-link {
+        /* Styles should remain absolute positioned */
+    }
+}
+
+/* Large screens */
+@media (min-width: 992px) {
+   header h1 { font-size: 3.5rem; letter-spacing: 4px; }
+   #main-menu { max-width: 550px; }
+   .menu-link.main-function { max-width: 500px; }
+}
+
+#user-status {
+    /* Position top-right */
+    /* Adjust top/right values as needed */
+    font-size: 0.9em;
+}
+
+#user-status a {
+    color: #eee; /* Light color for links */
+    text-decoration: none;
+    margin-left: 5px;
+}
+
+#user-status a:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+#user-status span {
+    margin-right: 5px;
+}
+
+/* Interaction buttons styles */
+.interaction-button {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    margin: 0 10px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.interaction-button:hover:not(:disabled) {
+    color: #ff6b6b;
+}
+
+.interaction-button.active {
+    color: #ff6b6b;
+}
+
+.interaction-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.interaction-button:disabled:hover {
+    color: #666;
+}
+
+.interaction-button i {
+    margin-right: 5px;
+}
+
+.interaction-counts {
+    margin: 10px 0;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.interaction-counts span {
+    display: inline-flex;
+    align-items: center;
+}
+
+.interaction-counts i {
+    margin-right: 5px;
+    color: #ff6b6b;
+}
+
+/* 推荐区域样式 - 与经典配方协调 */
+#recommendations-section {
+    margin-bottom: 40px;
+    background-color: rgba(15, 22, 46, 0.9); /* 与经典配方区域相同的背景 */
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+}
+
+#recommendations-section h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    color: #00e5ff; /* 与经典配方标题相同的亮青色 */
+    text-align: center;
+    margin-bottom: 25px;
+    position: relative;
+    padding-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+#recommendations-section h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+}
+
+.recommendation-item {
+    background-color: #1a1a2e;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    border: 1px solid #2d4059;
+    position: relative;
+    overflow: hidden;
+}
+
+.recommendation-item::before {
+    content: '推荐';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+    color: #1a1a2e;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    z-index: 2;
+}
+
+.recommendation-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(79, 195, 247, 0.2);
+    border-color: #4fc3f7;
+}
+
+/* 匹配度样式 */
+.match-container {
+    margin: 10px 0;
+}
+
+.match-label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+    color: #a0d2eb;
+}
+
+.match-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #16213e;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.match-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+    border-radius: 10px;
+    text-align: center;
+    color: #1a1a2e;
+    font-size: 0.8rem;
+    font-weight: bold;
+    line-height: 20px;
+    transition: width 0.5s ease;
+}
+/* 酒单标题 - 与经典配方完全一致 */
+.recommendation-item h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.recommendation-item h3 a {
+    color: #40c4ff; /* 与经典配方相同的浅蓝色 */
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+}
+
+.recommendation-item h3 a:hover {
+    color: #ff4081; /* 悬停时变为粉色 */
+    text-decoration: none;
+}
+
+/* 酒精度信息 - 与经典配方相同 */
+.recommendation-item .recipe-info {
+    color: #a0d2eb; /* 与经典配方相同的浅蓝色 */
+    font-size: 0.95rem;
+    margin-bottom: 10px;
+}
+
+/* 匹配度样式 */
+.match-container {
+    margin: 10px 0;
+}
+
+.match-text {
+    display: inline-block;
+    padding: 5px 12px;
+    background-color: #2d4059;
+    border-radius: 15px;
+    color: #4fc3f7;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+/* 推荐理由样式 */
+.recommendation-reason {
+    padding-top: 10px;
+    margin-top: 10px;
+    color: #a0d2eb;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    border-top: 1px solid #2d4059;
+    font-style: normal;
+}
+
+/* === 响应式设计 === */
+@media (max-width: 768px) {
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #recommendations-section h2,
+    #recipes-list h2 {
+        font-size: 1.6rem;
+    }
+}
+
+/* === 确保经典配方区域样式一致 === */
+#recipes-list {
+    background-color: rgba(15, 22, 46, 0.9);
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    margin-bottom: 30px;
+}
+
+#recipes-list h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    color: #00e5ff;
+    text-align: center;
+    margin-bottom: 25px;
+    position: relative;
+    padding-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+#recipes-list h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+}
+
+/* 确保整体一致性 */
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.cocktail {
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+    padding-bottom: 20px;
+    border: 1px solid rgba(15, 52, 96, 0.8);
+    background-color: rgba(15, 52, 96, 0.3);
+    padding: 15px;
+    border-radius: 6px;
+    transition: all 0.3s ease; /* 添加过渡 */
+    position: relative; /* 支持定位 */
+}
+
+.cocktail:last-child {
+    border-bottom: none;
+}
+
+.cocktail:hover {
+    transform: translateY(-3px); /* 向上移动 */
+    box-shadow: 0 6px 20px rgba(79, 195, 247, 0.2); /* 悬停阴影 */
+    border-color: #4fc3f7; /* 悬停边框颜色 */
+}
