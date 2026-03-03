@@ -1039,7 +1039,7 @@ app.post('/api/custom/analyze-flavor', async (req, res) => {
                 max_tokens: 1500
             }, {
                 headers: {
-                    'Authorization': `Bearer ${deepseekKey}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 60000 
@@ -1098,7 +1098,7 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
                 max_tokens: 1500
             }, {
                 headers: {
-                    'Authorization': `Bearer ${deepseekKey}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
                 timeout: 35000 
