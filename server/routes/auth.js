@@ -77,8 +77,7 @@ router.post('/api/login', async (req, res) => {
         req.session.role = user.role || 'user';
         res.status(200).json({ message: '登录成功' });
     } catch (error) {
-        console.log(user);
-        console.error("Login error:", error);
+        console.error("Login error:", { username, error: error.message });
         res.status(500).json({ message: '服务器错误' });
     }
 });
