@@ -68,6 +68,67 @@ tbody tr:hover {
     background-color: #3f3f3f; /* Darker hover */
 }
 
+.select-col {
+    width: 72px;
+    text-align: center;
+}
+
+.row-select-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.batch-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0 10px;
+}
+
+.toolbar-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.selected-count {
+    font-size: 0.9em;
+    color: #b0cfff;
+}
+
+.toolbar-btn {
+    border: 1px solid #666;
+    background-color: #3b3b3b;
+    color: #f1f1f1;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.toolbar-btn:hover {
+    background-color: #4d4d4d;
+}
+
+.toolbar-btn.danger {
+    border-color: #c62828;
+    background-color: #b71c1c;
+}
+
+.toolbar-btn.danger:hover {
+    background-color: #c62828;
+}
+
+.toolbar-btn.clear {
+    border-color: #607d8b;
+}
+
+.toolbar-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .delete-recipe-btn {
     background-color: #dc3545;
     color: white;
@@ -216,24 +277,6 @@ body.is-god .god-actions { ... }
 body.is-god #admin-user-list td.god-actions button { ... }
 */
 
-/* Make user rows clickable for admin users */
-body.is-admin #admin-user-list tr { /* Change from is-god to is-admin */
-    cursor: pointer;
-}
-body.is-admin #admin-user-list tr:hover {
-    background-color: #4a4a4a;
-}
-
-/* Ensure Actions column is always visible for admins */
-/* Remove the default hiding rule */
-/* #users-management-section table th.god-actions, ... { display: none; } */
-
-/* Ensure the column header and cells are displayed */
-#users-management-section table th:last-child, /* Assuming Actions is last */
-#users-management-section table td:last-child {
-    display: table-cell;
-}
-
 /* Style the manage button inside the cell */
 #admin-user-list .manage-user-btn {
     padding: 3px 8px;
@@ -248,14 +291,6 @@ body.is-admin #admin-user-list tr:hover {
 #admin-user-list .manage-user-btn:hover {
     background-color: #555;
     border-color: #777;
-}
-
-/* Make user rows clickable for god users */
-body.is-god #admin-user-list tr {
-    cursor: pointer;
-}
-body.is-god #admin-user-list tr:hover {
-    background-color: #4a4a4a; /* Slightly lighter hover for clickable rows */
 }
 
 /* --- Modal Styles --- */
@@ -279,7 +314,7 @@ body.is-god #admin-user-list tr:hover {
     top: 50%;
     transform: translate(-50%, -50%);
     width: 80%;
-    max-width: 500px; /* Maximum width */
+    max-width: 680px; /* Maximum width */
 }
 
 .modal-content {
@@ -320,6 +355,47 @@ body.is-god #admin-user-list tr:hover {
 
 .modal .form-group {
     margin-bottom: 15px;
+}
+
+.user-detail-block {
+    background-color: rgba(10, 30, 70, 0.35);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+}
+
+.user-detail-block h5 {
+    margin: 0 0 8px;
+    color: #8fdfff;
+}
+
+.user-detail-content {
+    font-size: 0.9em;
+    line-height: 1.6;
+    max-height: 220px;
+    overflow: auto;
+}
+
+.user-detail-grid {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 4px 8px;
+}
+
+.user-detail-grid dt {
+    color: #9ec2ff;
+}
+
+.user-detail-grid dd {
+    margin: 0;
+    word-break: break-all;
+}
+
+.security-warning {
+    margin: 8px 0 0;
+    color: #ffcc80;
+    font-size: 0.8em;
 }
 .modal label {
     display: block;

@@ -12,6 +12,8 @@ const adminCommentLimit = 15; // Number of comments per page
 // --- Comment Filter State ---
 let commentFilterMode = 'all'; // all | recipe | user
 let commentFilterValue = '';
+const selectedRecipeIds = new Set();
+const selectedUserIds = new Set();
 
 // --- Updated DOMContentLoaded Listener ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -51,6 +53,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+        recipeListContainer.addEventListener('change', (event) => {
+            if (!event.target.classList.contains('recipe-select-row')) return;
+            const recipeId = event.target.dataset.id;
+            if (!recipeId) return;
+            if (event.target.checked) {
+                selectedRecipeIds.add(recipeId);
+            } else {
+                selectedRecipeIds.delete(recipeId);
+            }
+            updateRecipeSelectionUI();
+        });
     } else {
          console.error("Recipe list container 'admin-recipe-list' not found.");
          const msgElement = document.getElementById('admin-message');
@@ -75,6 +88,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+        });
+        userListContainer.addEventListener('change', (event) => {
+            if (!event.target.classList.contains('user-select-row')) return;
+            const userId = event.target.dataset.id;
+            if (!userId) return;
+            if (event.target.checked) {
+                selectedUserIds.add(userId);
+            } else {
+                selectedUserIds.delete(userId);
+            }
+            updateUserSelectionUI();
         });
     } else {
         console.error("User list container 'admin-user-list' not found.");
@@ -114,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Comment Filter Controls ---
     setupCommentFilterControls();
+    setupBatchActionControls();
 
 
     // --- Add Event Listener for Refresh Button ---
@@ -131,9 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if(statsMsg) statsMsg.textContent = '正在刷新统计...';
             if(recipeMsg) recipeMsg.textContent = '正在刷新配方...';
-            if(recipeTbody) recipeTbody.innerHTML = '<tr><td colspan="3">正在刷新...</td></tr>';
+            if(recipeTbody) recipeTbody.innerHTML = '<tr><td colspan="6">正在刷新...</td></tr>';
             if(userMsg) userMsg.textContent = '正在刷新用户...';
-            if(userTbody) userTbody.innerHTML = '<tr><td colspan="4">正在刷新...</td></tr>'; // Adjust colspan
+            if(userTbody) userTbody.innerHTML = '<tr><td colspan="5">正在刷新...</td></tr>'; // Adjust colspan
             if(commentMsg) commentMsg.textContent = '正在刷新评论...'; // Update comment message
             if(commentTbody) commentTbody.innerHTML = '<tr><td colspan="6">正在刷新...</td></tr>'; // Clear comment table body, adjust colspan
 
@@ -170,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalDeleteUserBtn) {
         modalDeleteUserBtn.addEventListener('click', () => {
             const userId = modalUserIdInput.value;
-            const username = modalUsernameTitle.textContent.replace('管理用户: ', '');
+            const username = modal?.dataset.username || '未知用户';
             if (userId && confirm(`确定要删除用户 "${username}" (ID: ${userId}) 吗？此操作无法撤销。`)) {
                 deleteUser(userId, modalDeleteUserBtn);
             }
@@ -187,29 +212,186 @@ function openUserModal(userId, username, currentRole) {
     const modalUsernameTitle = document.getElementById('modal-username');
     const modalRoleSelect = document.getElementById('modal-role-select');
     const modalMessage = document.getElementById('modal-message');
+    const detailContainer = document.getElementById('modal-user-details');
 
     // Populate modal
     modalUserIdInput.value = userId;
     modalUsernameTitle.textContent = `管理用户: ${username}`;
     modalRoleSelect.value = currentRole;
+    if (modal) modal.dataset.username = username;
     if(modalMessage) modalMessage.style.display = 'none'; // Hide previous messages
+    if (detailContainer) detailContainer.textContent = '正在加载账号详情...';
 
     // Show modal and overlay
     if (modal) modal.style.display = 'block';
     if (overlay) overlay.style.display = 'block';
+    loadUserDetailForModal(userId);
 }
 
 // --- Function to close the modal ---
 function closeUserModal() {
     const modal = document.getElementById('user-action-modal');
     const overlay = document.getElementById('modal-overlay');
+    const detailContainer = document.getElementById('modal-user-details');
     if (modal) modal.style.display = 'none';
+    if (modal) delete modal.dataset.username;
     if (overlay) overlay.style.display = 'none';
     // Reset button states
     const saveBtn = document.getElementById('modal-save-role-btn');
     const deleteBtn = document.getElementById('modal-delete-user-btn');
     if(saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存角色'; }
     if(deleteBtn) { deleteBtn.disabled = false; deleteBtn.textContent = '删除此用户'; }
+    if (detailContainer) detailContainer.textContent = '正在加载账号详情...';
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+async function loadUserDetailForModal(userId) {
+    const detailContainer = document.getElementById('modal-user-details');
+    const modalMessage = document.getElementById('modal-message');
+    if (!detailContainer) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`);
+        if (!response.ok) {
+            if (handleAuthError(response, modalMessage)) return;
+            let errMsg = `加载失败 (${response.status})`;
+            try {
+                const errData = await response.json();
+                errMsg = errData.message || errMsg;
+            } catch (e) { /* Ignore parsing error */ }
+            throw new Error(errMsg);
+        }
+        const payload = await response.json();
+        const user = payload.user || {};
+        detailContainer.innerHTML = `
+            <dl class="user-detail-grid">
+                <dt>用户ID</dt><dd>${escapeHtml(user.id || 'N/A')}</dd>
+                <dt>用户名</dt><dd>${escapeHtml(user.username || 'N/A')}</dd>
+                <dt>密码</dt><dd>${escapeHtml(user.password || 'N/A')}</dd>
+                <dt>角色</dt><dd>${escapeHtml(user.role || 'user')}</dd>
+                <dt>头像路径</dt><dd>${escapeHtml(user.avatar || 'N/A')}</dd>
+                <dt>个性签名</dt><dd>${escapeHtml(user.signature || '')}</dd>
+            </dl>
+        `;
+    } catch (error) {
+        detailContainer.innerHTML = `<span style="color:#ff8a80;">账号详情加载失败：${escapeHtml(error.message)}</span>`;
+    }
+}
+
+function setupBatchActionControls() {
+    const recipeSelectAll = document.getElementById('recipe-select-all-page');
+    const userSelectAll = document.getElementById('user-select-all-page');
+    const recipeBatchDeleteBtn = document.getElementById('recipe-batch-delete-btn');
+    const userBatchDeleteBtn = document.getElementById('user-batch-delete-btn');
+    const recipeClearSelectionBtn = document.getElementById('recipe-clear-selection-btn');
+    const userClearSelectionBtn = document.getElementById('user-clear-selection-btn');
+
+    if (recipeSelectAll) {
+        recipeSelectAll.addEventListener('change', (event) => {
+            document.querySelectorAll('#admin-recipe-list .recipe-select-row').forEach(checkbox => {
+                checkbox.checked = event.target.checked;
+                const recipeId = checkbox.dataset.id;
+                if (recipeId) {
+                    if (event.target.checked) selectedRecipeIds.add(recipeId);
+                    else selectedRecipeIds.delete(recipeId);
+                }
+            });
+            updateRecipeSelectionUI();
+        });
+    }
+
+    if (userSelectAll) {
+        userSelectAll.addEventListener('change', (event) => {
+            document.querySelectorAll('#admin-user-list .user-select-row').forEach(checkbox => {
+                checkbox.checked = event.target.checked;
+                const userId = checkbox.dataset.id;
+                if (userId) {
+                    if (event.target.checked) selectedUserIds.add(userId);
+                    else selectedUserIds.delete(userId);
+                }
+            });
+            updateUserSelectionUI();
+        });
+    }
+
+    if (recipeBatchDeleteBtn) {
+        recipeBatchDeleteBtn.addEventListener('click', () => {
+            batchDeleteRecipes();
+        });
+    }
+    if (userBatchDeleteBtn) {
+        userBatchDeleteBtn.addEventListener('click', () => {
+            batchDeleteUsers();
+        });
+    }
+    if (recipeClearSelectionBtn) {
+        recipeClearSelectionBtn.addEventListener('click', () => {
+            selectedRecipeIds.clear();
+            syncPageSelection('recipe');
+            updateRecipeSelectionUI();
+        });
+    }
+    if (userClearSelectionBtn) {
+        userClearSelectionBtn.addEventListener('click', () => {
+            selectedUserIds.clear();
+            syncPageSelection('user');
+            updateUserSelectionUI();
+        });
+    }
+}
+
+function syncPageSelection(type) {
+    if (type === 'recipe') {
+        document.querySelectorAll('#admin-recipe-list .recipe-select-row').forEach(checkbox => {
+            checkbox.checked = selectedRecipeIds.has(checkbox.dataset.id);
+        });
+    } else if (type === 'user') {
+        document.querySelectorAll('#admin-user-list .user-select-row').forEach(checkbox => {
+            checkbox.checked = selectedUserIds.has(checkbox.dataset.id);
+        });
+    }
+}
+
+function updateRecipeSelectionUI() {
+    const countEl = document.getElementById('recipe-selected-count');
+    const batchDeleteBtn = document.getElementById('recipe-batch-delete-btn');
+    const clearBtn = document.getElementById('recipe-clear-selection-btn');
+    const selectAll = document.getElementById('recipe-select-all-page');
+    const pageCheckboxes = document.querySelectorAll('#admin-recipe-list .recipe-select-row');
+
+    if (countEl) countEl.textContent = `已选 ${selectedRecipeIds.size} 项`;
+    if (batchDeleteBtn) batchDeleteBtn.disabled = selectedRecipeIds.size === 0;
+    if (clearBtn) clearBtn.disabled = selectedRecipeIds.size === 0;
+    if (selectAll) {
+        const checkedCount = Array.from(pageCheckboxes).filter(el => el.checked).length;
+        selectAll.checked = pageCheckboxes.length > 0 && checkedCount === pageCheckboxes.length;
+        selectAll.indeterminate = checkedCount > 0 && checkedCount < pageCheckboxes.length;
+    }
+}
+
+function updateUserSelectionUI() {
+    const countEl = document.getElementById('user-selected-count');
+    const batchDeleteBtn = document.getElementById('user-batch-delete-btn');
+    const clearBtn = document.getElementById('user-clear-selection-btn');
+    const selectAll = document.getElementById('user-select-all-page');
+    const pageCheckboxes = document.querySelectorAll('#admin-user-list .user-select-row');
+
+    if (countEl) countEl.textContent = `已选 ${selectedUserIds.size} 项`;
+    if (batchDeleteBtn) batchDeleteBtn.disabled = selectedUserIds.size === 0;
+    if (clearBtn) clearBtn.disabled = selectedUserIds.size === 0;
+    if (selectAll) {
+        const checkedCount = Array.from(pageCheckboxes).filter(el => el.checked).length;
+        selectAll.checked = pageCheckboxes.length > 0 && checkedCount === pageCheckboxes.length;
+        selectAll.indeterminate = checkedCount > 0 && checkedCount < pageCheckboxes.length;
+    }
 }
 
 // --- Function to load users for admin (MODIFIED FOR PAGINATION) ---
@@ -223,7 +405,7 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
         messageElement.textContent = `正在加载第 ${page} 页用户...`;
         messageElement.style.color = 'inherit';
     }
-    container.innerHTML = `<tr><td colspan="4">正在加载...</td></tr>`; // Show loading in table
+    container.innerHTML = `<tr><td colspan="5">正在加载...</td></tr>`; // Show loading in table
     paginationContainer.innerHTML = ''; // Clear old pagination
 
     try {
@@ -245,9 +427,10 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
 
         container.innerHTML = ''; // Clear loading row
         if (!users || users.length === 0) {
-            container.innerHTML = `<tr><td colspan="4">第 ${page} 页没有用户可显示。</td></tr>`;
+            container.innerHTML = `<tr><td colspan="5">第 ${page} 页没有用户可显示。</td></tr>`;
             if (messageElement) messageElement.textContent = '';
             renderUserPagination(responseData.totalPages, responseData.currentPage);
+            updateUserSelectionUI();
             return;
         }
 
@@ -269,29 +452,41 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
             usernameCell.style.alignItems = 'center';
             usernameCell.appendChild(avatarImg);
             usernameCell.appendChild(document.createTextNode(user.username));
+
+            const selectCell = document.createElement('td');
+            selectCell.className = 'select-col';
+            const selectInput = document.createElement('input');
+            selectInput.type = 'checkbox';
+            selectInput.className = 'row-select-checkbox user-select-row';
+            selectInput.dataset.id = user.id;
+            selectInput.checked = selectedUserIds.has(String(user.id));
+            selectCell.appendChild(selectInput);
             
             row.innerHTML = `
                 <td>${user.id || 'N/A'}</td>
                 <td>${user.role || 'user'}</td>
-                <td><button class="manage-user-btn" data-user-id="${user.id}" title="管理用户 ${user.username}">管理</button></td>
+                <td><button class="manage-user-btn" data-user-id="${user.id}" title="管理用户 ${user.username}">管理/详情</button></td>
             `;
+            row.insertBefore(selectCell, row.children[0]);
             // 将用户名单元格插入到第二列
-            row.insertBefore(usernameCell, row.children[1]);
+            row.insertBefore(usernameCell, row.children[2]);
             container.appendChild(row);
         });
 
         if (messageElement) messageElement.textContent = ''; // Clear loading message
         renderUserPagination(responseData.totalPages, responseData.currentPage); // Render pagination controls
+        updateUserSelectionUI();
 
     } catch (error) {
         console.error('Error loading users for admin:', error);
-        const colspan = 4;
+        const colspan = 5;
         if (container) container.innerHTML = `<tr><td colspan="${colspan}">加载用户列表失败。</td></tr>`;
         if (messageElement) {
             messageElement.textContent = '加载用户列表失败: ' + error.message;
             messageElement.style.color = 'red';
         }
         paginationContainer.innerHTML = ''; // Clear pagination on error
+        updateUserSelectionUI();
     }
 }
 
@@ -346,9 +541,12 @@ async function deleteUser(userId, buttonElement) {
 
         if (response.ok || response.status === 204) {
             alert('用户删除成功！');
+            selectedUserIds.delete(String(userId));
+            updateUserSelectionUI();
             closeUserModal(); // Close modal on success
             // --- MODIFICATION: Reload the CURRENT user page after deletion ---
             loadUsersForAdmin(currentUserPage);
+            loadStats();
             // --- END MODIFICATION ---
         } else {
             // Pass the modal message element
@@ -450,7 +648,7 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
         messageElement.textContent = `正在加载第 ${page} 页配方...`;
         messageElement.style.color = 'inherit';
     }
-    container.innerHTML = `<tr><td colspan="3">正在加载...</td></tr>`; // Show loading in table
+    container.innerHTML = `<tr><td colspan="6">正在加载...</td></tr>`; // Show loading in table
     paginationContainer.innerHTML = ''; // Clear old pagination
 
     try {
@@ -472,10 +670,11 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
 
         container.innerHTML = ''; // Clear loading row
         if (!recipes || recipes.length === 0) {
-            container.innerHTML = `<tr><td colspan="3">第 ${page} 页没有配方可管理。</td></tr>`;
+            container.innerHTML = `<tr><td colspan="6">第 ${page} 页没有配方可管理。</td></tr>`;
             if (messageElement) messageElement.textContent = '';
             // Still render pagination if there are other pages
             renderRecipePagination(responseData.totalPages, responseData.currentPage);
+            updateRecipeSelectionUI();
             return;
         }
 
@@ -501,6 +700,15 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
             creatorAvatar.style.cssText = 'width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; object-fit: cover;';
             creatorCell.appendChild(creatorAvatar);
             creatorCell.appendChild(document.createTextNode(recipe.createdBy || '未知'));
+
+            const selectCell = document.createElement('td');
+            selectCell.className = 'select-col';
+            const selectInput = document.createElement('input');
+            selectInput.type = 'checkbox';
+            selectInput.className = 'row-select-checkbox recipe-select-row';
+            selectInput.dataset.id = recipe.id;
+            selectInput.checked = selectedRecipeIds.has(String(recipe.id));
+            selectCell.appendChild(selectInput);
             
             row.innerHTML = `
                 <td>${recipe.id || 'N/A'}</td>
@@ -509,23 +717,26 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
                     <button class="delete-recipe-btn" data-id="${recipe.id}">删除</button>
                 </td>
             `;
+            row.insertBefore(selectCell, row.children[0]);
             // 将图片单元格和创建者单元格插入
-            row.insertBefore(creatorCell, row.children[1]);
-            row.insertBefore(imgCell, row.children[1]);
+            row.insertBefore(creatorCell, row.children[3]);
+            row.insertBefore(imgCell, row.children[2]);
             container.appendChild(row);
         });
 
         if (messageElement) messageElement.textContent = ''; // Clear loading message
         renderRecipePagination(responseData.totalPages, responseData.currentPage); // Render pagination controls
+        updateRecipeSelectionUI();
 
     } catch (error) {
         console.error('Error loading recipes for admin:', error);
-        if (container) container.innerHTML = `<tr><td colspan="3">加载配方列表失败。</td></tr>`;
+        if (container) container.innerHTML = `<tr><td colspan="6">加载配方列表失败。</td></tr>`;
         if (messageElement) {
             messageElement.textContent = '加载配方列表失败: ' + error.message;
             messageElement.style.color = 'red';
         }
         paginationContainer.innerHTML = ''; // Clear pagination on error
+        updateRecipeSelectionUI();
     }
 }
 
@@ -584,8 +795,11 @@ async function deleteRecipe(recipeId, buttonElement) {
         if (response.ok || response.status === 204) {
             alert('配方删除成功！');
             if (messageElement) messageElement.textContent = '配方删除成功！';
+            selectedRecipeIds.delete(String(recipeId));
+            updateRecipeSelectionUI();
             // --- MODIFICATION: Reload the CURRENT page after deletion ---
             loadRecipesForAdmin(currentRecipePage);
+            loadStats();
             // --- END MODIFICATION ---
         } else {
              // Pass the specific message element
@@ -619,6 +833,115 @@ async function deleteRecipe(recipeId, buttonElement) {
         }
         buttonElement.disabled = false; // Re-enable button on error
         buttonElement.textContent = '删除';
+    }
+}
+
+async function batchDeleteRecipes() {
+    const ids = Array.from(selectedRecipeIds);
+    if (!ids.length) return;
+    if (!confirm(`确定要批量删除这 ${ids.length} 个配方吗？此操作不可撤销。`)) return;
+
+    const messageElement = document.getElementById('admin-message');
+    const batchDeleteBtn = document.getElementById('recipe-batch-delete-btn');
+    if (batchDeleteBtn) {
+        batchDeleteBtn.disabled = true;
+        batchDeleteBtn.textContent = '批量删除中...';
+    }
+    if (messageElement) {
+        messageElement.textContent = `正在批量删除 ${ids.length} 个配方...`;
+        messageElement.style.color = 'inherit';
+    }
+
+    try {
+        const response = await fetch('/api/admin/recipes/batch-delete', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            ids.forEach(id => selectedRecipeIds.delete(String(id)));
+            const deletedCount = Number(result.deletedCount || 0);
+            alert(result.message || `已批量删除 ${deletedCount} 个配方`);
+            loadRecipesForAdmin(currentRecipePage);
+            loadStats();
+        } else {
+            if (handleAuthError(response, messageElement)) return;
+            let errMsg = `批量删除失败 (${response.status})`;
+            try {
+                const errData = await response.json();
+                errMsg = errData.message || errMsg;
+            } catch (e) { /* Ignore parsing error */ }
+            throw new Error(errMsg);
+        }
+    } catch (error) {
+        const finalMsg = `批量删除配方失败: ${error.message}`;
+        if (messageElement) {
+            messageElement.textContent = finalMsg;
+            messageElement.style.color = 'red';
+        }
+        alert(finalMsg);
+    } finally {
+        if (batchDeleteBtn) {
+            batchDeleteBtn.textContent = '批量删除配方';
+        }
+        updateRecipeSelectionUI();
+    }
+}
+
+async function batchDeleteUsers() {
+    const ids = Array.from(selectedUserIds);
+    if (!ids.length) return;
+    if (!confirm(`确定要批量删除这 ${ids.length} 个账号吗？此操作不可撤销。`)) return;
+
+    const messageElement = document.getElementById('admin-user-message');
+    const batchDeleteBtn = document.getElementById('user-batch-delete-btn');
+    if (batchDeleteBtn) {
+        batchDeleteBtn.disabled = true;
+        batchDeleteBtn.textContent = '批量删除中...';
+    }
+    if (messageElement) {
+        messageElement.textContent = `正在批量删除 ${ids.length} 个账号...`;
+        messageElement.style.color = 'inherit';
+    }
+
+    try {
+        const response = await fetch('/api/admin/users/batch/delete', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            ids.forEach(id => selectedUserIds.delete(String(id)));
+            const deletedCount = Number(result.deletedCount || 0);
+            alert(result.message || `已批量删除 ${deletedCount} 个账号`);
+            closeUserModal();
+            loadUsersForAdmin(currentUserPage);
+            loadStats();
+        } else {
+            if (handleAuthError(response, messageElement)) return;
+            let errMsg = `批量删除失败 (${response.status})`;
+            try {
+                const errData = await response.json();
+                errMsg = errData.message || errMsg;
+            } catch (e) { /* Ignore parsing error */ }
+            throw new Error(errMsg);
+        }
+    } catch (error) {
+        const finalMsg = `批量删除账号失败: ${error.message}`;
+        if (messageElement) {
+            messageElement.textContent = finalMsg;
+            messageElement.style.color = 'red';
+        }
+        alert(finalMsg);
+    } finally {
+        if (batchDeleteBtn) {
+            batchDeleteBtn.textContent = '批量删除账号';
+        }
+        updateUserSelectionUI();
     }
 }
 

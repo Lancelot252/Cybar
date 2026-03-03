@@ -59,10 +59,20 @@
             <div class="admin-section" id="recipes-management-section">
                 <h3>配方管理</h3>
                 <p id="admin-message" class="message"></p> <!-- Status/Error messages -->
+                <div class="batch-toolbar">
+                    <label class="toolbar-check">
+                        <input type="checkbox" id="recipe-select-all-page">
+                        全选当前页
+                    </label>
+                    <span id="recipe-selected-count" class="selected-count">已选 0 项</span>
+                    <button id="recipe-clear-selection-btn" class="toolbar-btn clear" disabled>清空选择</button>
+                    <button id="recipe-batch-delete-btn" class="toolbar-btn danger" disabled>批量删除配方</button>
+                </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
+                                <th class="select-col">选中</th>
                                 <th>ID</th>
                                 <th>图片</th>
                                 <th>名称</th>
@@ -72,7 +82,7 @@
                         </thead>
                         <tbody id="admin-recipe-list">
                             <!-- Recipe rows will be loaded here by admin.js -->
-                            <tr><td colspan="3">正在加载配方...</td></tr>
+                            <tr><td colspan="6">正在加载配方...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -86,10 +96,20 @@
             <div class="admin-section" id="users-management-section">
                 <h3>用户管理</h3>
                 <p id="admin-user-message" class="message"></p> <!-- Status/Error messages for users -->
+                <div class="batch-toolbar">
+                    <label class="toolbar-check">
+                        <input type="checkbox" id="user-select-all-page">
+                        全选当前页
+                    </label>
+                    <span id="user-selected-count" class="selected-count">已选 0 项</span>
+                    <button id="user-clear-selection-btn" class="toolbar-btn clear" disabled>清空选择</button>
+                    <button id="user-batch-delete-btn" class="toolbar-btn danger" disabled>批量删除账号</button>
+                </div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
+                                <th class="select-col">选中</th>
                                 <th>用户 ID</th>
                                 <th>用户名</th>
                                 <th>角色</th>
@@ -98,7 +118,7 @@
                         </thead>
                         <tbody id="admin-user-list">
                             <!-- User rows will be loaded here by admin.js -->
-                            <tr><td colspan="4">正在加载用户...</td></tr>
+                            <tr><td colspan="5">正在加载用户...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -155,6 +175,11 @@
                 <span class="close-modal-btn">&times;</span>
                 <h4 id="modal-username">管理用户</h4>
                 <input type="hidden" id="modal-user-id"> <!-- Store user ID -->
+                <div class="user-detail-block">
+                    <h5>账号详情（含密码）</h5>
+                    <div id="modal-user-details" class="user-detail-content">正在加载账号详情...</div>
+                    <p class="security-warning">注意：此区域展示明文密码，仅限管理员排查问题使用。</p>
+                </div>
 
                 <div class="form-group">
                     <label for="modal-role-select">修改角色:</label>
