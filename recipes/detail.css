@@ -212,11 +212,53 @@
     background: color-mix(in srgb, var(--accent-success) 58%, transparent);
     border: 1px solid color-mix(in srgb, var(--accent-success) 70%, transparent);
     font-size: var(--fs-xs);
+    color: var(--text-primary);
+    min-height: 32px;
+    cursor: pointer;
+}
+
+.ai-analysis-badge:disabled {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 .ai-analysis-body {
     padding: clamp(16px, 2vw, 24px);
     background: color-mix(in srgb, var(--bg-elev-1) 84%, transparent);
+}
+
+.ai-analysis-body [hidden] {
+    display: none !important;
+}
+
+.ai-analysis-idle {
+    min-height: 150px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    gap: 10px;
+    color: var(--text-secondary);
+}
+
+.ai-analysis-idle .icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-primary);
+    border: 1px solid var(--line-muted);
+    background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
+.ai-analysis-idle .title {
+    color: var(--text-primary);
+}
+
+.ai-analysis-idle .subtitle {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
 }
 
 .ai-analysis-loading {

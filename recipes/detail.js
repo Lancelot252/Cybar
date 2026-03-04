@@ -18,9 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then((recipe) => {
             displayRecipeDetail(recipe);
             loadInteractionData(recipeId);
-            if (window.startAITasteAnalysis) {
-                window.startAITasteAnalysis(recipe);
-            }
+            initializeAITasteAnalysis(recipe);
         })
         .catch((error) => {
             console.error('获取配方详情时出错:', error.message);
@@ -42,6 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+let aiAnalysisRequestVersion = 0;
+let isAIAnalysisRunning = false;
 
 function setMessage(messageEl, text) {
     if (!messageEl) return;
@@ -436,19 +437,30 @@ async function loadInteractionData(recipeId) {
 }
 
 async function startAITasteAnalysis(recipe) {
+    if (!recipe || isAIAnalysisRunning) return;
+
     window.currentRecipe = recipe;
+    isAIAnalysisRunning = true;
+    const requestVersion = ++aiAnalysisRequestVersion;
 
     const analysisSection = document.getElementById('ai-taste-analysis');
+    const idleElement = document.getElementById('ai-analysis-idle');
     const loadingElement = document.getElementById('ai-analysis-loading');
     const resultsElement = document.getElementById('ai-analysis-results');
     const errorElement = document.getElementById('ai-analysis-error');
     const metaElement = document.getElementById('ai-analysis-meta');
+    const triggerButton = document.getElementById('ai-analysis-trigger');
 
     showElement(analysisSection);
+    hideElement(idleElement);
     showElement(loadingElement);
     hideElement(resultsElement);
     hideElement(errorElement);
     hideElement(metaElement);
+    if (triggerButton) {
+        triggerButton.disabled = true;
+        triggerButton.textContent = '分析中...';
+    }
 
     try {
         const analysisData = {
@@ -468,6 +480,7 @@ async function startAITasteAnalysis(recipe) {
         });
 
         const result = await response.json();
+        if (requestVersion !== aiAnalysisRequestVersion) return;
         hideElement(loadingElement);
 
         if (response.ok && result.success) {
@@ -478,8 +491,17 @@ async function startAITasteAnalysis(recipe) {
         showAIAnalysisError(result.message || 'AI分析失败，请稍后重试');
     } catch (error) {
         console.error('AI口味分析请求失败:', error);
+        if (requestVersion !== aiAnalysisRequestVersion) return;
         hideElement(loadingElement);
         showAIAnalysisError('网络连接异常，AI分析暂时不可用');
+    } finally {
+        if (requestVersion === aiAnalysisRequestVersion) {
+            isAIAnalysisRunning = false;
+            if (triggerButton) {
+                triggerButton.disabled = false;
+                triggerButton.textContent = '重新分析';
+            }
+        }
     }
 }
 
@@ -834,6 +856,33 @@ function showAIAnalysisError(message) {
     showElement(errorElement);
 }
 
+function initializeAITasteAnalysis(recipe) {
+    window.currentRecipe = recipe;
+
+    const analysisSection = document.getElementById('ai-taste-analysis');
+    const idleElement = document.getElementById('ai-analysis-idle');
+    const loadingElement = document.getElementById('ai-analysis-loading');
+    const resultsElement = document.getElementById('ai-analysis-results');
+    const errorElement = document.getElementById('ai-analysis-error');
+    const metaElement = document.getElementById('ai-analysis-meta');
+    const triggerButton = document.getElementById('ai-analysis-trigger');
+
+    showElement(analysisSection);
+    showElement(idleElement);
+    hideElement(loadingElement);
+    hideElement(resultsElement);
+    hideElement(errorElement);
+    hideElement(metaElement);
+
+    if (triggerButton) {
+        triggerButton.disabled = false;
+        triggerButton.textContent = '智能分析';
+        triggerButton.onclick = () => {
+            startAITasteAnalysis(window.currentRecipe);
+        };
+    }
+}
+
 function formatAnalysisText(text) {
     if (!text) return '';
 
@@ -883,3 +932,4 @@ function formatAnalysisText(text) {
 }
 
 window.startAITasteAnalysis = startAITasteAnalysis;
+window.initializeAITasteAnalysis = initializeAITasteAnalysis;

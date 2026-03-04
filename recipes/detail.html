@@ -35,14 +35,20 @@
                     <h3>
                         <span class="ai-header-icon"><i class="fas fa-brain"></i></span>
                         AI口味分析
-                        <span id="ai-analysis-badge" class="ai-analysis-badge">智能分析</span>
+                        <button id="ai-analysis-trigger" class="ai-analysis-badge" type="button">智能分析</button>
                     </h3>
                     <p>基于AI模型的专业口味结构解析</p>
                 </div>
             </div>
 
             <div class="ai-analysis-body">
-                <div id="ai-analysis-loading" class="ai-analysis-loading">
+                <div id="ai-analysis-idle" class="ai-analysis-idle">
+                    <div class="icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+                    <div class="title">点击“智能分析”开始生成风味报告</div>
+                    <div class="subtitle">分析将基于当前配方的配料结构与制作方式</div>
+                </div>
+
+                <div id="ai-analysis-loading" class="ai-analysis-loading" hidden>
                     <div class="ai-loader-icon">
                         <div class="ai-spinner"></div>
                         <i class="fas fa-brain"></i>

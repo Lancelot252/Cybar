@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let closeTimer = null;
 
         function syncHeaderHeight() {
-            const h = Math.ceil(header.getBoundingClientRect().height);
+            const h = header.getBoundingClientRect().height;
             document.documentElement.style.setProperty('--global-header-height', `${h}px`);
         }
 

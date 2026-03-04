@@ -11,7 +11,7 @@
 .global-menu-shell {
     --global-menu-panel-height: 66px;
     position: fixed;
-    top: var(--global-header-height, 72px);
+    top: calc(var(--global-header-height, 72px) - 1px);
     left: 0;
     width: 100%;
     z-index: 35;
