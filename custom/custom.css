@@ -306,6 +306,10 @@
     box-shadow: none;
 }
 
+.custom-page .user-dropdown-item {
+    justify-content: flex-start;
+}
+
 .custom-page .ai-generate-btn,
 .custom-page .ai-analyze-btn,
 .custom-page .submit-btn {
