@@ -448,7 +448,7 @@ router.post('/api/custom/analyze-flavor', async (req, res) => {
         } else if (qwenKey && qwenKey !== 'sk-your-api-key-here') {
             // 调用 Qwen API
             const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-                model: 'qwen-plus',
+                model: 'qwen3.5-plus',
                 messages: [
                     {
                         role: 'system',
@@ -620,7 +620,7 @@ ${alcoholStrength ? `酒精强度偏好：${alcoholStrength}` : ''}
         } else if (qwenKey && qwenKey !== 'sk-your-api-key-here') {
             // 调用 Qwen API
             const response = await axios.post('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
-                model: 'qwen-plus',
+                model: 'qwen3.5-plus',
                 messages: [
                     {
                         role: 'system',
