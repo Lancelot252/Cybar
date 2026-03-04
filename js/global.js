@@ -94,6 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 160);
         }
 
+        function clearDelayedClose() {
+            if (!closeTimer) return;
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+
         trigger.addEventListener('click', () => {
             if (shell.classList.contains('is-open')) {
                 closeMenu();
@@ -111,15 +117,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         shell.addEventListener('pointerenter', () => {
             if (!hoverMedia.matches) return;
-            if (closeTimer) {
-                clearTimeout(closeTimer);
-                closeTimer = null;
-            }
+            clearDelayedClose();
             openMenu();
         });
 
         shell.addEventListener('pointerleave', () => {
             if (!hoverMedia.matches) return;
+            delayedClose();
+        });
+
+        // Header is a "safe hover zone" only after menu is already open.
+        // This keeps the dropdown from collapsing when pointer moves onto header,
+        // but never opens menu from header hover alone.
+        header.addEventListener('pointerenter', () => {
+            if (!hoverMedia.matches) return;
+            if (!shell.classList.contains('is-open')) return;
+            clearDelayedClose();
+        });
+
+        header.addEventListener('pointerleave', (event) => {
+            if (!hoverMedia.matches) return;
+            if (!shell.classList.contains('is-open')) return;
+            const nextTarget = event.relatedTarget;
+            if (nextTarget && shell.contains(nextTarget)) return;
             delayedClose();
         });
 
