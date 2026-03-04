@@ -1,459 +1,310 @@
 const express = require('express');
 const router = express.Router();
 const dbPool = require('../config/db');
-const { isAuthenticated } = require('../middleware/auth');
 
-// 原料名称规范化映射表
-const ingredientNormalizationMap = {
-    "金酒 (gin)": "金酒",
-    "gin": "金酒",
-    "伏特加 (vodka)": "伏特加",
-    "vodka": "伏特加",
-    "朗姆酒 (rum)": "朗姆酒",
-    "rum": "朗姆酒",
-    "龙舌兰 (tequila)": "龙舌兰",
-    "tequila": "龙舌兰",
-    "威士忌 (whiskey)": "威士忌",
-    "whiskey": "威士忌",
-    "whisky": "威士忌",
-    "白兰地 (brandy)": "白兰地",
-    "brandy": "白兰地",
-    "利口酒 (liqueur)": "利口酒",
-    "liqueur": "利口酒",
-    "苦精 (bitters)": "苦精",
-    "bitters": "苦精",
-    "苏打水 (soda)": "苏打水",
-    "soda": "苏打水",
-    "汤力水 (tonic)": "汤力水",
-    "tonic": "汤力水",
-    "柠檬汁 (lemon juice)": "柠檬汁",
-    "lemon juice": "柠檬汁",
-    "青柠汁 (lime juice)": "青柠汁",
-    "lime juice": "青柠汁"
-};
+const DEFAULT_LIMIT = 8;
+const MAX_LIMIT = 24;
+const LIKE_WEIGHT = 1;
+const FAVORITE_WEIGHT = 2;
 
-// 原料名称规范化函数
-const normalizeIngredient = (ingredient) => {
-    const lowerIngredient = ingredient.toLowerCase().trim();
+function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
-    for (const [key, value] of Object.entries(ingredientNormalizationMap)) {
-        if (lowerIngredient === key.toLowerCase()) {
-            return value;
+function toNumberOrNull(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseLimit(rawLimit) {
+    const parsed = Number.parseInt(rawLimit, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return DEFAULT_LIMIT;
+    }
+    return Math.min(parsed, MAX_LIMIT);
+}
+
+function compareByScoreThenCreatedAt(a, b) {
+    if (b.score !== a.score) {
+        return b.score - a.score;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+}
+
+function buildRecommendationReason(creatorAffinity, abvAffinity, randomBonus) {
+    if (creatorAffinity >= 0.66) {
+        return '与你常点赞/收藏的创作者相符';
+    }
+    if (abvAffinity >= 0.66) {
+        return '酒精度接近你的偏好';
+    }
+    if (randomBonus >= 15) {
+        return '随机探索推荐';
+    }
+    return '综合偏好推荐';
+}
+
+async function fetchAllRecipeCandidates() {
+    const [rows] = await dbPool.query(`
+        SELECT
+            c.id,
+            c.name,
+            c.estimated_abv AS estimatedAbv,
+            c.image,
+            c.created_by AS createdBy,
+            c.created_at AS createdAt,
+            COUNT(DISTINCT l.user_id) AS likeCount,
+            COUNT(DISTINCT f.user_id) AS favoriteCount
+        FROM cocktails c
+        LEFT JOIN likes l ON c.id = l.recipe_id
+        LEFT JOIN favorites f ON c.id = f.recipe_id
+        GROUP BY c.id, c.name, c.estimated_abv, c.image, c.created_by, c.created_at
+    `);
+
+    return rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        estimatedAbv: toNumberOrNull(row.estimatedAbv),
+        image: row.image || null,
+        createdBy: row.createdBy || null,
+        createdAt: row.createdAt,
+        likeCount: Number(row.likeCount) || 0,
+        favoriteCount: Number(row.favoriteCount) || 0
+    }));
+}
+
+async function buildUserBehaviorProfile(userId) {
+    const [rows] = await dbPool.query(`
+        SELECT
+            i.recipeId,
+            MAX(i.weight) AS weight,
+            MAX(i.estimatedAbv) AS estimatedAbv,
+            MAX(i.createdBy) AS createdBy
+        FROM (
+            SELECT
+                l.recipe_id AS recipeId,
+                ? AS weight,
+                c.estimated_abv AS estimatedAbv,
+                c.created_by AS createdBy
+            FROM likes l
+            JOIN cocktails c ON c.id = l.recipe_id
+            WHERE l.user_id = ?
+
+            UNION ALL
+
+            SELECT
+                f.recipe_id AS recipeId,
+                ? AS weight,
+                c.estimated_abv AS estimatedAbv,
+                c.created_by AS createdBy
+            FROM favorites f
+            JOIN cocktails c ON c.id = f.recipe_id
+            WHERE f.user_id = ?
+        ) AS i
+        GROUP BY i.recipeId
+    `, [LIKE_WEIGHT, userId, FAVORITE_WEIGHT, userId]);
+
+    const interactedRecipeIds = new Set();
+    const creatorWeightMap = new Map();
+
+    let weightedAbvSum = 0;
+    let weightedAbvCount = 0;
+
+    for (const row of rows) {
+        interactedRecipeIds.add(row.recipeId);
+
+        const weight = Number(row.weight) || 0;
+        const estimatedAbv = toNumberOrNull(row.estimatedAbv);
+        const createdBy = row.createdBy;
+
+        if (estimatedAbv !== null) {
+            weightedAbvSum += estimatedAbv * weight;
+            weightedAbvCount += weight;
+        }
+
+        if (createdBy) {
+            const current = creatorWeightMap.get(createdBy) || 0;
+            creatorWeightMap.set(createdBy, current + weight);
         }
     }
 
-    return ingredient.replace(/\(.*?\)/g, '').trim();
-};
+    const preferredAbv = weightedAbvCount > 0 ? (weightedAbvSum / weightedAbvCount) : null;
+    const maxCreatorWeight = creatorWeightMap.size > 0
+        ? Math.max(...creatorWeightMap.values())
+        : 0;
 
-// 推荐API - 综合协同过滤和原料规范化
-router.get('/api/recommendations', isAuthenticated, async (req, res) => {
-    const userId = req.session.userId;
-    const MAX_RECOMMENDATIONS = 4;
+    return {
+        hasData: interactedRecipeIds.size > 0,
+        preferredAbv,
+        interactedRecipeIds,
+        creatorWeightMap,
+        maxCreatorWeight
+    };
+}
+
+function toRecommendationResponse(item, reason, randomBonus, score, isRecall = false) {
+    return {
+        id: item.id,
+        name: item.name,
+        estimatedAbv: item.estimatedAbv,
+        image: item.image,
+        createdBy: item.createdBy,
+        likeCount: item.likeCount,
+        favoriteCount: item.favoriteCount,
+        score,
+        randomBonus,
+        isRecall,
+        reason,
+        matchPercentage: null
+    };
+}
+
+function buildPopularRandomRecommendations(recipes, limit, session) {
+    const noiseMap = session.recommendationNoiseMap || {};
+
+    const ranked = recipes.map(recipe => {
+        if (!Number.isFinite(noiseMap[recipe.id])) {
+            noiseMap[recipe.id] = randomInt(0, 50);
+        }
+
+        const randomBonus = Number(noiseMap[recipe.id]) || 0;
+        const score = recipe.likeCount + recipe.favoriteCount + randomBonus;
+
+        return {
+            ...recipe,
+            randomBonus,
+            score
+        };
+    });
+
+    ranked.sort(compareByScoreThenCreatedAt);
+    session.recommendationNoiseMap = noiseMap;
+
+    return ranked.slice(0, limit).map(item => (
+        toRecommendationResponse(item, '热门与随机推荐', item.randomBonus, item.score, false)
+    ));
+}
+
+function buildPersonalizedRecommendations(recipes, limit, profile) {
+    const recallCap = Math.ceil(limit * 0.2);
+
+    const scored = recipes.map(recipe => {
+        const isRecall = profile.interactedRecipeIds.has(recipe.id);
+
+        let abvAffinity = 0.5;
+        if (profile.preferredAbv !== null && recipe.estimatedAbv !== null) {
+            abvAffinity = Math.max(0, 1 - Math.abs(recipe.estimatedAbv - profile.preferredAbv) / 30);
+        }
+
+        let creatorAffinity = 0;
+        if (profile.maxCreatorWeight > 0 && profile.creatorWeightMap.has(recipe.createdBy)) {
+            const creatorWeight = profile.creatorWeightMap.get(recipe.createdBy);
+            creatorAffinity = creatorWeight / profile.maxCreatorWeight;
+        }
+
+        const baseScore = (abvAffinity * 70) + (creatorAffinity * 30);
+        const randomBonus = randomInt(0, 20);
+        const score = Number((baseScore + randomBonus).toFixed(4));
+        const reason = buildRecommendationReason(creatorAffinity, abvAffinity, randomBonus);
+
+        return {
+            ...recipe,
+            isRecall,
+            abvAffinity,
+            creatorAffinity,
+            randomBonus,
+            score,
+            reason
+        };
+    });
+
+    scored.sort(compareByScoreThenCreatedAt);
+
+    const selected = [];
+    const selectedIds = new Set();
+    let recallUsed = 0;
+
+    for (const item of scored) {
+        if (item.isRecall && recallUsed >= recallCap) {
+            continue;
+        }
+
+        selected.push(item);
+        selectedIds.add(item.id);
+
+        if (item.isRecall) {
+            recallUsed += 1;
+        }
+
+        if (selected.length >= limit) {
+            break;
+        }
+    }
+
+    if (selected.length < limit) {
+        for (const item of scored) {
+            if (selectedIds.has(item.id)) {
+                continue;
+            }
+
+            selected.push(item);
+            selectedIds.add(item.id);
+
+            if (selected.length >= limit) {
+                break;
+            }
+        }
+    }
+
+    return selected.map(item => (
+        toRecommendationResponse(
+            item,
+            item.reason,
+            item.randomBonus,
+            item.score,
+            item.isRecall
+        )
+    ));
+}
+
+router.get('/api/recommendations', async (req, res) => {
+    const limit = parseLimit(req.query.limit);
+    const userId = req.session?.userId;
 
     try {
-        // 1) 获取用户交互数据（likes + favorites）
-        const [userInteractions] = await dbPool.query(`
-            SELECT 
-                c.id, c.name, 'like' AS interaction_type, 
-                c.estimated_abv AS abv, c.created_by AS creator,
-                GROUP_CONCAT(DISTINCT i.name) AS ingredients
-            FROM likes l
-            JOIN cocktails c ON l.recipe_id = c.id
-            JOIN ingredients i ON c.id = i.cocktail_id
-            WHERE l.user_id = ?
-            GROUP BY c.id
-            UNION ALL
-            SELECT 
-                c.id, c.name, 'favorite' AS interaction_type, 
-                c.estimated_abv AS abv, c.created_by AS creator,
-                GROUP_CONCAT(DISTINCT i.name) AS ingredients
-            FROM favorites f
-            JOIN cocktails c ON f.recipe_id = c.id
-            JOIN ingredients i ON c.id = i.cocktail_id
-            WHERE f.user_id = ?
-            GROUP BY c.id
-        `, [userId, userId]);
+        const recipes = await fetchAllRecipeCandidates();
 
-        if (userInteractions.length === 0) {
+        if (recipes.length === 0) {
             return res.json({
-                recommendations: [],
-                message: "您还没有点赞或收藏任何配方，无法生成推荐"
+                strategy: 'popular_random',
+                recommendations: []
             });
         }
 
-        // 2) 汇总用户偏好
-        const preferenceData = {
-            preferredAbv: 0,
-            topCreators: new Map(),
-            ingredientWeights: new Map(),
-            interactedRecipeIds: new Set(),
-            recipeIngredientWeights: new Map()
-        };
-        let totalAbv = 0, abvCount = 0;
+        if (!userId) {
+            return res.json({
+                strategy: 'popular_random',
+                recommendations: buildPopularRandomRecommendations(recipes, limit, req.session)
+            });
+        }
 
-        userInteractions.forEach(interaction => {
-            preferenceData.interactedRecipeIds.add(interaction.id);
+        const profile = await buildUserBehaviorProfile(userId);
 
-            if (interaction.abv !== null) {
-                totalAbv += interaction.abv;
-                abvCount++;
-            }
-            if (interaction.creator) {
-                const cnt = preferenceData.topCreators.get(interaction.creator) || 0;
-                preferenceData.topCreators.set(interaction.creator, cnt + 1);
-            }
-            if (interaction.ingredients) {
-                const weight = interaction.interaction_type === 'favorite' ? 2 : 1;
-                interaction.ingredients.split(',').forEach(rawIng => {
-                    const ing = normalizeIngredient(rawIng);
-                    const cur = preferenceData.ingredientWeights.get(ing) || 0;
-                    preferenceData.ingredientWeights.set(ing, cur + weight);
-                });
-            }
-            // 计算每个配方的原料权重和
-            let recipeWeightSum = 0;
-            if (interaction.ingredients) {
-                interaction.ingredients.split(',').forEach(rawIng => {
-                    const ing = normalizeIngredient(rawIng);
-                    const weight = interaction.interaction_type === 'favorite' ? 2 : 1;
-                    recipeWeightSum += weight;
-                });
-            }
-            preferenceData.recipeIngredientWeights.set(interaction.id, recipeWeightSum);
+        if (!profile.hasData) {
+            return res.json({
+                strategy: 'popular_random',
+                recommendations: buildPopularRandomRecommendations(recipes, limit, req.session)
+            });
+        }
+
+        return res.json({
+            strategy: 'personalized_v2',
+            recommendations: buildPersonalizedRecommendations(recipes, limit, profile)
         });
-
-        // 计算中位数酒精度
-        const abvList = [];
-        userInteractions.forEach(interaction => {
-            if (interaction.abv !== null) {
-                abvList.push(interaction.abv);
-            }
-        });
-
-        if (abvList.length > 0) {
-            abvList.sort((a, b) => a - b);
-            const mid = Math.floor(abvList.length / 2);
-            if (abvList.length % 2 === 1) {
-                preferenceData.preferredAbv = abvList[mid];
-            } else {
-                preferenceData.preferredAbv = (abvList[mid - 1] + abvList[mid]) / 2;
-            }
-        } else {
-            preferenceData.preferredAbv = 0;
-        }
-
-        const sortedCreators = Array.from(preferenceData.topCreators.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(item => item[0]);
-
-        const topIngredients = Array.from(preferenceData.ingredientWeights.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(item => item[0]);
-
-        // 3) 协同过滤：找相似用户 & 相似用户喜欢的配方
-        const similarUsers = new Map();
-        if (preferenceData.interactedRecipeIds.size > 0) {
-            const [potentialUsers] = await dbPool.query(`
-                SELECT DISTINCT user_id AS userId
-                FROM (
-                    SELECT user_id, recipe_id FROM likes
-                    UNION ALL
-                    SELECT user_id, recipe_id FROM favorites
-                ) AS interactions
-                WHERE recipe_id IN (?)
-                AND user_id != ?
-            `, [Array.from(preferenceData.interactedRecipeIds), userId]);
-
-            const [allInteractions] = await dbPool.query(`
-                SELECT user_id AS userId, recipe_id AS recipeId
-                FROM (
-                    SELECT user_id, recipe_id FROM likes
-                    UNION ALL
-                    SELECT user_id, recipe_id FROM favorites
-                ) AS interactions
-                WHERE user_id IN (?)
-            `, [potentialUsers.map(u => u.userId)]);
-
-            const userInteractionMap = new Map();
-            allInteractions.forEach(ia => {
-                if (!userInteractionMap.has(ia.userId)) {
-                    userInteractionMap.set(ia.userId, new Set());
-                }
-                userInteractionMap.get(ia.userId).add(ia.recipeId);
-            });
-
-            const currentUserSet = preferenceData.interactedRecipeIds;
-            potentialUsers.forEach(user => {
-                const otherUserSet = userInteractionMap.get(user.userId) || new Set();
-
-                const intersection = new Set(
-                    [...currentUserSet].filter(id => otherUserSet.has(id))
-                );
-                const union = new Set([...currentUserSet, ...otherUserSet]);
-
-                const similarity = union.size > 0
-                    ? intersection.size / union.size
-                    : 0;
-
-                if (similarity > 0.2) {
-                    similarUsers.set(user.userId, similarity);
-                }
-            });
-        }
-
-        // 4) 拿到所有候选配方
-        const [allRecipes] = await dbPool.query(`
-            SELECT 
-                c.id, c.name, c.estimated_abv AS estimatedAbv, c.created_by AS creator,
-                COUNT(DISTINCT l.user_id) AS likeCount,
-                COUNT(DISTINCT f.user_id) AS favoriteCount,
-                GROUP_CONCAT(DISTINCT i.name) AS ingredients
-            FROM cocktails c
-            LEFT JOIN likes l ON c.id = l.recipe_id
-            LEFT JOIN favorites f ON c.id = f.recipe_id
-            JOIN ingredients i ON c.id = i.cocktail_id
-            GROUP BY c.id
-        `);
-
-        // 5) 计算每个配方的各项得分
-        const candidateRecipes = allRecipes
-            .filter(r => !preferenceData.interactedRecipeIds.has(r.id));
-
-        const scoredRecipes = [];
-
-        const recipeIds = candidateRecipes.map(r => r.id);
-        let recipePopularityMap = new Map();
-
-        if (similarUsers.size > 0 && recipeIds.length > 0) {
-            const [popularityResults] = await dbPool.query(`
-                SELECT 
-                    recipe_id AS recipeId,
-                    COUNT(DISTINCT user_id) AS userCount
-                FROM (
-                    SELECT user_id, recipe_id FROM likes
-                    UNION ALL
-                    SELECT user_id, recipe_id FROM favorites
-                ) AS interactions
-                WHERE recipe_id IN (?)
-                AND user_id IN (?)
-                GROUP BY recipe_id
-            `, [recipeIds, Array.from(similarUsers.keys())]);
-
-            popularityResults.forEach(row => {
-                recipePopularityMap.set(row.recipeId, row.userCount);
-            });
-        }
-
-        let interactingUsersMap = new Map();
-        if (similarUsers.size > 0 && recipeIds.length > 0) {
-            const [interactingResults] = await dbPool.query(`
-                SELECT 
-                    recipe_id AS recipeId,
-                    user_id AS userId
-                FROM (
-                    SELECT recipe_id, user_id FROM likes
-                    UNION
-                    SELECT recipe_id, user_id FROM favorites
-                ) AS interactions
-                WHERE recipe_id IN (?)
-                AND user_id IN (?)
-            `, [recipeIds, Array.from(similarUsers.keys())]);
-
-            interactingResults.forEach(row => {
-                if (!interactingUsersMap.has(row.recipeId)) {
-                    interactingUsersMap.set(row.recipeId, []);
-                }
-                interactingUsersMap.get(row.recipeId).push(row.userId);
-            });
-        }
-
-        const avgRecipeWeight = userInteractions.length > 0
-            ? Array.from(preferenceData.recipeIngredientWeights.values())
-                .reduce((sum, val) => sum + val, 0) / userInteractions.length
-            : 1;
-
-        for (const recipe of candidateRecipes) {
-            const scores = {
-                ingredientMatch: 0,
-                creatorMatch: 0,
-                abvMatch: 0,
-                popularity: 0,
-                similarUsers: 0
-            };
-            const matchReasons = [];
-
-            // 5.1 原料匹配 (权重 4)
-            if (recipe.ingredients) {
-                const recipeIngredients = recipe.ingredients.split(',')
-                    .map(raw => normalizeIngredient(raw));
-
-                let rawIngredientScore = 0;
-                recipeIngredients.forEach(ing => {
-                    const w = preferenceData.ingredientWeights.get(ing) || 0;
-                    rawIngredientScore += w;
-                });
-
-                const smoothFactor = 0.5;
-                scores.ingredientMatch = 4 * (rawIngredientScore / (avgRecipeWeight + smoothFactor));
-                scores.ingredientMatch = Math.min(scores.ingredientMatch, 4);
-
-                const common = recipeIngredients.filter(ing =>
-                    preferenceData.ingredientWeights.has(ing));
-                if (common.length > 0) {
-                    const display = common.slice(0, 3).join('、');
-                    matchReasons.push(`可能喜欢的原料: ${display}${common.length > 3 ? '等' : ''}`);
-                }
-            }
-
-            // 5.2 创建者匹配 (权重 3)
-            if (recipe.creator && sortedCreators.includes(recipe.creator)) {
-                scores.creatorMatch = 3;
-                matchReasons.push(`可能喜欢的调酒师: ${recipe.creator}`);
-            }
-
-            // 5.3 酒精度匹配 (权重 2)
-            if (preferenceData.preferredAbv > 0 && recipe.estimatedAbv > 0) {
-                const diff = Math.abs(recipe.estimatedAbv - preferenceData.preferredAbv);
-                scores.abvMatch = Math.max(0, 2 * (1 - diff / 20));
-                if (scores.abvMatch > 1.0) {
-                    matchReasons.push(`可能喜欢的酒精浓度: ${recipe.estimatedAbv}%`);
-                }
-            }
-
-            // 5.4 人气 (权重 1.5)
-            const totalInteractions = recipe.likeCount + recipe.favoriteCount;
-            if (totalInteractions > 0) {
-                scores.popularity = Math.min(1.5, 1.5 * Math.log1p(totalInteractions / 50));
-                if (totalInteractions > 10) {
-                    matchReasons.push(`热门配方 (已有${totalInteractions}次👍&⭐)`);
-                }
-            }
-
-            // 5.5 协同过滤 (权重 2.5)
-            if (similarUsers.size > 0) {
-                const userCount = recipePopularityMap.get(recipe.id) || 0;
-
-                let weightedScore = 0;
-                if (userCount > 0) {
-                    const userIds = interactingUsersMap.get(recipe.id) || [];
-                    userIds.forEach(userId => {
-                        const similarity = similarUsers.get(userId) || 0;
-                        weightedScore += similarity;
-                    });
-                }
-
-                const maxPossible = Array.from(similarUsers.values())
-                    .reduce((sum, val) => sum + val, 0);
-
-                scores.similarUsers = maxPossible > 0
-                    ? 2.5 * (weightedScore / maxPossible)
-                    : 0;
-
-                if (scores.similarUsers > 1) {
-                    if (scores.similarUsers > 2.25) {
-                        matchReasons.push(`高度相似的用户都喜欢`);
-                    } else if (scores.similarUsers > 1.75) {
-                        matchReasons.push(`多个相似用户喜欢`);
-                    } else {
-                        matchReasons.push(`相似用户喜欢`);
-                    }
-                }
-            }
-
-            const totalScore =
-                scores.ingredientMatch +
-                scores.creatorMatch +
-                scores.abvMatch +
-                scores.popularity +
-                scores.similarUsers;
-
-            scoredRecipes.push({
-                ...recipe,
-                scores,
-                totalScore,
-                matchReasons
-            });
-        }
-
-        // 6) 排序 & 取前 MAX_RECOMMENDATIONS 个
-        const recommendations = scoredRecipes
-            .sort((a, b) => b.totalScore - a.totalScore)
-            .slice(0, MAX_RECOMMENDATIONS)
-            .map(recipe => {
-                const maxPossibleScore = 4 + 3 + 2 + 1.5 + 2.5;
-                const matchPercentage = Math.min(
-                    100,
-                    Math.round((recipe.totalScore / maxPossibleScore) * 100)
-                );
-
-                const scoreItems = [
-                    {
-                        type: "ingredient",
-                        weight: 4,
-                        reason: recipe.matchReasons.find(r => r.includes("原料")),
-                        scoreRate: recipe.scores.ingredientMatch / 4
-                    },
-                    {
-                        type: "creator",
-                        weight: 3,
-                        reason: recipe.matchReasons.find(r => r.includes("调酒师")),
-                        scoreRate: recipe.scores.creatorMatch / 3
-                    },
-                    {
-                        type: "collaborative",
-                        weight: 2.5,
-                        reason: recipe.matchReasons.find(r => r.includes("相似的用户")),
-                        scoreRate: recipe.scores.similarUsers / 2.5
-                    },
-                    {
-                        type: "abv",
-                        weight: 2,
-                        reason: recipe.matchReasons.find(r => r.includes("酒精浓度")),
-                        scoreRate: recipe.scores.abvMatch / 2
-                    },
-                    {
-                        type: "popularity",
-                        weight: 1.5,
-                        reason: recipe.matchReasons.find(r => r.includes("热门配方")),
-                        scoreRate: recipe.scores.popularity / 1.5
-                    }
-                ];
-
-                const sortedScoreItems = scoreItems
-                    .filter(item => item.reason)
-                    .sort((a, b) => b.scoreRate - a.scoreRate);
-
-                let reasons = [];
-                for (const item of sortedScoreItems) {
-                    if (reasons.length < 3 && item.scoreRate > 0.5) {
-                        reasons.push(item.reason);
-                    }
-                }
-                if (reasons.length === 0 && recipe.matchReasons.length > 0) {
-                    reasons = recipe.matchReasons.slice(0, 3);
-                } else if (reasons.length === 0) {
-                    reasons = ["您可能喜欢的新配方"];
-                }
-                const reasonText = reasons.join(" • ");
-
-                return {
-                    id: recipe.id,
-                    name: recipe.name,
-                    estimatedAbv: recipe.estimatedAbv,
-                    matchPercentage,
-                    reason: reasonText,
-                    reasons: reasons
-                };
-            });
-
-        return res.json({ recommendations });
-
     } catch (error) {
-        console.error("生成推荐失败:", error);
+        console.error('生成推荐失败:', error);
         return res.status(500).json({
-            message: "生成推荐时出错",
+            message: '生成推荐时出错',
             error: error.message
         });
     }

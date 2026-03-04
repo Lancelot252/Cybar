@@ -1,0 +1,82 @@
+:root {
+    color-scheme: dark;
+
+    --font-heading: 'Cormorant Garamond', 'Times New Roman', serif;
+    --font-body: 'Manrope', 'Segoe UI', sans-serif;
+    --font-ui: var(--font-body);
+
+    --fs-2xs: 0.75rem;
+    --fs-xs: 0.84rem;
+    --fs-sm: 0.93rem;
+    --fs-md: 1rem;
+    --fs-lg: 1.15rem;
+    --fs-xl: 1.35rem;
+    --fs-2xl: 1.9rem;
+    --fs-3xl: 2.8rem;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-xl: 26px;
+    --radius-pill: 999px;
+
+    --bg-base: #1a1410;
+    --bg-elev-1: #261b15;
+    --bg-elev-2: #34251c;
+    --bg-panel: rgba(40, 29, 22, 0.9);
+    --bg-overlay: rgba(12, 8, 6, 0.7);
+
+    --text-primary: #f2e8da;
+    --text-secondary: #d2bfa5;
+    --text-muted: #ab9277;
+    --text-inverse: #140e0b;
+
+    --accent-primary: #c89b5b;
+    --accent-secondary: #a16d3e;
+    --accent-danger: #d48a7b;
+    --accent-success: #86ad89;
+
+    --border-soft: rgba(183, 137, 87, 0.35);
+    --border-strong: rgba(220, 177, 120, 0.7);
+
+    --line-muted: rgba(198, 160, 110, 0.26);
+    --focus-ring: 0 0 0 3px rgba(215, 175, 116, 0.36);
+
+    --shadow-soft: 0 16px 30px rgba(8, 6, 4, 0.34);
+    --shadow-medium: 0 26px 58px rgba(7, 5, 4, 0.5);
+    --shadow-glow: 0 0 0 1px rgba(208, 161, 108, 0.15), 0 0 30px rgba(145, 103, 56, 0.24);
+
+    --surface-highlight: linear-gradient(130deg, rgba(255, 226, 189, 0.12), rgba(255, 226, 189, 0));
+    --surface-depth: linear-gradient(165deg, rgba(255, 227, 193, 0.06), rgba(12, 8, 5, 0.18));
+    --hero-gradient: linear-gradient(112deg, #211610 0%, #352217 46%, #1f150f 100%);
+    --page-gradient: radial-gradient(circle at 8% 0%, rgba(186, 136, 84, 0.15), transparent 35%),
+                     radial-gradient(circle at 92% 8%, rgba(118, 75, 45, 0.2), transparent 34%),
+                     linear-gradient(162deg, #110c09 0%, #19120e 44%, #100b08 100%);
+    --ambient-pattern: radial-gradient(circle at 30% 20%, rgba(255, 233, 206, 0.02), transparent 55%),
+                       radial-gradient(circle at 70% 70%, rgba(255, 215, 169, 0.02), transparent 62%);
+
+    --chart-grid: rgba(216, 185, 142, 0.24);
+    --chart-axis: rgba(244, 224, 197, 0.66);
+    --chart-label: var(--text-secondary);
+    --chart-title: var(--text-primary);
+    --chart-1: #bc8e56;
+    --chart-2: #9e5f37;
+    --chart-3: #cead84;
+    --chart-4: #6e8f6a;
+    --chart-5: #8b5e3b;
+
+    --taste-sweet: #c77d74;
+    --taste-sour: #c9aa5c;
+    --taste-bitter: #7f9b6e;
+    --taste-strong: #b8774a;
+    --taste-fresh: #7ca6aa;
+}

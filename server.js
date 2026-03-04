@@ -201,6 +201,10 @@ app.get('/profile/', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'profile', 'index.html'));
 });
 
+app.get('/profile/settings/', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(__dirname, 'profile', 'settings.html'));
+});
+
 // 注册
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;

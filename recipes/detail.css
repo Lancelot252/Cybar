@@ -1,0 +1,378 @@
+.recipe-detail-page main {
+    max-width: 1240px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+    gap: 16px;
+}
+
+.recipe-detail-page .back-link {
+    grid-column: 1 / -1;
+    justify-self: start;
+}
+
+.recipe-detail-card {
+    grid-column: 1;
+    padding: clamp(18px, 2.4vw, 30px);
+}
+
+.comments-card {
+    grid-column: 1;
+}
+
+.ai-analysis-shell {
+    grid-column: 2;
+    align-self: start;
+    position: sticky;
+    top: 96px;
+    overflow: hidden;
+    padding: 0;
+}
+
+#error-message {
+    grid-column: 1;
+}
+
+.recipe-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.recipe-content h2 {
+    margin-bottom: 0;
+}
+
+.recipe-summary {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-style: italic;
+    text-align: center;
+}
+
+.recipe-image-wrap {
+    margin: 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    background: color-mix(in srgb, var(--bg-elev-1) 82%, transparent);
+}
+
+.recipe-main-image {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    display: block;
+    cursor: zoom-in;
+}
+
+.social-interaction-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--line-muted);
+    background: color-mix(in srgb, var(--bg-elev-1) 84%, transparent);
+}
+
+.interaction-wrapper {
+    display: flex;
+}
+
+.interaction-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line-muted);
+    background: color-mix(in srgb, var(--bg-elev-1) 86%, transparent);
+    color: var(--text-secondary);
+    padding: 9px 14px;
+    cursor: pointer;
+    box-shadow: none;
+}
+
+.interaction-btn.is-liked,
+.interaction-btn.is-liked i {
+    color: var(--accent-danger);
+}
+
+.interaction-btn.is-favorited,
+.interaction-btn.is-favorited i {
+    color: var(--accent-primary);
+}
+
+.interaction-btn:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+}
+
+.recipe-creator-detail {
+    margin: 0;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-muted);
+    background: color-mix(in srgb, var(--bg-elev-1) 84%, transparent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.creator-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-soft);
+}
+
+.recipe-description {
+    margin: 0;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--accent-primary);
+    background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
+    color: var(--text-secondary);
+}
+
+.recipe-section-title {
+    margin: 2px 0 8px;
+    border-bottom: none;
+}
+
+.recipe-ingredients-list li {
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.recipe-instructions,
+.recipe-meta-block {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.recipe-meta-block strong {
+    color: var(--text-primary);
+}
+
+.ai-analysis-header {
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--accent-primary) 30%, var(--bg-elev-2)),
+        color-mix(in srgb, var(--accent-secondary) 24%, var(--bg-elev-1))
+    );
+    border-bottom: 1px solid var(--line-muted);
+    position: relative;
+}
+
+.ai-analysis-header-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 14px 14px;
+    opacity: 0.2;
+}
+
+.ai-analysis-header-content {
+    position: relative;
+    z-index: 1;
+    padding: 20px clamp(16px, 2vw, 24px);
+}
+
+.ai-analysis-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: none;
+}
+
+.ai-analysis-header p {
+    margin: 8px 0 0;
+    color: color-mix(in srgb, var(--text-primary) 75%, transparent);
+}
+
+.ai-header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.ai-analysis-badge {
+    margin-left: auto;
+    padding: 4px 11px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--accent-success) 58%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-success) 70%, transparent);
+    font-size: var(--fs-xs);
+}
+
+.ai-analysis-body {
+    padding: clamp(16px, 2vw, 24px);
+    background: color-mix(in srgb, var(--bg-elev-1) 84%, transparent);
+}
+
+.ai-analysis-loading {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+}
+
+.ai-loader-icon {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.ai-spinner {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid color-mix(in srgb, var(--accent-primary) 26%, transparent);
+    border-top-color: var(--accent-primary);
+    animation: ai-spin 1s linear infinite;
+}
+
+.ai-loader-icon i {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--accent-primary);
+}
+
+.ai-loading-text .title {
+    color: var(--text-primary);
+}
+
+.ai-loading-text .subtitle {
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+}
+
+.ai-analysis-results {
+    display: grid;
+    gap: 18px;
+}
+
+.taste-dimensions h4,
+.ai-text-analysis h4 {
+    margin-bottom: 12px;
+    border-bottom: none;
+}
+
+.taste-radar-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.radar-chart {
+    width: 100%;
+    max-width: 220px;
+    margin: 0 auto;
+    height: 220px;
+    border-radius: 50%;
+    border: 1px solid var(--line-muted);
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 16%, transparent), transparent 65%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.taste-bars {
+    display: grid;
+    gap: 10px;
+}
+
+.taste-bar-head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: var(--fs-sm);
+}
+
+.taste-bar-track {
+    height: 9px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--bg-elev-2) 72%, transparent);
+    overflow: hidden;
+}
+
+.taste-bar-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+    transition: width 0.35s ease;
+}
+
+.ai-analysis-content {
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-muted);
+    background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
+    color: var(--text-secondary);
+    line-height: 1.7;
+    white-space: pre-wrap;
+}
+
+.ai-analysis-error {
+    text-align: center;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--accent-danger) 58%, transparent);
+    color: color-mix(in srgb, var(--accent-danger) 72%, white);
+    background: color-mix(in srgb, var(--accent-danger) 10%, var(--bg-elev-1));
+}
+
+.ai-analysis-meta {
+    margin-top: 12px;
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+}
+
+@keyframes ai-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 1199px) {
+    .recipe-detail-page main {
+        grid-template-columns: 1fr;
+    }
+
+    .recipe-detail-card,
+    .comments-card,
+    .ai-analysis-shell,
+    #error-message {
+        grid-column: 1;
+    }
+
+    .ai-analysis-shell {
+        position: static;
+    }
+}
+
+@media (max-width: 767px) {
+    .social-interaction-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .interaction-wrapper,
+    .interaction-btn {
+        width: 100%;
+    }
+}

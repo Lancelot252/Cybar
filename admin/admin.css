@@ -1,75 +1,84 @@
-/* Apply dark theme overrides */
-body {
-    background-color: #1a1a1a; /* Dark background */
-    color: #e0e0e0; /* Light text */
+.admin-page {
+    background: var(--page-gradient);
 }
 
 #admin-dashboard {
-    padding: 20px;
+    display: grid;
+    gap: 18px;
+}
+
+#admin-dashboard > h2 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;
 }
 
 .admin-section {
-    background-color: #2a2a2a; /* Slightly lighter dark background */
-    border: 1px solid #444; /* Darker border */
-    border-radius: 5px;
-    padding: 15px;
-    margin-bottom: 20px;
-    color: #e0e0e0; /* Ensure text color */
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    background: color-mix(in srgb, var(--bg-elev-1) 84%, transparent);
+    padding: clamp(14px, 1.9vw, 22px);
 }
 
 .admin-section h3 {
-    margin-top: 0;
-    border-bottom: 1px solid #444; /* Darker border */
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-    color: #ffffff; /* Brighter heading color */
+    margin-bottom: 12px;
+    border-bottom: 1px dashed var(--line-muted);
+    padding-bottom: 8px;
 }
 
-#admin-stats ul {
+#admin-stats {
+    min-height: 26px;
+    font-size: var(--fs-sm);
+}
+
+#stats-section ul {
     list-style: none;
+    margin: 0;
     padding: 0;
 }
 
-#admin-stats li {
-    margin-bottom: 8px;
+#stats-section li {
+    margin-bottom: 6px;
+}
+
+.chart-container {
+    position: relative;
+    margin-top: 14px;
+    height: 42vh;
+    max-height: 360px;
+    width: min(100%, 760px);
+    padding: 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-muted);
+    background: color-mix(in srgb, var(--bg-elev-2) 62%, transparent);
 }
 
 .table-container {
-    overflow-x: auto; /* Allow horizontal scrolling on small screens */
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-muted);
+    background: color-mix(in srgb, var(--bg-elev-1) 86%, transparent);
 }
 
 table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
-th, td {
-    border: 1px solid #444; /* Darker border */
-    padding: 8px 12px;
-    text-align: left;
-    vertical-align: middle; /* Align content vertically */
-}
-
-th {
-    background-color: #333; /* Darker header background */
-    color: #ffffff; /* Light header text */
+    min-width: 640px;
 }
 
 tbody tr {
-     background-color: #2a2a2a; /* Match section background */
+    background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
 }
 
 tbody tr:nth-child(even) {
-    background-color: #303030; /* Slightly different dark for even rows */
+    background: color-mix(in srgb, var(--bg-elev-2) 76%, transparent);
 }
 
 tbody tr:hover {
-    background-color: #3f3f3f; /* Darker hover */
+    background: color-mix(in srgb, var(--bg-elev-2) 90%, transparent);
 }
 
 .select-col {
-    width: 72px;
+    width: 74px;
     text-align: center;
 }
 
@@ -81,10 +90,10 @@ tbody tr:hover {
 
 .batch-toolbar {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
-    margin: 8px 0 10px;
+    margin-bottom: 12px;
 }
 
 .toolbar-check {
@@ -94,380 +103,230 @@ tbody tr:hover {
 }
 
 .selected-count {
-    font-size: 0.9em;
-    color: #b0cfff;
+    font-size: var(--fs-sm);
+    color: var(--text-secondary);
 }
 
-.toolbar-btn {
-    border: 1px solid #666;
-    background-color: #3b3b3b;
-    color: #f1f1f1;
-    border-radius: 4px;
-    padding: 6px 10px;
-    cursor: pointer;
+.toolbar-btn,
+.manage-user-btn,
+.delete-recipe-btn,
+.delete-comment-btn,
+.link-like,
+.pagination-controls button,
+#comment-filter-apply,
+#comment-filter-reset,
+.modal-button {
+    --btn-bg-start: color-mix(in srgb, var(--bg-elev-2) 76%, var(--accent-primary));
+    --btn-bg-end: color-mix(in srgb, var(--bg-elev-1) 88%, black);
+    --btn-fg: var(--text-primary);
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line-muted);
+    font-size: var(--fs-xs);
 }
 
-.toolbar-btn:hover {
-    background-color: #4d4d4d;
+.toolbar-btn.danger,
+.delete-recipe-btn,
+.delete-comment-btn,
+.modal-button.delete {
+    --btn-bg-start: color-mix(in srgb, var(--accent-danger) 60%, var(--bg-elev-2));
+    --btn-bg-end: color-mix(in srgb, var(--accent-danger) 40%, black);
+    --btn-fg: #fff2f1;
+    border-color: color-mix(in srgb, var(--accent-danger) 65%, transparent);
 }
 
-.toolbar-btn.danger {
-    border-color: #c62828;
-    background-color: #b71c1c;
+.toolbar-btn.clear,
+#comment-filter-reset {
+    --btn-bg-start: color-mix(in srgb, var(--bg-elev-1) 82%, transparent);
+    --btn-bg-end: color-mix(in srgb, var(--bg-elev-1) 82%, transparent);
+    --btn-fg: var(--text-secondary);
 }
 
-.toolbar-btn.danger:hover {
-    background-color: #c62828;
-}
-
-.toolbar-btn.clear {
-    border-color: #607d8b;
-}
-
-.toolbar-btn:disabled {
+.toolbar-btn:disabled,
+.pagination-controls button:disabled {
     opacity: 0.55;
     cursor: not-allowed;
 }
 
-.delete-recipe-btn {
-    background-color: #dc3545;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 0.9em;
+.refresh-btn {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    border-radius: 50%;
+    padding: 0;
+    --btn-bg-start: color-mix(in srgb, var(--bg-elev-2) 78%, var(--accent-primary));
+    --btn-bg-end: color-mix(in srgb, var(--bg-elev-1) 86%, black);
+    --btn-fg: var(--accent-primary);
+    box-shadow: none;
 }
 
-.delete-recipe-btn:hover {
-    background-color: #c82333;
-}
-
-.message {
-    padding: 10px;
-    margin-bottom: 15px;
-    border-radius: 4px;
-    font-weight: bold;
-}
-
-/* Adjust message styles for dark theme */
-#admin-message[style*="color: red"],
-#admin-stats[style*="color: red"] {
-    background-color: #581a20; /* Dark red background */
-    border: 1px solid #f5c6cb;
-    color: #f8d7da; /* Light red text */
-}
-
-#admin-message[style*="color: green"] {
-    background-color: #1e4b27; /* Dark green background */
-    border: 1px solid #c3e6cb;
-    color: #d4edda; /* Light green text */
-}
-
-/* Ensure links are visible */
-a {
-    color: #64b5f6; /* Light blue for links */
-}
-a:hover {
-    color: #90caf9;
-}
-.back-link {
-    color: #64b5f6;
-}
-
-/* Refresh Button Style */
-#admin-dashboard h2 {
+.admin-inline-user,
+.admin-inline-creator {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-inline-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--line-muted);
+}
+
+.admin-inline-creator .admin-inline-avatar {
+    width: 24px;
+    height: 24px;
+}
+
+.admin-thumb-wrap {
+    text-align: center;
+}
+
+.admin-recipe-thumb {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    border: 1px solid var(--line-muted);
+}
+
+.comment-filter-bar {
+    margin: 6px 0 12px;
+    display: grid;
+    grid-template-columns: auto minmax(140px, auto) minmax(180px, 1fr) auto auto;
+    gap: 8px;
     align-items: center;
 }
 
-.refresh-btn {
-    background: none;
-    border: 1px solid #00e5ff;
-    color: #00e5ff;
-    padding: 5px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1.2em; /* Adjust size as needed */
-    line-height: 1;
-    transition: all 0.3s ease;
+.comment-filter-bar input,
+.comment-filter-bar select {
+    margin: 0;
+    min-height: 38px;
+    font-size: var(--fs-sm);
 }
 
-.refresh-btn:hover {
-    background-color: rgba(0, 229, 255, 0.1);
-    box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+.link-like {
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
-/* Styles for user action buttons */
-#admin-user-list .god-actions button {
-    padding: 3px 8px;
-    font-size: 0.8em;
-    margin-right: 5px;
-    border-radius: 3px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-}
-#admin-user-list .god-actions button:last-child {
-    margin-right: 0;
+.pagination-controls {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
-#admin-user-list .change-role-btn {
-    background-color: #1e88e5; /* Blue */
-    border-color: #1e88e5;
-    color: white;
-}
-#admin-user-list .change-role-btn:hover {
-    background-color: #1565c0;
-}
-
-#admin-user-list .delete-user-btn {
-    background-color: #e53935; /* Red */
-    border-color: #e53935;
-    color: white;
-}
-#admin-user-list .delete-user-btn:hover {
-    background-color: #c62828;
-}
-
-#admin-user-list .god-actions button:disabled {
-    background-color: #555;
-    border-color: #555;
-    color: #999;
-    cursor: not-allowed;
-}
-
-/* Hide GOD actions column and buttons by default */
-/* #users-management-section table th.god-actions,
-#users-management-section table td.god-actions {
-    display: none;
-} */
-
-/* Show GOD actions column and buttons only if body has 'is-god' class */
-/* body.is-god #users-management-section table th.god-actions,
-body.is-god #users-management-section table td.god-actions {
-    display: table-cell; /* Make column visible */
-/*} */
-
-/* Style buttons inside the cell */
-/* body.is-god #admin-user-list td.god-actions button {
-     /* Ensure buttons inside are visible if the cell is */
-     /* display: inline-block; /* Or block, depending on desired layout */
-     /* Add other button styles if needed */
-/*} */
-
-/* Hide GOD actions column and buttons by default */
-/* .god-actions {
-    display: none;
-} */
-
-/* Show GOD actions column and buttons only if body has 'is-god' class */
-/* body.is-god .god-actions {
-    display: table-cell; /* Make column visible */
-/*} */
-
-/* Remove styles for inline user action buttons and god-actions column */
-/*
-#admin-user-list .god-actions button { ... }
-#admin-user-list .change-role-btn { ... }
-#admin-user-list .delete-user-btn { ... }
-.god-actions { ... }
-body.is-god .god-actions { ... }
-body.is-god #admin-user-list td.god-actions button { ... }
-*/
-
-/* Style the manage button inside the cell */
-#admin-user-list .manage-user-btn {
-    padding: 3px 8px;
-    font-size: 0.8em;
-    border-radius: 3px;
-    cursor: pointer;
-    border: 1px solid #555;
-    background-color: #444;
-    color: #eee;
-    transition: all 0.2s ease;
-}
-#admin-user-list .manage-user-btn:hover {
-    background-color: #555;
-    border-color: #777;
-}
-
-/* --- Modal Styles --- */
-.overlay {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 100; /* Sit on top */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+.pagination-page-info {
+    color: var(--text-secondary);
+    font-size: var(--fs-sm);
 }
 
 .modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 101; /* Sit on top of overlay */
+    position: fixed;
+    z-index: 1001;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    width: 80%;
-    max-width: 680px; /* Maximum width */
+    width: min(760px, calc(100% - 24px));
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    z-index: 1000;
+}
+
+.overlay[hidden] {
+    display: none;
 }
 
 .modal-content {
-    background-color: #2a2a3a; /* Dark modal background */
-    margin: auto;
-    padding: 25px;
-    border: 1px solid #555;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-soft);
+    background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
+    box-shadow: var(--shadow-medium);
     position: relative;
-    color: #e0e0e0;
-}
-
-.modal-content h4 {
-    margin-top: 0;
-    color: #00e5ff; /* Match theme */
-    border-bottom: 1px solid rgba(0, 229, 255, 0.5);
-    padding-bottom: 10px;
-    margin-bottom: 20px;
 }
 
 .close-modal-btn {
-    color: #aaa;
     position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 28px;
-    font-weight: bold;
-    line-height: 1;
-}
-
-.close-modal-btn:hover,
-.close-modal-btn:focus {
-    color: #fff;
-    text-decoration: none;
+    right: 12px;
+    top: 8px;
+    font-size: 1.6rem;
+    color: var(--text-muted);
     cursor: pointer;
 }
 
-.modal .form-group {
-    margin-bottom: 15px;
+.close-modal-btn:hover {
+    color: var(--text-primary);
 }
 
 .user-detail-block {
-    background-color: rgba(10, 30, 70, 0.35);
-    border: 1px solid rgba(0, 229, 255, 0.2);
-    border-radius: 6px;
-    padding: 10px 12px;
-    margin-bottom: 16px;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--line-muted);
+    background: color-mix(in srgb, var(--bg-elev-2) 62%, transparent);
+    margin-bottom: 14px;
 }
 
 .user-detail-block h5 {
     margin: 0 0 8px;
-    color: #8fdfff;
+    color: var(--text-primary);
 }
 
 .user-detail-content {
-    font-size: 0.9em;
-    line-height: 1.6;
     max-height: 220px;
     overflow: auto;
 }
 
 .user-detail-grid {
+    margin: 0;
     display: grid;
-    grid-template-columns: 90px 1fr;
-    gap: 4px 8px;
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: 8px 12px;
 }
 
 .user-detail-grid dt {
-    color: #9ec2ff;
+    font-weight: 700;
+    color: var(--text-primary);
 }
 
 .user-detail-grid dd {
     margin: 0;
-    word-break: break-all;
+    color: var(--text-secondary);
+    word-break: break-word;
 }
 
-.security-warning {
-    margin: 8px 0 0;
-    color: #ffcc80;
-    font-size: 0.8em;
-}
-.modal label {
-    display: block;
-    margin-bottom: 5px;
-    color: #b0cfff;
-}
-.modal select {
-     width: calc(100% - 130px); /* Adjust width based on button */
-     padding: 10px;
-     border: 1px solid #164a8a;
-     border-radius: 5px;
-     background-color: rgba(10, 30, 70, 0.8);
-     color: #ffffff;
-     font-size: 1em;
-     margin-right: 10px;
-     vertical-align: middle;
-}
-.modal select:focus {
-    outline: none;
-    border-color: #00e5ff;
-    background-color: rgba(10, 30, 70, 1);
-    box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+.security-warning,
+.irreversible-warning {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
 }
 
-.modal-button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9em;
-    font-weight: bold;
-    transition: background-color 0.3s ease;
-    vertical-align: middle;
-}
-.modal-button.save {
-    background-color: #1e88e5; /* Blue */
-    color: white;
-}
-.modal-button.save:hover {
-    background-color: #1565c0;
-}
-.modal-button.delete {
-    background-color: #e53935; /* Red */
-    color: white;
-    display: block; /* Make delete button block level */
-    margin-top: 5px;
-}
-.modal-button.delete:hover {
-    background-color: #c62828;
-}
-.modal-button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+.admin-error-inline {
+    color: color-mix(in srgb, var(--accent-danger) 72%, white);
 }
 
-.modal hr {
-    border: none;
-    border-top: 1px solid #444;
-    margin: 20px 0;
-}
+@media (max-width: 900px) {
+    .comment-filter-bar {
+        grid-template-columns: 1fr;
+    }
 
-/* Chart Container Styles */
-.chart-container {
-    background-color: rgba(10, 30, 70, 0.3); /* Optional background */
-    padding: 15px;
-    border-radius: 5px;
-    border: 1px solid rgba(0, 229, 255, 0.2); /* Optional border */
-    margin-top: 20px; /* Space above chart */
-}
-
-/* Ensure canvas is responsive within its container */
-#pageVisitsChart {
-    max-width: 100%;
-    height: auto; /* Maintain aspect ratio by default, but overridden by container height + maintainAspectRatio: false */
+    .batch-toolbar {
+        align-items: flex-start;
+    }
 }

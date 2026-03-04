@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;600;700&display=swap');
+
+html[data-theme='neon'] {
+    --font-heading: 'Orbitron', sans-serif;
+    --font-body: 'Electrolize', 'Segoe UI', sans-serif;
+    --font-ui: var(--font-body);
+
+    --bg-base: #0a101d;
+    --bg-elev-1: #10182d;
+    --bg-elev-2: #162745;
+    --bg-panel: rgba(15, 28, 52, 0.9);
+    --bg-overlay: rgba(5, 12, 25, 0.72);
+
+    --text-primary: #eaf5ff;
+    --text-secondary: #b6cce8;
+    --text-muted: #88a2c5;
+    --text-inverse: #091320;
+
+    --accent-primary: #00d8ff;
+    --accent-secondary: #3d8fff;
+    --accent-danger: #ff6f95;
+    --accent-success: #46d7a7;
+
+    --border-soft: rgba(82, 153, 230, 0.36);
+    --border-strong: rgba(0, 216, 255, 0.8);
+    --line-muted: rgba(93, 165, 238, 0.26);
+
+    --shadow-soft: 0 16px 30px rgba(5, 9, 19, 0.38);
+    --shadow-medium: 0 28px 58px rgba(4, 8, 17, 0.5);
+    --shadow-glow: 0 0 0 1px rgba(0, 216, 255, 0.22), 0 0 28px rgba(0, 140, 255, 0.28);
+
+    --hero-gradient: linear-gradient(116deg, #0f1b36 0%, #15345c 48%, #101c3a 100%);
+    --page-gradient: radial-gradient(circle at 6% 0%, rgba(0, 171, 255, 0.2), transparent 34%),
+                     radial-gradient(circle at 91% 9%, rgba(53, 115, 255, 0.2), transparent 34%),
+                     linear-gradient(162deg, #070d1a 0%, #0f1730 44%, #070d1a 100%);
+    --ambient-pattern: radial-gradient(circle at 24% 16%, rgba(111, 199, 255, 0.06), transparent 52%),
+                       radial-gradient(circle at 74% 70%, rgba(113, 129, 255, 0.05), transparent 60%);
+
+    --chart-grid: rgba(130, 186, 247, 0.24);
+    --chart-axis: rgba(192, 225, 255, 0.72);
+    --chart-title: var(--text-primary);
+    --chart-1: #00c8ff;
+    --chart-2: #4d8bff;
+    --chart-3: #18f3d6;
+    --chart-4: #7b8dff;
+    --chart-5: #48b7ff;
+
+    --taste-sweet: #ff6f95;
+    --taste-sour: #f3cb58;
+    --taste-bitter: #65c28f;
+    --taste-strong: #ff9e57;
+    --taste-fresh: #63cbff;
+}

@@ -21,6 +21,12 @@ document.addEventListener('DOMContentLoaded', function () {
         'bitters': '苦精', 'juice': '果汁', 'syrup': '糖浆',
         'soda_mixer': '碳酸/调配饮料', 'dairy_cream': '奶制品', 'other': '其他'
     };
+    const TRASH_ICON_SVG = `
+        <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M5 7h14M9 7V5h6v2M9 10v7M12 10v7M15 10v7M7 7l1 12h8l1-12"
+                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    `;
 
     // --- 2. 初始化函数 ---
     async function initialize() {
@@ -29,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 2.1 如果是编辑模式，修改界面标题
             if (isEditMode) {
-                const titleEl = document.querySelector('h2');
+                const titleEl = document.getElementById('custom-form-title');
                 if (titleEl) titleEl.textContent = '修改配方';
                 const saveBtn = document.getElementById('save-cocktail-btn');
                 if (saveBtn) saveBtn.textContent = '保存修改';
@@ -45,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
             loadIngredientsForCategory('base_alcohol');
             renderCategoryTabs();
             setupEventListeners();
+            setupAiCollapsible();
             updateAbvCalculation();
             updateSubmitState(); // Call updateSubmitState after initializing
 
@@ -213,8 +220,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(err.message || '操作失败');
             }
 
-            alert(isEditMode ? '修改成功！' : '创建成功！');
-            window.location.href = '/profile/'; // 完成后返回个人中心
+            showSuccessMessage(isEditMode ? '修改成功，正在返回个人中心...' : '创建成功，正在返回个人中心...');
+            setTimeout(() => {
+                window.location.href = '/profile/';
+            }, 900); // 完成后返回个人中心
 
         } catch (error) {
             console.error('保存失败:', error);
@@ -231,6 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
         container.innerHTML = '';
 
         const allBtn = document.createElement('button');
+        allBtn.type = 'button';
         allBtn.className = 'category-tab';
         allBtn.dataset.category = 'all';
         allBtn.textContent = '全部';
@@ -241,6 +251,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const hasCat = allIngredients.ingredients && allIngredients.ingredients.some(c => c.category === catKey);
             if (hasCat) {
                 const btn = document.createElement('button');
+                btn.type = 'button';
                 btn.className = 'category-tab';
                 btn.dataset.category = catKey;
                 btn.textContent = CATEGORY_NAMES[catKey] || catKey;
@@ -286,14 +297,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 item.classList.add('selected');
             }
 
-            // 颜色逻辑
             const catKey = ing._cat || category;
-            const colors = {'base_alcohol':'#FF9800', 'liqueurs':'#FF5722', 'juice':'#4CAF50', 'syrup':'#E91E63', 'other':'#607D8B'};
-            const bg = colors[catKey] || '#607D8B';
 
             item.innerHTML = `
                 <div class="ingredient-card">
-                    <div class="ingredient-icon" style="background-color:${bg}">${ing.name.charAt(0)}</div>
+                    <div class="ingredient-icon" data-category="${catKey}">${ing.name.charAt(0)}</div>
                     <div class="ingredient-details">
                         <div class="ingredient-name">${ing.name}</div>
                         <div class="ingredient-abv">${ing.abv > 0 ? ing.abv + '%' : (ing.unit||'ml')}</div>
@@ -312,7 +320,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // 分类点击
         document.getElementById('ingredient-categories')?.addEventListener('click', e => {
             const tab = e.target.closest('.category-tab');
-            if (tab) loadIngredientsForCategory(tab.dataset.category);
+            if (tab) {
+                e.preventDefault();
+                loadIngredientsForCategory(tab.dataset.category);
+            }
         });
         // 添加原料 (+)
         document.getElementById('ingredients-list')?.addEventListener('click', e => {
@@ -323,9 +334,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('add-step-btn')?.addEventListener('click', () => addPreparationStep());
         // 删除步骤
         document.getElementById('steps-container')?.addEventListener('click', e => {
-            if (e.target.classList.contains('remove-step-btn')) {
-                e.target.closest('.step-item').remove();
+            const removeBtn = e.target.closest('.remove-step-btn');
+            if (removeBtn) {
+                removeBtn.closest('.step-item').remove();
                 renumberSteps();
+                updateAiAnalyzeState();
             }
         });
         // 表单提交与按钮点击：统一走 saveCustomCocktail，阻止默认提交刷新
@@ -407,6 +420,29 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('steps-container')?.addEventListener('input', updateAiAnalyzeState);
     }
 
+    function setupAiCollapsible() {
+        const toggleBtn = document.getElementById('ai-toggle-btn');
+        const panel = document.getElementById('ai-bartender-panel');
+        if (!toggleBtn || !panel) return;
+
+        setAiPanelExpanded(false);
+        toggleBtn.addEventListener('click', () => {
+            const expanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+            setAiPanelExpanded(!expanded);
+        });
+    }
+
+    function setAiPanelExpanded(expanded) {
+        const toggleBtn = document.getElementById('ai-toggle-btn');
+        const panel = document.getElementById('ai-bartender-panel');
+        const hintEl = toggleBtn?.querySelector('.toggle-hint');
+        if (!toggleBtn || !panel) return;
+
+        toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        if (hintEl) hintEl.textContent = expanded ? '点击收起' : '点击展开';
+        panel.hidden = !expanded;
+    }
+
     async function analyzeCurrentRecipeFlavor() {
         if (selectedIngredients.length === 0) {
             return showErrorMessage('请先添加至少一种原料，再进行AI口味分析');
@@ -476,9 +512,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (analyzeBtn) {
             analyzeBtn.disabled = isLoading;
+            analyzeBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
         }
         if (spinner) {
-            spinner.style.display = isLoading ? 'inline' : 'none';
+            spinner.classList.toggle('is-visible', isLoading);
         }
         if (btnText) {
             btnText.textContent = isLoading ? '分析中...' : '分析口味特征';
@@ -505,7 +542,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (resultEl) {
-            resultEl.style.display = 'block';
+            resultEl.hidden = false;
             resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
@@ -588,8 +625,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (generateBtn) generateBtn.disabled = isLoading;
         if (regenerateBtn) regenerateBtn.disabled = isLoading;
         if (applyBtn) applyBtn.disabled = isLoading;
-        if (spinner) spinner.style.display = isLoading ? 'inline' : 'none';
-        if (btnText) btnText.textContent = isLoading ? '生成中...' : '生成AI配方';
+        if (generateBtn) generateBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+        if (spinner) spinner.classList.toggle('is-visible', isLoading);
+        if (btnText) btnText.textContent = isLoading ? '生成中...' : '生成 AI 配方';
     }
 
     function renderGeneratedRecipe(recipe) {
@@ -664,7 +702,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (tipsEl) tipsEl.textContent = recipe.tips || '可根据个人口味微调原料比例';
 
         if (resultEl) {
-            resultEl.style.display = 'block';
+            resultEl.hidden = false;
             resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
@@ -707,8 +745,6 @@ document.addEventListener('DOMContentLoaded', function () {
         updateSubmitState();
         updateAiAnalyzeState();
         highlightSelectedItemsInList();
-        updateAiAnalyzeState();
-        updateAiAnalyzeState();
 
         if (stepsContainer) {
             stepsContainer.innerHTML = '';
@@ -720,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        alert('AI配方已应用到下方表单，您可以继续微调后保存。');
+        showSuccessMessage('AI配方已应用到下方表单，您可以继续微调后保存。');
     }
 
     function findIngredientInLibrary(name) {
@@ -806,7 +842,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     <input type="number" class="volume-input" value="${ing.volume}" min="0" step="5">
                     <span class="volume-unit">${ing.unit||'ml'}</span>
                 </div>
-                <button class="remove-selected-btn">×</button>
+                <button type="button" class="remove-selected-btn" aria-label="移除原料">
+                    ${TRASH_ICON_SVG}
+                </button>
             `;
             list.appendChild(div);
         });
@@ -839,7 +877,9 @@ document.addEventListener('DOMContentLoaded', function () {
         newStep.innerHTML = `
             <div class="step-number">${newStepNumber}</div>
             <input type="text" class="step-input" placeholder="输入步骤说明" value="${defaultValue}">
-            <button class="remove-step-btn" title="删除">×</button>
+            <button type="button" class="remove-step-btn" title="删除步骤" aria-label="删除步骤">
+                ${TRASH_ICON_SVG}
+            </button>
         `;
         stepsContainer.appendChild(newStep);
     }
@@ -866,7 +906,8 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (abv >= 30) { desc = '高烈度'; if(anim) anim.classList.add('abv-high'); }
         
         if(descEl) descEl.textContent = desc;
-        abvEl.style.color = abv > 20 ? '#FF5722' : '#4CAF50';
+        abvEl.classList.toggle('abv-value-high', abv > 20);
+        abvEl.classList.toggle('abv-value-low', abv <= 20);
     }
 
     function renumberSteps() {
@@ -894,7 +935,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function showErrorMessage(msg) {
-        alert(msg); 
+        showAlert(msg, 'error');
+    }
+
+    function showSuccessMessage(msg) {
+        showAlert(msg, 'success');
+    }
+
+    function showAlert(msg, type = 'error') {
+        const alertEl = document.getElementById('alert-container');
+        if (!alertEl) {
+            if (type === 'error') alert(msg);
+            return;
+        }
+
+        alertEl.textContent = msg;
+        alertEl.classList.remove('alert-success', 'alert-error');
+        alertEl.classList.add(type === 'success' ? 'alert-success' : 'alert-error', 'show');
+
+        window.clearTimeout(showAlert.timerId);
+        showAlert.timerId = window.setTimeout(() => {
+            alertEl.classList.remove('show');
+        }, 3600);
     }
 
     // --- 图片上传相关功能 ---
@@ -933,8 +995,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (previewImg && previewContainer && uploadBtn) {
             previewImg.src = imageSrc;
-            previewContainer.style.display = 'block';
-            uploadBtn.style.display = 'none';
+            previewContainer.hidden = false;
+            uploadBtn.hidden = true;
         }
     }
 

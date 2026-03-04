@@ -46,6 +46,10 @@ router.get('/profile/', isAuthenticated, (req, res) => {
     res.sendFile(path.join(ROOT_DIR, 'profile', 'index.html'));
 });
 
+router.get('/profile/settings/', isAuthenticated, (req, res) => {
+    res.sendFile(path.join(ROOT_DIR, 'profile', 'settings.html'));
+});
+
 // [修改] 获取当前用户信息 (增加了 avatar 和 signature)
 router.get('/api/user/current', isAuthenticated, async (req, res) => {
     try {

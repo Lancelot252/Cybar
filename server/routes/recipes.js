@@ -64,6 +64,7 @@ router.get('/api/recipes', async (req, res) => {
                 c.name,
                 c.created_by AS createdBy,
                 c.image,
+                c.description,
                 c.instructions,
                 c.estimated_abv AS estimatedAbv,
                 u.avatar AS creatorAvatar,
@@ -74,7 +75,7 @@ router.get('/api/recipes', async (req, res) => {
             LEFT JOIN users u ON c.created_by COLLATE utf8mb4_unicode_ci = u.username COLLATE utf8mb4_unicode_ci
             LEFT JOIN ingredients i ON c.id = i.cocktail_id
             ${where}
-            GROUP BY c.id, c.name, c.created_by, c.image, c.instructions, c.estimated_abv, u.avatar
+            GROUP BY c.id, c.name, c.created_by, c.image, c.description, c.instructions, c.estimated_abv, u.avatar
             ${orderBy}
             LIMIT ? OFFSET ?
         `;

@@ -3,70 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/styles/theme-tokens.css">
+    <link rel="stylesheet" href="/styles/theme-neon.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <title>后台管理 - Cybar</title>
-    <link rel="stylesheet" href="/style.css"> <!-- Link to global styles -->
-    <!-- Add specific admin styles if needed -->
+    <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="admin.css">
-    <!-- Include Chart.js library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="admin-page">
     <header>
-        <h1>后台管理</h1>
+        <h1><a href="/">Cybar</a></h1>
         <div id="user-status">
-            <!-- Status loaded by global.js -->
             <a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>
         </div>
     </header>
 
-    <nav>
-        <a href="/" class="back-link">返回主菜单</a>
-    </nav>
-
     <main>
-        <section id="admin-dashboard">
+        <section id="admin-dashboard" class="ui-section">
             <h2>
                 仪表盘
-                <button id="refresh-admin-data-btn" class="refresh-btn" title="刷新数据">🔄</button> <!-- Add Refresh Button -->
+                <button id="refresh-admin-data-btn" class="refresh-btn btn--ghost" title="刷新数据">🔄</button>
             </h2>
 
-            <!-- Statistics Section -->
             <div class="admin-section" id="stats-section">
                 <h3>统计数据</h3>
-                <div id="admin-stats">加载中...</div> <!-- General stats loading/error message -->
+                <div id="admin-stats">加载中...</div>
                 <ul>
                     <li>总配方数: <span id="stat-total-recipes">N/A</span></li>
                     <li>总用户数: <span id="stat-total-users">N/A</span></li>
                 </ul>
-                <!-- Chart Container -->
-                <div class="chart-container" style="position: relative; height:40vh; width:80vw; max-width: 600px; margin: 20px auto;">
+                <div class="chart-container">
                     <canvas id="pageVisitsChart"></canvas>
                 </div>
-                <!-- Keep existing page visits list if desired, or remove -->
-                <!--
-                <h4>页面访问次数:</h4>
-                <ul id="stat-page-visits">
-                    <li>主页 (/): <span data-path="/">N/A</span></li>
-                    <li>配方列表 (/recipes/): <span data-path="/recipes/">N/A</span></li>
-                    <li>计算器 (/calculator/): <span data-path="/calculator/">N/A</span></li>
-                    <li>添加配方 (/add/): <span data-path="/add/">N/A</span></li>
-                    <li>管理页面 (/admin/): <span data-path="/admin/">N/A</span></li>
-                </ul>
-                -->
             </div>
 
-            <!-- Recipe Management Section -->
             <div class="admin-section" id="recipes-management-section">
                 <h3>配方管理</h3>
-                <p id="admin-message" class="message"></p> <!-- Status/Error messages -->
+                <p id="admin-message" class="message"></p>
                 <div class="batch-toolbar">
                     <label class="toolbar-check">
                         <input type="checkbox" id="recipe-select-all-page">
                         全选当前页
                     </label>
                     <span id="recipe-selected-count" class="selected-count">已选 0 项</span>
-                    <button id="recipe-clear-selection-btn" class="toolbar-btn clear" disabled>清空选择</button>
-                    <button id="recipe-batch-delete-btn" class="toolbar-btn danger" disabled>批量删除配方</button>
+                    <button id="recipe-clear-selection-btn" class="toolbar-btn clear btn--ghost" disabled>清空选择</button>
+                    <button id="recipe-batch-delete-btn" class="toolbar-btn danger btn--danger" disabled>批量删除配方</button>
                 </div>
                 <div class="table-container">
                     <table>
@@ -81,29 +65,24 @@
                             </tr>
                         </thead>
                         <tbody id="admin-recipe-list">
-                            <!-- Recipe rows will be loaded here by admin.js -->
                             <tr><td colspan="6">正在加载配方...</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <!-- Add Pagination Controls Container -->
-                <div id="admin-recipe-pagination" class="pagination-controls" style="text-align: center; margin-top: 15px;">
-                    <!-- Recipe pagination controls will be loaded here -->
-                </div>
+                <div id="admin-recipe-pagination" class="pagination-controls"></div>
             </div>
 
-            <!-- User Management Section -->
             <div class="admin-section" id="users-management-section">
                 <h3>用户管理</h3>
-                <p id="admin-user-message" class="message"></p> <!-- Status/Error messages for users -->
+                <p id="admin-user-message" class="message"></p>
                 <div class="batch-toolbar">
                     <label class="toolbar-check">
                         <input type="checkbox" id="user-select-all-page">
                         全选当前页
                     </label>
                     <span id="user-selected-count" class="selected-count">已选 0 项</span>
-                    <button id="user-clear-selection-btn" class="toolbar-btn clear" disabled>清空选择</button>
-                    <button id="user-batch-delete-btn" class="toolbar-btn danger" disabled>批量删除账号</button>
+                    <button id="user-clear-selection-btn" class="toolbar-btn clear btn--ghost" disabled>清空选择</button>
+                    <button id="user-batch-delete-btn" class="toolbar-btn danger btn--danger" disabled>批量删除账号</button>
                 </div>
                 <div class="table-container">
                     <table>
@@ -117,30 +96,24 @@
                             </tr>
                         </thead>
                         <tbody id="admin-user-list">
-                            <!-- User rows will be loaded here by admin.js -->
                             <tr><td colspan="5">正在加载用户...</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <!-- Add User Pagination Controls Container -->
-                <div id="admin-user-pagination" class="pagination-controls" style="text-align: center; margin-top: 15px;">
-                    <!-- User pagination controls will be loaded here -->
-                </div>
+                <div id="admin-user-pagination" class="pagination-controls"></div>
             </div>
 
-            <!-- Comment Management Section -->
             <div class="admin-section" id="comments-management-section">
                 <h3>评论管理</h3>
-                <p id="admin-comment-message" class="message"></p> <!-- Status/Error messages for comments -->
-                <!-- 筛选控件 -->
-                <div id="comment-filter-bar" style="margin: 10px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                <p id="admin-comment-message" class="message"></p>
+                <div id="comment-filter-bar" class="comment-filter-bar">
                     <label for="comment-filter-mode">查看方式:</label>
-                    <select id="comment-filter-mode" style="min-width: 120px;">
+                    <select id="comment-filter-mode">
                         <option value="all">全部评论</option>
                         <option value="recipe">按配方ID</option>
                         <option value="user">按用户 (ID或用户名)</option>
                     </select>
-                    <input id="comment-filter-value" type="text" placeholder="(无)" style="flex: 1; min-width: 180px;" disabled>
+                    <input id="comment-filter-value" type="text" placeholder="(无)" disabled>
                     <button id="comment-filter-apply" disabled>应用筛选</button>
                     <button id="comment-filter-reset" disabled>清除筛选</button>
                 </div>
@@ -156,25 +129,19 @@
                             </tr>
                         </thead>
                         <tbody id="admin-comment-list">
-                            <!-- Comment rows will be loaded here by admin.js -->
                             <tr><td colspan="6">正在加载评论...</td></tr>
                         </tbody>
                     </table>
-                    <!-- Add Comment Pagination Controls Container -->
-                    <div id="admin-comment-pagination" class="pagination-controls" style="text-align: center; margin-top: 15px;">
-                        <!-- Comment pagination controls will be loaded here -->
-                    </div>
+                    <div id="admin-comment-pagination" class="pagination-controls"></div>
                 </div>
             </div>
-
         </section>
 
-        <!-- User Action Modal (Hidden by default) -->
-        <div id="user-action-modal" class="modal">
+        <div id="user-action-modal" class="modal" hidden>
             <div class="modal-content">
                 <span class="close-modal-btn">&times;</span>
                 <h4 id="modal-username">管理用户</h4>
-                <input type="hidden" id="modal-user-id"> <!-- Store user ID -->
+                <input type="hidden" id="modal-user-id">
                 <div class="user-detail-block">
                     <h5>账号详情（含密码）</h5>
                     <div id="modal-user-details" class="user-detail-content">正在加载账号详情...</div>
@@ -195,12 +162,12 @@
                 <div class="form-group">
                     <label>删除用户:</label>
                     <button id="modal-delete-user-btn" class="modal-button delete">删除此用户</button>
-                    <p style="font-size: 0.8em; color: #ffcdd2;">此操作不可撤销！</p>
+                    <p class="irreversible-warning">此操作不可撤销！</p>
                 </div>
-                 <p id="modal-message" class="message" style="display: none;"></p>
+                <p id="modal-message" class="message" hidden></p>
             </div>
         </div>
-        <div id="modal-overlay" class="overlay"></div> <!-- Modal Overlay -->
+        <div id="modal-overlay" class="overlay" hidden></div>
 
     </main>
 
@@ -208,7 +175,7 @@
         <p>&copy; 2025 Cybar<br>made by 252</p>
     </footer>
 
-    <script src="/js/global.js"></script> <!-- Global script for user status -->
-    <script src="admin.js"></script>    <!-- Specific script for admin page -->
+    <script src="/js/global.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>

@@ -3,83 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cybar - 用户界面</title>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/styles/theme-tokens.css">
+    <link rel="stylesheet" href="/styles/theme-neon.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <title>Cybar - 个人中心</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="profile.css">
-    <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <header>
-        <h1>Cybar</h1>
+        <h1><a href="/">Cybar</a></h1>
         <div id="user-status">
             <!-- Status will be loaded by global.js -->
         </div>
     </header>
 
-    <nav>
-        <a href="/" class="back-link">返回主菜单</a>
-    </nav>
+    <main id="profile-content" class="profile-page">
+        <section class="profile-heading">
+            <h2>个人中心</h2>
+            <p class="profile-subtitle">账号信息与内容管理</p>
+        </section>
 
-    <main id="profile-content">
-        <h2>用户界面</h2>
-        <div class="user-info">
-            <div class="avatar-container" style="text-align: center; margin-bottom: 10px;">
-                <img id="user-avatar" src="/uploads/avatars/test.jpg" alt="用户头像" 
-                    style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; cursor: pointer; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);">
-                <input type="file" id="avatar-input" accept="image/*" style="display: none;">
-            </div>
-
-            <h3>欢迎回来, <span id="username">加载中...</span></h3>
-
-            <div class="signature-container" style="max-width: 300px; margin: 15px auto; text-align: center;">
-                <div class="input-group" style="display: flex; gap: 5px;">
-                    <input type="text" id="signature-input" placeholder="写一句个性签名 (50字以内)..." maxlength="50"
-                        style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #444; background: rgba(0,0,0,0.3); color: #fff;">
-                    <button id="save-signature-btn" style="padding: 8px 15px; border: none; border-radius: 4px; background: #00f2fe; color: #000; cursor: pointer; font-weight: bold;">
-                        保存
-                    </button>
+        <section class="profile-hero-card" aria-label="用户概览">
+            <div class="avatar-panel">
+                <div class="avatar-wrapper">
+                    <img id="user-avatar" src="/uploads/avatars/test.jpg" alt="用户头像">
                 </div>
-                <p id="signature-status" style="font-size: 0.8em; color: #aaa; margin-top: 5px; height: 1.2em;"></p>
+                <button type="button" id="avatar-trigger" class="avatar-trigger">
+                    <i class="fas fa-camera"></i>
+                    更换头像
+                </button>
+                <input type="file" id="avatar-input" accept="image/*" hidden>
+                <p class="avatar-hint">支持 JPG/PNG，大小不超过 5MB</p>
             </div>
-        </div>
-        <div class="history-tabs">
-            <button class="tab-button active" data-tab="likes">
-                <i class="fas fa-heart"></i> 我的点赞
-            </button>
-            <button class="tab-button" data-tab="favorites">
-                <i class="fas fa-bookmark"></i> 我的收藏
-            </button>
-            <button class="tab-button" data-tab="created-recipes">
-                <i class="fas fa-cocktail"></i> 我的创建
-            </button>
-        </div>
 
-        <div class="history-content">
-            <div id="likes-content" class="tab-content active">
-                <h3>我的点赞历史</h3>
-                <div id="likes-list" class="recipe-list">
-                    <!-- 点赞列表将通过 JavaScript 动态加载 -->
-                    <p class="loading">加载中...</p>
+            <div class="profile-main">
+                <h3 class="welcome-title">欢迎回来，<span id="username">加载中...</span></h3>
+                <p class="welcome-meta">在这里管理你的账号信息与内容历史</p>
+
+                <label for="signature-input" class="signature-label">个性签名</label>
+                <div class="signature-field-wrap">
+                    <input type="text" id="signature-input" placeholder="写一句个性签名（50字以内）..." maxlength="50">
+                    <span id="signature-count" class="signature-count">0 / 50</span>
                 </div>
             </div>
 
-            <div id="favorites-content" class="tab-content">
-                <h3>我的收藏历史</h3>
-                <div id="favorites-list" class="recipe-list">
-                    <!-- 收藏列表将通过 JavaScript 动态加载 -->
-                    <p class="loading">加载中...</p>
-                </div>
+            <div class="profile-actions">
+                <button id="save-signature-btn" type="button" class="btn btn-primary btn--primary">保存签名</button>
+                <a href="/custom/" class="btn btn-secondary btn--secondary">创建新配方</a>
+                <a href="/profile/settings/" class="btn btn-secondary btn--ghost">设置</a>
+                <p class="action-note">资料与内容会实时同步到账户。</p>
+            </div>
+        </section>
+
+        <section class="profile-stats-grid" aria-label="个人统计">
+            <article class="stat-card" data-stat="likes">
+                <div class="stat-icon"><i class="fas fa-heart"></i></div>
+                <p class="stat-label">我的点赞</p>
+                <p class="stat-value" id="likes-stat-count">0</p>
+            </article>
+            <article class="stat-card" data-stat="favorites">
+                <div class="stat-icon"><i class="fas fa-bookmark"></i></div>
+                <p class="stat-label">我的收藏</p>
+                <p class="stat-value" id="favorites-stat-count">0</p>
+            </article>
+            <article class="stat-card" data-stat="created">
+                <div class="stat-icon"><i class="fas fa-cocktail"></i></div>
+                <p class="stat-label">我的创建</p>
+                <p class="stat-value" id="created-stat-count">0</p>
+            </article>
+        </section>
+
+        <section class="profile-history-card" aria-label="历史记录">
+            <div class="history-tabs" role="tablist" aria-label="历史记录分类">
+                <button class="tab-button active" role="tab" aria-selected="true" aria-controls="likes-content" id="likes-tab" data-tab="likes">
+                    <i class="fas fa-heart"></i> 我的点赞
+                </button>
+                <button class="tab-button" role="tab" aria-selected="false" aria-controls="favorites-content" id="favorites-tab" data-tab="favorites">
+                    <i class="fas fa-bookmark"></i> 我的收藏
+                </button>
+                <button class="tab-button" role="tab" aria-selected="false" aria-controls="created-recipes-content" id="created-recipes-tab" data-tab="created-recipes">
+                    <i class="fas fa-cocktail"></i> 我的创建
+                </button>
             </div>
 
-            <div id="created-recipes-content" class="tab-content">
-                <h3>我的创建历史</h3>
-                <div id="created-recipes-list" class="recipe-list">
-                    <!-- 创建列表将通过 JavaScript 动态加载 -->
-                    <p class="loading">加载中...</p>
+            <div class="history-content">
+                <div id="likes-content" class="tab-content active" role="tabpanel" aria-labelledby="likes-tab">
+                    <h3 class="tab-content-title">点赞历史</h3>
+                    <div id="likes-list" class="recipe-list">
+                        <div class="state-loading">加载中...</div>
+                    </div>
+                </div>
+
+                <div id="favorites-content" class="tab-content" role="tabpanel" aria-labelledby="favorites-tab" hidden>
+                    <h3 class="tab-content-title">收藏历史</h3>
+                    <div id="favorites-list" class="recipe-list">
+                        <div class="state-loading">加载中...</div>
+                    </div>
+                </div>
+
+                <div id="created-recipes-content" class="tab-content" role="tabpanel" aria-labelledby="created-recipes-tab" hidden>
+                    <h3 class="tab-content-title">创建历史</h3>
+                    <div id="created-recipes-list" class="recipe-list">
+                        <div class="state-loading">加载中...</div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <div id="profile-feedback" class="profile-feedback" aria-live="polite" hidden></div>
     </main>
 
     <footer>
@@ -89,4 +124,4 @@
     <script src="/js/global.js"></script>
     <script src="profile.js"></script>
 </body>
-</html> 
+</html>

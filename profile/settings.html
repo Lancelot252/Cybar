@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cybar - 设置</title>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/styles/theme-tokens.css">
+    <link rel="stylesheet" href="/styles/theme-neon.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/profile/settings.css">
+</head>
+<body>
+    <header>
+        <h1><a href="/">Cybar</a></h1>
+        <div id="user-status">
+            <a href="/auth/login/">登录</a> |
+            <a href="/auth/register/">注册</a>
+        </div>
+    </header>
+
+    <main id="settings-page">
+        <section class="settings-header ui-section">
+            <h2>设置</h2>
+            <p>管理您的主题和偏好设置</p>
+            <a href="/profile/" class="profile-back-link btn--ghost">返回个人主页</a>
+        </section>
+
+        <section class="settings-card ui-section" aria-label="外观主题">
+            <h3>外观主题</h3>
+            <p class="settings-desc">选择您偏好的界面风格。</p>
+            <div class="theme-options" role="radiogroup" aria-label="主题选择">
+                <button type="button" class="theme-option" data-theme-option="neon" role="radio" aria-checked="false">
+                    <span class="theme-title">霓虹主题</span>
+                    <span class="theme-meta">Neon</span>
+                </button>
+            </div>
+            <p id="theme-current" class="theme-current">当前主题：-</p>
+            <p id="theme-feedback" class="theme-feedback" aria-live="polite"></p>
+        </section>
+
+        <section class="settings-card settings-placeholder ui-section" aria-label="账户设置">
+            <h3>账户设置</h3>
+            <p>即将上线</p>
+        </section>
+
+        <section class="settings-card settings-placeholder ui-section" aria-label="通知设置">
+            <h3>通知设置</h3>
+            <p>即将上线</p>
+        </section>
+
+        <section class="settings-card settings-placeholder ui-section" aria-label="隐私设置">
+            <h3>隐私设置</h3>
+            <p>即将上线</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Cybar<br>made by 252</p>
+    </footer>
+
+    <script src="/js/global.js"></script>
+    <script src="/profile/settings.js"></script>
+</body>
+</html>

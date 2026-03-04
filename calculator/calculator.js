@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (form) {
         form.addEventListener('submit', (event) => {
             event.preventDefault();
-            resultDiv.style.display = 'none'; // Hide previous result
+            resultDiv.hidden = true; // Hide previous result
 
             let totalVolume = 0;
             let totalAlcoholVolume = 0;
@@ -96,12 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isNaN(volume) || volume < 0 || isNaN(abv) || abv < 0 || abv > 100) {
                     // Mark as invalid but continue processing other rows to potentially find more errors
                     // Or you could stop immediately: calculationValid = false; return;
-                    volumeInput.style.borderColor = 'red'; // Highlight invalid input
-                    abvInput.style.borderColor = 'red';
+                    volumeInput.classList.add('invalid-field');
+                    abvInput.classList.add('invalid-field');
                     calculationValid = false;
                 } else {
-                    volumeInput.style.borderColor = ''; // Reset border color
-                    abvInput.style.borderColor = '';
+                    volumeInput.classList.remove('invalid-field');
+                    abvInput.classList.remove('invalid-field');
                     totalVolume += volume;
                     totalAlcoholVolume += volume * (abv / 100);
                 }
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalAbv = (totalAlcoholVolume / totalVolume) * 100;
 
             finalAbvSpan.textContent = finalAbv.toFixed(2); // Display with 2 decimal places
-            resultDiv.style.display = 'block'; // Show result section
+            resultDiv.hidden = false; // Show result section
         });
     }
 

@@ -3,26 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/styles/theme-tokens.css">
+    <link rel="stylesheet" href="/styles/theme-neon.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <title>酒精度计算器 - Cybar</title>
     <link rel="stylesheet" href="../style.css">
-    <!-- Updated Google Fonts link -->
-    <link href="https://fonts.googleapis.com/css2?family=Electrolize&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
-        <h1>酒精度计算器</h1>
+        <h1><a href="/">Cybar</a></h1>
         <div id="user-status">
             <!-- Status will be loaded here by global.js -->
             <a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>
         </div>
     </header>
 
-    <nav>
-        <a href="../" class="back-link">返回主菜单</a>
-    </nav>
-
     <main>
-        <section id="calculator">
+        <section id="calculator" class="ui-section">
             <h2>输入成分计算最终酒精度</h2>
             <form id="abv-form">
                 <!-- Container for dynamic ingredient inputs -->
@@ -44,12 +43,14 @@
                     <!-- End Template Ingredient Group -->
                 </div> <!-- End ingredients-container -->
 
-                <button type="button" id="add-ingredient-btn">添加成分</button> <!-- Changed type to button -->
-                <button type="submit" id="calculate-btn">计算 ABV</button>
+                <div class="ui-actions">
+                    <button type="button" id="add-ingredient-btn" class="btn--secondary">添加成分</button>
+                    <button type="submit" id="calculate-btn" class="btn--primary">计算 ABV</button>
+                </div>
             </form>
         </section>
 
-        <section id="result" style="display: none;"> <!-- Initially hidden -->
+        <section id="result" class="ui-section" hidden>
             <h3>计算结果:</h3>
             <p>最终酒精度 (ABV): <strong id="final-abv"></strong> %</p>
         </section>

@@ -3,31 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/styles/theme-tokens.css">
+    <link rel="stylesheet" href="/styles/theme-neon.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <title>注册 - Cybar</title>
     <link rel="stylesheet" href="/style.css">
 </head>
-<body>
+<body class="auth-page">
     <header>
         <h1><a href="/">Cybar</a></h1>
         <nav>
             <!-- Add navigation links if needed -->
         </nav>
     </header>
-    <main>
-        <h2>用户注册</h2>
-        <form id="register-form">
-            <div>
+    <main class="auth-shell">
+        <section class="auth-card ui-section">
+            <div class="auth-brand">
+                <h2>用户注册</h2>
+            </div>
+            <form id="register-form">
+                <div>
                 <label for="username">用户名:</label>
                 <input type="text" id="username" name="username" required>
-            </div>
-            <div>
+                </div>
+                <div>
                 <label for="password">密码:</label>
                 <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit">注册</button>
-        </form>
-        <p id="register-message" class="message" style="display: none;"></p>
-        <p>已有账号？ <a href="/auth/login/">立即登录</a></p>
+                </div>
+                <div class="ui-actions">
+                    <button type="submit" class="btn--primary">注册</button>
+                </div>
+            </form>
+            <p id="register-message" class="message" hidden></p>
+            <p>已有账号？ <a href="/auth/login/">立即登录</a></p>
+        </section>
     </main>
     <footer>
         <p>&copy; 2025 Cybar<br>made by 252</p>

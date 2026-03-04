@@ -4,12 +4,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginMessageDiv = document.getElementById('login-message'); // Assumed ID for login messages
     const registerMessageDiv = document.getElementById('register-message'); // Assumed ID for register messages
 
+    function setFormMessage(element, text, state = 'error') {
+        if (!element) return;
+        element.textContent = text;
+        element.classList.remove('message-error', 'message-success');
+        element.classList.add(state === 'success' ? 'message-success' : 'message-error');
+        element.hidden = !text;
+        element.classList.toggle('hidden', !text);
+    }
+
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (loginMessageDiv) {
-                loginMessageDiv.textContent = ''; // Clear previous messages
-                loginMessageDiv.style.display = 'none';
+                setFormMessage(loginMessageDiv, '');
             }
             const username = loginForm.username.value;
             const password = loginForm.password.value;
@@ -28,17 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     window.location.href = '/';
                 } else {
-                    if (loginMessageDiv) {
-                        loginMessageDiv.textContent = result.message || '登录失败';
-                        loginMessageDiv.style.display = 'block';
-                    }
+                    setFormMessage(loginMessageDiv, result.message || '登录失败');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                if (loginMessageDiv) {
-                    loginMessageDiv.textContent = '发生错误，请稍后重试';
-                    loginMessageDiv.style.display = 'block';
-                }
+                setFormMessage(loginMessageDiv, '发生错误，请稍后重试');
             }
         });
     }
@@ -47,8 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (registerMessageDiv) {
-                registerMessageDiv.textContent = ''; // Clear previous messages
-                registerMessageDiv.style.display = 'none';
+                setFormMessage(registerMessageDiv, '');
             }
             const username = registerForm.username.value;
             const password = registerForm.password.value;
@@ -65,28 +66,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
 
                 if (response.ok) {
-                    if (registerMessageDiv) {
-                        registerMessageDiv.textContent = '注册成功！正在跳转到登录页面...';
-                        registerMessageDiv.style.color = 'green';
-                        registerMessageDiv.style.display = 'block';
-                    }
+                    setFormMessage(registerMessageDiv, '注册成功！正在跳转到登录页面...', 'success');
                     setTimeout(() => {
                         window.location.href = '/auth/login/';
                     }, 2000);
                 } else {
-                    if (registerMessageDiv) {
-                        registerMessageDiv.textContent = result.message || '注册失败';
-                        registerMessageDiv.style.color = 'red';
-                        registerMessageDiv.style.display = 'block';
-                    }
+                    setFormMessage(registerMessageDiv, result.message || '注册失败');
                 }
             } catch (error) {
                 console.error('Registration error:', error);
-                if (registerMessageDiv) {
-                    registerMessageDiv.textContent = '发生错误，请稍后重试';
-                    registerMessageDiv.style.color = 'red';
-                    registerMessageDiv.style.display = 'block';
-                }
+                setFormMessage(registerMessageDiv, '发生错误，请稍后重试');
             }
         });
     }

@@ -1,244 +1,458 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // [新增] 获取头像相关元素
-    const avatarImg = document.getElementById('user-avatar');
-    const avatarInput = document.getElementById('avatar-input');
+document.addEventListener('DOMContentLoaded', initProfilePage);
 
-    // 获取用户信息
-    fetch('/api/user/current')
-        .then(response => response.json())
-        .then(user => {
-            document.getElementById('username').textContent = user.username;
-            // [新增] 如果用户有头像，显示头像；否则显示默认图
-            if (user.avatar) {
-                avatarImg.src = user.avatar;
-            } else {
-                avatarImg.src = '/uploads/avatars/test.jpg'; 
-            }
-            // [新增] 显示签名
-            if (user.signature) {
-                document.getElementById('signature-input').value = user.signature;
-            } else {
-                document.getElementById('signature-input').value = '还没有签名哦';
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching user info:', error);
-            window.location.href = '/auth/login/'; // 如果未登录跳转
-        });
+let feedbackTimer = null;
+let createdRecipesContainer = null;
 
-    // [新增] 点击图片触发文件选择
-    if(avatarImg) {
-        avatarImg.addEventListener('click', () => {
-            avatarInput.click();
-        });
+function initProfilePage() {
+    bindAvatarUpload();
+    bindSignatureActions();
+    bindTabs();
+
+    createdRecipesContainer = document.getElementById('created-recipes-list');
+    if (createdRecipesContainer) {
+        createdRecipesContainer.addEventListener('click', handleCreatedRecipeActions);
     }
 
-    // [新增] 监听文件选择变化，自动上传
-    if(avatarInput) {
-        avatarInput.addEventListener('change', () => {
-            const file = avatarInput.files[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('avatar', file); // 这里的名字 'avatar' 必须和后端 upload.single('avatar') 一致
-
-            // 显示上传中的状态
-            avatarImg.style.opacity = '0.5';
-
-            fetch('/api/user/avatar', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                avatarImg.style.opacity = '1';
-                if (data.avatarUrl) {
-                    // 更新图片 src，加个时间戳防止浏览器缓存旧图片
-                    avatarImg.src = data.avatarUrl + '?t=' + new Date().getTime();
-                } else {
-                    alert('上传失败: ' + (data.message || '未知错误'));
-                }
-            })
-            .catch(error => {
-                avatarImg.style.opacity = '1';
-                console.error('Error uploading avatar:', error);
-                alert('上传出错，请检查网络');
-            });
-        });
-    }
-
-    // 加载用户的点赞和收藏数据
-    loadUserInteractions();
-
-    // 标签切换功能
-    const tabs = document.querySelectorAll('.tab-button');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            // 移除所有标签的active类
-            tabs.forEach(t => t.classList.remove('active'));
-            // 添加当前标签的active类
-            tab.classList.add('active');
-
-            // 隐藏所有内容
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            // 显示当前标签对应的内容
-            const contentId = `${tab.dataset.tab}-content`;
-            document.getElementById(contentId).classList.add('active');
-        });
-    });
-    
-    // [新增] 签名保存功能
-    const saveSigBtn = document.getElementById('save-signature-btn');
-    const sigInput = document.getElementById('signature-input');
-    const sigStatus = document.getElementById('signature-status');
-
-    saveSigBtn.addEventListener('click', () => {
-        const newSignature = sigInput.value.trim();
-        
-        // 简单的前端验证
-        if (newSignature.length > 50) {
-            sigStatus.textContent = '字数超过限制！';
-            sigStatus.style.color = '#ff4444';
-            return;
-        }
-
-        // 发送给后端
-        fetch('/api/user/signature', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ signature: newSignature })
-        })
-        .then(response => response.json())
-        .then(data => {
-            sigStatus.textContent = '保存成功！';
-            sigStatus.style.color = '#00f2fe';
-            // 2秒后清除提示
-            setTimeout(() => { sigStatus.textContent = ''; }, 2000);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            sigStatus.textContent = '保存失败，请重试';
-            sigStatus.style.color = '#ff4444';
-        });
-    });
-});
-
-async function loadUserInteractions() {
-    try {
-        // 加载点赞历史
-        const likesResponse = await fetch('/api/user/likes');
-        const likesData = await likesResponse.json();
-        displayRecipes(likesData, 'likes-list');
-
-        // 加载收藏历史
-        const favoritesResponse = await fetch('/api/user/favorites');
-        const favoritesData = await favoritesResponse.json();
-        displayRecipes(favoritesData, 'favorites-list');
-
-        // 加载创建的配方历史
-        const createdRecipesResponse = await fetch('/api/user/created-recipes');
-        const createdRecipesData = await createdRecipesResponse.json();
-        displayRecipes(createdRecipesData, 'created-recipes-list');
-
-    } catch (error) {
-        console.error('Error loading user interactions:', error);
-        showError('加载数据时出错，请稍后重试');
-    }
+    loadAllData();
 }
 
-function displayRecipes(recipes, containerId) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = ''; 
+function bindAvatarUpload() {
+    const avatarImg = document.getElementById('user-avatar');
+    const avatarInput = document.getElementById('avatar-input');
+    const avatarTrigger = document.getElementById('avatar-trigger');
+    const avatarPanel = document.querySelector('.avatar-panel');
 
-    if (!Array.isArray(recipes) || recipes.length === 0) {
-        container.innerHTML = '<p class="no-data">暂无数据</p>';
+    if (!avatarImg || !avatarInput || !avatarTrigger || !avatarPanel) {
         return;
     }
 
-    // 判断是否是“我的创建”列表，如果是，就显示编辑按钮
-    const isMyCreations = containerId === 'created-recipes-list';
+    const openPicker = () => avatarInput.click();
 
-    recipes.forEach(recipe => {
-        const card = document.createElement('div');
-        card.className = 'recipe-card';
-        
-        // [新增] 如果是我的创建，添加编辑和删除按钮
-        let actionButtonsHtml = '';
-        if (isMyCreations) {
-            actionButtonsHtml = `
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <a href="/custom/?id=${recipe.id}" class="edit-btn" 
-                       style="flex:1; display:inline-block; padding:6px 12px; background:#444; color:#00f2fe; text-decoration:none; border-radius:4px; font-size:0.85em; text-align:center;">
-                       <i class="fas fa-edit"></i> 修改
-                    </a>
-                    <button class="delete-recipe-btn" data-recipe-id="${recipe.id}" data-recipe-name="${recipe.name}"
-                       style="flex:1; padding:6px 12px; background:#dc3545; color:#fff; border:none; border-radius:4px; font-size:0.85em; cursor:pointer;">
-                       <i class="fas fa-trash"></i> 删除
-                    </button>
-                </div>
-            `;
+    avatarImg.addEventListener('click', openPicker);
+    avatarTrigger.addEventListener('click', openPicker);
+
+    avatarInput.addEventListener('change', async () => {
+        const file = avatarInput.files[0];
+        if (!file) {
+            return;
         }
 
-        card.innerHTML = `
-            <h4>${recipe.name}</h4>
-            <p>创建者: ${recipe.createdBy || '未知用户'}</p>
-            <p>预计酒精度: ${recipe.estimatedAbv}%</p>
-            <a href="/recipes/detail.html?id=${recipe.id}" class="view-recipe">查看详情</a>
-            ${actionButtonsHtml}
-        `;
-        container.appendChild(card);
-    });
-    
-    // [新增] 为删除按钮添加事件监听
-    if (isMyCreations) {
-        container.querySelectorAll('.delete-recipe-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const recipeId = e.currentTarget.dataset.recipeId;
-                const recipeName = e.currentTarget.dataset.recipeName;
-                
-                if (!confirm(`确定要删除配方"${recipeName}"吗？此操作不可恢复！`)) {
-                    return;
-                }
-                
-                try {
-                    // 使用 POST 方式删除（适配鸿蒙前端）
-                    const response = await fetch(`/api/custom/cocktails/${recipeId}/delete`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (response.ok) {
-                        alert('删除成功！');
-                        // 重新加载"我的创建"列表
-                        loadUserInteractions();
-                    } else {
-                        alert('删除失败: ' + (result.message || '未知错误'));
-                    }
-                } catch (error) {
-                    console.error('删除配方时出错:', error);
-                    alert('删除失败，请检查网络连接');
-                }
+        if (file.size > 5 * 1024 * 1024) {
+            setFeedback('error', '头像文件不能超过 5MB');
+            avatarInput.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        avatarPanel.classList.add('uploading');
+        avatarTrigger.setAttribute('aria-busy', 'true');
+        avatarTrigger.textContent = '上传中...';
+
+        try {
+            const data = await fetchJSON('/api/user/avatar', {
+                method: 'POST',
+                body: formData
             });
+
+            if (data.avatarUrl) {
+                avatarImg.src = `${data.avatarUrl}?t=${Date.now()}`;
+                setFeedback('success', '头像已更新');
+            } else {
+                setFeedback('error', data.message || '头像上传失败');
+            }
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            setFeedback('error', error.message || '上传失败，请稍后重试');
+        } finally {
+            avatarPanel.classList.remove('uploading');
+            avatarTrigger.removeAttribute('aria-busy');
+            avatarTrigger.innerHTML = '<i class="fas fa-camera"></i> 更换头像';
+            avatarInput.value = '';
+        }
+    });
+}
+
+function bindSignatureActions() {
+    const signatureInput = document.getElementById('signature-input');
+    const saveButton = document.getElementById('save-signature-btn');
+    const signatureCount = document.getElementById('signature-count');
+
+    if (!signatureInput || !saveButton || !signatureCount) {
+        return;
+    }
+
+    const updateSignatureCount = () => {
+        signatureCount.textContent = `${signatureInput.value.length} / 50`;
+    };
+
+    updateSignatureCount();
+    signatureInput.addEventListener('input', updateSignatureCount);
+
+    saveButton.addEventListener('click', async () => {
+        const newSignature = signatureInput.value.trim();
+
+        if (newSignature.length > 50) {
+            setFeedback('error', '签名长度不能超过 50 字');
+            return;
+        }
+
+        saveButton.disabled = true;
+        saveButton.setAttribute('aria-busy', 'true');
+        saveButton.textContent = '保存中...';
+
+        try {
+            await fetchJSON('/api/user/signature', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ signature: newSignature })
+            });
+
+            setFeedback('success', '签名保存成功');
+        } catch (error) {
+            console.error('Error saving signature:', error);
+            setFeedback('error', error.message || '签名保存失败');
+        } finally {
+            saveButton.disabled = false;
+            saveButton.removeAttribute('aria-busy');
+            saveButton.textContent = '保存签名';
+        }
+    });
+}
+
+function bindTabs() {
+    const tabs = Array.from(document.querySelectorAll('.tab-button'));
+    const panels = Array.from(document.querySelectorAll('.tab-content'));
+
+    if (!tabs.length || !panels.length) {
+        return;
+    }
+
+    const activateTab = (tab) => {
+        const targetId = `${tab.dataset.tab}-content`;
+
+        tabs.forEach((currentTab) => {
+            const isActive = currentTab === tab;
+            currentTab.classList.toggle('active', isActive);
+            currentTab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            currentTab.setAttribute('tabindex', isActive ? '0' : '-1');
         });
+
+        panels.forEach((panel) => {
+            const isActive = panel.id === targetId;
+            panel.classList.toggle('active', isActive);
+            panel.hidden = !isActive;
+        });
+    };
+
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => activateTab(tab));
+
+        tab.addEventListener('keydown', (event) => {
+            let nextIndex = null;
+
+            if (event.key === 'ArrowRight') {
+                nextIndex = (index + 1) % tabs.length;
+            } else if (event.key === 'ArrowLeft') {
+                nextIndex = (index - 1 + tabs.length) % tabs.length;
+            } else if (event.key === 'Home') {
+                nextIndex = 0;
+            } else if (event.key === 'End') {
+                nextIndex = tabs.length - 1;
+            }
+
+            if (nextIndex !== null) {
+                event.preventDefault();
+                tabs[nextIndex].focus();
+                activateTab(tabs[nextIndex]);
+            }
+        });
+    });
+
+    activateTab(tabs[0]);
+}
+
+async function loadAllData() {
+    setLoadingState('likes-list', true);
+    setLoadingState('favorites-list', true);
+    setLoadingState('created-recipes-list', true);
+
+    try {
+        const user = await fetchJSON('/api/user/current');
+        renderUser(user);
+
+        const [likesResult, favoritesResult, createdResult] = await Promise.allSettled([
+            fetchJSON('/api/user/likes'),
+            fetchJSON('/api/user/favorites'),
+            fetchJSON('/api/user/created-recipes')
+        ]);
+
+        const likes = likesResult.status === 'fulfilled' ? likesResult.value : [];
+        const favorites = favoritesResult.status === 'fulfilled' ? favoritesResult.value : [];
+        const created = createdResult.status === 'fulfilled' ? createdResult.value : [];
+
+        if (likesResult.status === 'fulfilled') {
+            renderRecipeList(likes, 'likes-list');
+        } else {
+            renderListError('likes-list', '点赞历史加载失败');
+            console.error('Error loading likes:', likesResult.reason);
+        }
+
+        if (favoritesResult.status === 'fulfilled') {
+            renderRecipeList(favorites, 'favorites-list');
+        } else {
+            renderListError('favorites-list', '收藏历史加载失败');
+            console.error('Error loading favorites:', favoritesResult.reason);
+        }
+
+        if (createdResult.status === 'fulfilled') {
+            renderRecipeList(created, 'created-recipes-list', { isMyCreations: true });
+        } else {
+            renderListError('created-recipes-list', '创建历史加载失败');
+            console.error('Error loading created recipes:', createdResult.reason);
+        }
+
+        renderStats({
+            likes: likes.length,
+            favorites: favorites.length,
+            created: created.length
+        });
+
+        if (likesResult.status === 'rejected' || favoritesResult.status === 'rejected' || createdResult.status === 'rejected') {
+            setFeedback('error', '部分内容加载失败，请稍后重试');
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        setFeedback('error', error.message || '个人中心加载失败，请稍后重试');
     }
 }
 
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    document.getElementById('profile-content').prepend(errorDiv);
-    
-    // 3秒后自动移除错误消息
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 3000);
+function renderUser(user) {
+    const usernameEl = document.getElementById('username');
+    const avatarImg = document.getElementById('user-avatar');
+    const signatureInput = document.getElementById('signature-input');
+    const signatureCount = document.getElementById('signature-count');
+
+    if (usernameEl) {
+        usernameEl.textContent = user.username || '未知用户';
+    }
+
+    if (avatarImg) {
+        avatarImg.src = user.avatar || '/uploads/avatars/test.jpg';
+    }
+
+    if (signatureInput) {
+        signatureInput.value = user.signature || '';
+    }
+
+    if (signatureCount) {
+        const count = signatureInput ? signatureInput.value.length : 0;
+        signatureCount.textContent = `${count} / 50`;
+    }
+}
+
+function renderStats({ likes, favorites, created }) {
+    const likesCount = document.getElementById('likes-stat-count');
+    const favoritesCount = document.getElementById('favorites-stat-count');
+    const createdCount = document.getElementById('created-stat-count');
+
+    if (likesCount) {
+        likesCount.textContent = String(likes);
+    }
+
+    if (favoritesCount) {
+        favoritesCount.textContent = String(favorites);
+    }
+
+    if (createdCount) {
+        createdCount.textContent = String(created);
+    }
+}
+
+function renderRecipeList(recipes, containerId, options = {}) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = '';
+
+    if (!Array.isArray(recipes) || recipes.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'state-empty';
+        empty.textContent = '暂无数据';
+        container.appendChild(empty);
+        return;
+    }
+
+    recipes.forEach((recipe) => {
+        const card = document.createElement('article');
+        card.className = 'recipe-card';
+
+        const title = document.createElement('h4');
+        title.className = 'recipe-title';
+        title.textContent = recipe.name || '未命名配方';
+
+        const creator = document.createElement('p');
+        creator.className = 'recipe-meta';
+        creator.textContent = `创建者：${recipe.createdBy || '未知用户'}`;
+
+        const abv = document.createElement('p');
+        abv.className = 'recipe-meta';
+        abv.textContent = `预计酒精度：${recipe.estimatedAbv ?? '--'}%`;
+
+        const actions = document.createElement('div');
+        actions.className = 'recipe-actions';
+
+        const viewLink = document.createElement('a');
+        viewLink.href = `/recipes/detail.html?id=${encodeURIComponent(recipe.id)}`;
+        viewLink.className = 'view-recipe';
+        viewLink.innerHTML = '<i class="fas fa-eye"></i> 查看详情';
+
+        actions.appendChild(viewLink);
+
+        if (options.isMyCreations) {
+            const editLink = document.createElement('a');
+            editLink.href = `/custom/?id=${encodeURIComponent(recipe.id)}`;
+            editLink.className = 'recipe-action-btn';
+            editLink.innerHTML = '<i class="fas fa-edit"></i> 修改';
+
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'recipe-action-btn danger delete-recipe-btn';
+            deleteButton.dataset.recipeId = String(recipe.id);
+            deleteButton.dataset.recipeName = recipe.name || '未命名配方';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i> 删除';
+
+            actions.appendChild(editLink);
+            actions.appendChild(deleteButton);
+        }
+
+        card.appendChild(title);
+        card.appendChild(creator);
+        card.appendChild(abv);
+        card.appendChild(actions);
+        container.appendChild(card);
+    });
+}
+
+function setFeedback(type, message) {
+    const feedbackEl = document.getElementById('profile-feedback');
+    if (!feedbackEl) {
+        return;
+    }
+
+    if (feedbackTimer) {
+        clearTimeout(feedbackTimer);
+    }
+
+    feedbackEl.className = 'profile-feedback';
+
+    if (!message) {
+        feedbackEl.textContent = '';
+        feedbackEl.hidden = true;
+        return;
+    }
+
+    feedbackEl.classList.add(`state-${type}`);
+    feedbackEl.textContent = message;
+    feedbackEl.hidden = false;
+
+    feedbackTimer = setTimeout(() => {
+        feedbackEl.hidden = true;
+        feedbackEl.textContent = '';
+        feedbackEl.className = 'profile-feedback';
+    }, type === 'error' ? 4500 : 3000);
+}
+
+function setLoadingState(containerId, isLoading) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        return;
+    }
+
+    if (isLoading) {
+        container.innerHTML = '<div class="state-loading">加载中...</div>';
+    }
+}
+
+function renderListError(containerId, message) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = `<div class="state-error">${message}</div>`;
+}
+
+async function handleCreatedRecipeActions(event) {
+    const button = event.target.closest('.delete-recipe-btn');
+    if (!button) {
+        return;
+    }
+
+    const recipeId = button.dataset.recipeId;
+    const recipeName = button.dataset.recipeName || '该配方';
+
+    if (!recipeId) {
+        return;
+    }
+
+    if (!window.confirm(`确定要删除配方“${recipeName}”吗？此操作不可恢复。`)) {
+        return;
+    }
+
+    button.disabled = true;
+
+    try {
+        await fetchJSON(`/api/custom/cocktails/${encodeURIComponent(recipeId)}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        setFeedback('success', '配方删除成功');
+        await loadAllData();
+    } catch (error) {
+        console.error('Error deleting recipe:', error);
+        setFeedback('error', error.message || '删除失败，请稍后重试');
+    } finally {
+        button.disabled = false;
+    }
+}
+
+async function fetchJSON(url, options = {}) {
+    const response = await fetch(url, options);
+
+    if (response.status === 401 || response.status === 403) {
+        window.location.href = '/auth/login/';
+        throw new Error('请先登录');
+    }
+
+    if (response.redirected && response.url.includes('/auth/login')) {
+        window.location.href = '/auth/login/';
+        throw new Error('登录状态失效');
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    const isJSON = contentType.includes('application/json');
+
+    if (!isJSON) {
+        if (!response.ok) {
+            throw new Error('请求失败，请稍后重试');
+        }
+        throw new Error('服务器返回格式异常');
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || '请求失败');
+    }
+
+    return data;
 }

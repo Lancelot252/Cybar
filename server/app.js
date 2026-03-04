@@ -109,7 +109,7 @@ app.use('/', customRoutes);
 app.use('/', recommendationsRoutes);
 
 app.get('/', (req, res) => {
-    res.redirect('/recipes/');
+    res.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
 
 // --- 导出 ---

@@ -14,6 +14,24 @@ let commentFilterMode = 'all'; // all | recipe | user
 let commentFilterValue = '';
 const selectedRecipeIds = new Set();
 const selectedUserIds = new Set();
+let latestVisitsStats = null;
+
+function setMessageState(element, text, state = '') {
+    if (!element) return;
+    element.textContent = text;
+    element.classList.remove('message-error', 'message-success', 'message-warning');
+    if (state) {
+        element.classList.add(`message-${state}`);
+    }
+    if (element.hasAttribute('hidden')) {
+        element.hidden = !text;
+    }
+}
+
+function readThemeVar(name, fallback) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+}
 
 // --- Updated DOMContentLoaded Listener ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalSaveRoleBtn = document.getElementById('modal-save-role-btn');
     const modalDeleteUserBtn = document.getElementById('modal-delete-user-btn');
     const modalMessage = document.getElementById('modal-message');
+
+    if (modal) modal.hidden = true;
+    if (overlay) overlay.hidden = true;
 
     // --- Load Initial Data ---
     if (statsContainer) {
@@ -172,6 +193,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Refresh button 'refresh-admin-data-btn' not found.");
     }
 
+    document.addEventListener('cybarThemeChanged', () => {
+        if (latestVisitsStats) {
+            renderVisitsChart(latestVisitsStats);
+        }
+    });
+
     // --- Modal Control Event Listeners ---
     if (closeModalBtn) {
         closeModalBtn.addEventListener('click', closeUserModal);
@@ -219,12 +246,12 @@ function openUserModal(userId, username, currentRole) {
     modalUsernameTitle.textContent = `管理用户: ${username}`;
     modalRoleSelect.value = currentRole;
     if (modal) modal.dataset.username = username;
-    if(modalMessage) modalMessage.style.display = 'none'; // Hide previous messages
+    if (modalMessage) setMessageState(modalMessage, '');
     if (detailContainer) detailContainer.textContent = '正在加载账号详情...';
 
     // Show modal and overlay
-    if (modal) modal.style.display = 'block';
-    if (overlay) overlay.style.display = 'block';
+    if (modal) modal.hidden = false;
+    if (overlay) overlay.hidden = false;
     loadUserDetailForModal(userId);
 }
 
@@ -233,15 +260,17 @@ function closeUserModal() {
     const modal = document.getElementById('user-action-modal');
     const overlay = document.getElementById('modal-overlay');
     const detailContainer = document.getElementById('modal-user-details');
-    if (modal) modal.style.display = 'none';
+    if (modal) modal.hidden = true;
     if (modal) delete modal.dataset.username;
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) overlay.hidden = true;
     // Reset button states
     const saveBtn = document.getElementById('modal-save-role-btn');
     const deleteBtn = document.getElementById('modal-delete-user-btn');
     if(saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '保存角色'; }
     if(deleteBtn) { deleteBtn.disabled = false; deleteBtn.textContent = '删除此用户'; }
     if (detailContainer) detailContainer.textContent = '正在加载账号详情...';
+    const modalMessage = document.getElementById('modal-message');
+    if (modalMessage) setMessageState(modalMessage, '');
 }
 
 function escapeHtml(value) {
@@ -282,7 +311,7 @@ async function loadUserDetailForModal(userId) {
             </dl>
         `;
     } catch (error) {
-        detailContainer.innerHTML = `<span style="color:#ff8a80;">账号详情加载失败：${escapeHtml(error.message)}</span>`;
+        detailContainer.innerHTML = `<span class="admin-error-inline">账号详情加载失败：${escapeHtml(error.message)}</span>`;
     }
 }
 
@@ -402,8 +431,7 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
     if (!container || !paginationContainer) return;
 
     if (messageElement) {
-        messageElement.textContent = `正在加载第 ${page} 页用户...`;
-        messageElement.style.color = 'inherit';
+        setMessageState(messageElement, `正在加载第 ${page} 页用户...`);
     }
     container.innerHTML = `<tr><td colspan="5">正在加载...</td></tr>`; // Show loading in table
     paginationContainer.innerHTML = ''; // Clear old pagination
@@ -444,12 +472,11 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
             const avatarImg = document.createElement('img');
             avatarImg.src = user.avatar || '/uploads/avatars/default-avatar.png';
             avatarImg.alt = '头像';
-            avatarImg.style.cssText = 'width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 8px;';
+            avatarImg.className = 'admin-inline-avatar';
             
             // 创建用户名单元格（包含头像）
             const usernameCell = document.createElement('td');
-            usernameCell.style.display = 'flex';
-            usernameCell.style.alignItems = 'center';
+            usernameCell.className = 'admin-inline-user';
             usernameCell.appendChild(avatarImg);
             usernameCell.appendChild(document.createTextNode(user.username));
 
@@ -473,7 +500,7 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
             container.appendChild(row);
         });
 
-        if (messageElement) messageElement.textContent = ''; // Clear loading message
+        if (messageElement) setMessageState(messageElement, ''); // Clear loading message
         renderUserPagination(responseData.totalPages, responseData.currentPage); // Render pagination controls
         updateUserSelectionUI();
 
@@ -482,8 +509,7 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
         const colspan = 5;
         if (container) container.innerHTML = `<tr><td colspan="${colspan}">加载用户列表失败。</td></tr>`;
         if (messageElement) {
-            messageElement.textContent = '加载用户列表失败: ' + error.message;
-            messageElement.style.color = 'red';
+            setMessageState(messageElement, `加载用户列表失败: ${error.message}`, 'error');
         }
         paginationContainer.innerHTML = ''; // Clear pagination on error
         updateUserSelectionUI();
@@ -512,7 +538,7 @@ function renderUserPagination(totalPages, currentPage) {
     // Page Info Span
     const pageInfo = document.createElement('span');
     pageInfo.textContent = ` 第 ${currentPage} / ${totalPages} 页 `;
-    pageInfo.style.margin = '0 10px';
+    pageInfo.className = 'pagination-page-info';
     paginationContainer.appendChild(pageInfo);
 
     // Next Button
@@ -532,7 +558,7 @@ async function deleteUser(userId, buttonElement) {
     const modalMessage = document.getElementById('modal-message'); // Target modal message element
     buttonElement.disabled = true;
     buttonElement.textContent = '删除中...';
-    if (modalMessage) { modalMessage.textContent = `正在删除用户 ${userId}...`; modalMessage.style.display = 'block'; modalMessage.style.color = 'inherit';}
+    if (modalMessage) setMessageState(modalMessage, `正在删除用户 ${userId}...`);
 
     try {
         const response = await fetch(`/api/admin/users/${userId}`, {
@@ -555,9 +581,7 @@ async function deleteUser(userId, buttonElement) {
             try { errorResult = await response.json(); } catch (e) {}
             console.error('Error deleting user:', response.status, errorResult);
             if (modalMessage) {
-                modalMessage.textContent = `删除用户失败: ${errorResult.message}`;
-                modalMessage.style.color = 'red';
-                modalMessage.style.display = 'block';
+                setMessageState(modalMessage, `删除用户失败: ${errorResult.message}`, 'error');
             } else { // Fallback if modal message element not found
                 alert(`删除用户失败: ${errorResult.message}`);
             }
@@ -567,9 +591,7 @@ async function deleteUser(userId, buttonElement) {
     } catch (error) {
         console.error('Network error deleting user:', error);
         if (modalMessage) {
-            modalMessage.textContent = '删除用户时发生网络错误。';
-            modalMessage.style.color = 'red';
-            modalMessage.style.display = 'block';
+            setMessageState(modalMessage, '删除用户时发生网络错误。', 'error');
         } else {
              alert('删除用户时发生网络错误。');
         }
@@ -583,13 +605,13 @@ async function updateUserRole(userId, newRole, buttonElement) {
     const modalMessage = document.getElementById('modal-message'); // Target modal message element
     buttonElement.disabled = true;
     buttonElement.textContent = '保存中...';
-    if (modalMessage) { modalMessage.textContent = `正在修改用户 ${userId} 角色为 ${newRole}...`; modalMessage.style.display = 'block'; modalMessage.style.color = 'inherit';}
+    if (modalMessage) setMessageState(modalMessage, `正在修改用户 ${userId} 角色为 ${newRole}...`);
 
     if (!['user', 'admin'].includes(newRole)) {
         alert('无效的角色: ' + newRole);
         buttonElement.disabled = false;
         buttonElement.textContent = '保存角色';
-        if (modalMessage) modalMessage.style.display = 'none';
+        if (modalMessage) setMessageState(modalMessage, '');
         return;
     }
 
@@ -614,9 +636,7 @@ async function updateUserRole(userId, newRole, buttonElement) {
             try { errorResult = await response.json(); } catch (e) {}
             console.error('Error updating role:', response.status, errorResult);
             if (modalMessage) {
-                modalMessage.textContent = `修改角色失败: ${errorResult.message}`;
-                modalMessage.style.color = 'red';
-                modalMessage.style.display = 'block';
+                setMessageState(modalMessage, `修改角色失败: ${errorResult.message}`, 'error');
             } else {
                 alert(`修改角色失败: ${errorResult.message}`);
             }
@@ -626,9 +646,7 @@ async function updateUserRole(userId, newRole, buttonElement) {
     } catch (error) {
         console.error('Network error updating role:', error);
         if (modalMessage) {
-            modalMessage.textContent = '修改角色时发生网络错误。';
-            modalMessage.style.color = 'red';
-            modalMessage.style.display = 'block';
+            setMessageState(modalMessage, '修改角色时发生网络错误。', 'error');
         } else {
             alert('修改角色时发生网络错误。');
         }
@@ -645,8 +663,7 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
     if (!container || !paginationContainer) return;
 
     if (messageElement) {
-        messageElement.textContent = `正在加载第 ${page} 页配方...`;
-        messageElement.style.color = 'inherit';
+        setMessageState(messageElement, `正在加载第 ${page} 页配方...`);
     }
     container.innerHTML = `<tr><td colspan="6">正在加载...</td></tr>`; // Show loading in table
     paginationContainer.innerHTML = ''; // Clear old pagination
@@ -671,7 +688,7 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
         container.innerHTML = ''; // Clear loading row
         if (!recipes || recipes.length === 0) {
             container.innerHTML = `<tr><td colspan="6">第 ${page} 页没有配方可管理。</td></tr>`;
-            if (messageElement) messageElement.textContent = '';
+            if (messageElement) setMessageState(messageElement, '');
             // Still render pagination if there are other pages
             renderRecipePagination(responseData.totalPages, responseData.currentPage);
             updateRecipeSelectionUI();
@@ -683,21 +700,20 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
             
             // 创建图片单元格
             const imgCell = document.createElement('td');
-            imgCell.style.textAlign = 'center';
+            imgCell.className = 'admin-thumb-wrap';
             const img = document.createElement('img');
             img.src = recipe.image || '/uploads/cocktails/jiu.jpg';
             img.alt = '酒品图片';
-            img.style.cssText = 'width: 40px; height: 40px; border-radius: 4px; object-fit: cover;';
+            img.className = 'admin-recipe-thumb';
             imgCell.appendChild(img);
             
             // 创建创建者单元格（包含头像）
             const creatorCell = document.createElement('td');
-            creatorCell.style.display = 'flex';
-            creatorCell.style.alignItems = 'center';
+            creatorCell.className = 'admin-inline-creator';
             const creatorAvatar = document.createElement('img');
             creatorAvatar.src = recipe.creatorAvatar || '/uploads/avatars/default-avatar.png';
             creatorAvatar.alt = '头像';
-            creatorAvatar.style.cssText = 'width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; object-fit: cover;';
+            creatorAvatar.className = 'admin-inline-avatar';
             creatorCell.appendChild(creatorAvatar);
             creatorCell.appendChild(document.createTextNode(recipe.createdBy || '未知'));
 
@@ -724,7 +740,7 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
             container.appendChild(row);
         });
 
-        if (messageElement) messageElement.textContent = ''; // Clear loading message
+        if (messageElement) setMessageState(messageElement, ''); // Clear loading message
         renderRecipePagination(responseData.totalPages, responseData.currentPage); // Render pagination controls
         updateRecipeSelectionUI();
 
@@ -732,8 +748,7 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
         console.error('Error loading recipes for admin:', error);
         if (container) container.innerHTML = `<tr><td colspan="6">加载配方列表失败。</td></tr>`;
         if (messageElement) {
-            messageElement.textContent = '加载配方列表失败: ' + error.message;
-            messageElement.style.color = 'red';
+            setMessageState(messageElement, `加载配方列表失败: ${error.message}`, 'error');
         }
         paginationContainer.innerHTML = ''; // Clear pagination on error
         updateRecipeSelectionUI();
@@ -762,7 +777,7 @@ function renderRecipePagination(totalPages, currentPage) {
     // Page Info Span
     const pageInfo = document.createElement('span');
     pageInfo.textContent = ` 第 ${currentPage} / ${totalPages} 页 `;
-    pageInfo.style.margin = '0 10px'; // Add some spacing
+    pageInfo.className = 'pagination-page-info';
     paginationContainer.appendChild(pageInfo);
 
     // Next Button
@@ -783,8 +798,7 @@ async function deleteRecipe(recipeId, buttonElement) {
     buttonElement.disabled = true; // Disable button during operation
     buttonElement.textContent = '删除中...';
     if (messageElement) {
-        messageElement.textContent = `正在删除配方 ${recipeId}...`;
-        messageElement.style.color = 'inherit';
+        setMessageState(messageElement, `正在删除配方 ${recipeId}...`);
     }
 
     try {
@@ -817,8 +831,7 @@ async function deleteRecipe(recipeId, buttonElement) {
              const finalMessage = `删除失败: ${errorResult.message}`;
              alert(finalMessage);
              if (messageElement) {
-                 messageElement.textContent = finalMessage;
-                 messageElement.style.color = 'red';
+                 setMessageState(messageElement, finalMessage, 'error');
              }
              buttonElement.disabled = false; // Re-enable button on error
              buttonElement.textContent = '删除';
@@ -828,8 +841,7 @@ async function deleteRecipe(recipeId, buttonElement) {
         const finalMessage = '删除配方时发生网络错误。';
         alert(finalMessage);
         if (messageElement) {
-            messageElement.textContent = finalMessage;
-            messageElement.style.color = 'red';
+            setMessageState(messageElement, finalMessage, 'error');
         }
         buttonElement.disabled = false; // Re-enable button on error
         buttonElement.textContent = '删除';
@@ -848,8 +860,7 @@ async function batchDeleteRecipes() {
         batchDeleteBtn.textContent = '批量删除中...';
     }
     if (messageElement) {
-        messageElement.textContent = `正在批量删除 ${ids.length} 个配方...`;
-        messageElement.style.color = 'inherit';
+        setMessageState(messageElement, `正在批量删除 ${ids.length} 个配方...`);
     }
 
     try {
@@ -878,8 +889,7 @@ async function batchDeleteRecipes() {
     } catch (error) {
         const finalMsg = `批量删除配方失败: ${error.message}`;
         if (messageElement) {
-            messageElement.textContent = finalMsg;
-            messageElement.style.color = 'red';
+            setMessageState(messageElement, finalMsg, 'error');
         }
         alert(finalMsg);
     } finally {
@@ -902,8 +912,7 @@ async function batchDeleteUsers() {
         batchDeleteBtn.textContent = '批量删除中...';
     }
     if (messageElement) {
-        messageElement.textContent = `正在批量删除 ${ids.length} 个账号...`;
-        messageElement.style.color = 'inherit';
+        setMessageState(messageElement, `正在批量删除 ${ids.length} 个账号...`);
     }
 
     try {
@@ -933,8 +942,7 @@ async function batchDeleteUsers() {
     } catch (error) {
         const finalMsg = `批量删除账号失败: ${error.message}`;
         if (messageElement) {
-            messageElement.textContent = finalMsg;
-            messageElement.style.color = 'red';
+            setMessageState(messageElement, finalMsg, 'error');
         }
         alert(finalMsg);
     } finally {
@@ -953,8 +961,7 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
     if (!container || !paginationContainer) return;
 
     if (messageElement) {
-        messageElement.textContent = `正在加载第 ${page} 页评论...`;
-        messageElement.style.color = 'inherit';
+        setMessageState(messageElement, `正在加载第 ${page} 页评论...`);
     }
     container.innerHTML = `<tr><td colspan="6">正在加载...</td></tr>`; // Show loading in table
     paginationContainer.innerHTML = ''; // Clear old pagination
@@ -989,7 +996,7 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
         container.innerHTML = ''; // Clear loading row
         if (!comments || comments.length === 0) {
             container.innerHTML = `<tr><td colspan="6">第 ${page} 页没有评论可显示。</td></tr>`;
-            if (messageElement) messageElement.textContent = '';
+            if (messageElement) setMessageState(messageElement, '');
             renderCommentPagination(responseData.totalPages, responseData.currentPage);
             return;
         }
@@ -1011,7 +1018,7 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
             container.appendChild(row);
         });
 
-        if (messageElement) messageElement.textContent = ''; // Clear loading message
+        if (messageElement) setMessageState(messageElement, ''); // Clear loading message
         renderCommentPagination(responseData.totalPages, responseData.currentPage); // Render pagination controls
 
     } catch (error) {
@@ -1019,8 +1026,7 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
         const colspan = 6;
         if (container) container.innerHTML = `<tr><td colspan="${colspan}">加载评论列表失败。</td></tr>`;
         if (messageElement) {
-            messageElement.textContent = '加载评论列表失败: ' + error.message;
-            messageElement.style.color = 'red';
+            setMessageState(messageElement, `加载评论列表失败: ${error.message}`, 'error');
         }
         paginationContainer.innerHTML = ''; // Clear pagination on error
     }
@@ -1048,7 +1054,7 @@ function renderCommentPagination(totalPages, currentPage) {
     // Page Info Span
     const pageInfo = document.createElement('span');
     pageInfo.textContent = ` 第 ${currentPage} / ${totalPages} 页 `;
-    pageInfo.style.margin = '0 10px';
+    pageInfo.className = 'pagination-page-info';
     paginationContainer.appendChild(pageInfo);
 
     // Next Button
@@ -1141,11 +1147,11 @@ function setCommentFilter(mode, value) {
     const messageElement = document.getElementById('admin-comment-message');
     if (messageElement) {
         if (mode === 'recipe') {
-            messageElement.textContent = `当前筛选: 配方ID = ${value}`;
+            setMessageState(messageElement, `当前筛选: 配方ID = ${value}`);
         } else if (mode === 'user') {
-            messageElement.textContent = `当前筛选: 用户 = ${value}`;
+            setMessageState(messageElement, `当前筛选: 用户 = ${value}`);
         } else {
-            messageElement.textContent = '';
+            setMessageState(messageElement, '');
         }
     }
 }
@@ -1156,8 +1162,7 @@ async function deleteComment(commentId, buttonElement) {
     buttonElement.disabled = true;
     buttonElement.textContent = '删除中...';
     if (messageElement) {
-        messageElement.textContent = `正在删除评论 ${commentId}...`;
-        messageElement.style.color = 'inherit';
+        setMessageState(messageElement, `正在删除评论 ${commentId}...`);
     }
 
     try {
@@ -1180,8 +1185,7 @@ async function deleteComment(commentId, buttonElement) {
             const finalMessage = `删除评论失败: ${errorResult.message}`;
             alert(finalMessage);
             if (messageElement) {
-                messageElement.textContent = finalMessage;
-                messageElement.style.color = 'red';
+                setMessageState(messageElement, finalMessage, 'error');
             }
             buttonElement.disabled = false;
             buttonElement.textContent = '删除';
@@ -1192,8 +1196,7 @@ async function deleteComment(commentId, buttonElement) {
         const finalMessage = '删除评论时发生网络错误。请检查服务器是否正在运行以及网络连接是否正常。';
         alert(finalMessage);
         if (messageElement) {
-            messageElement.textContent = finalMessage;
-            messageElement.style.color = 'red';
+            setMessageState(messageElement, finalMessage, 'error');
         }
         buttonElement.disabled = false;
         buttonElement.textContent = '删除';
@@ -1202,6 +1205,68 @@ async function deleteComment(commentId, buttonElement) {
 
 
 let pageVisitsChartInstance = null; // Variable to hold the chart instance
+
+function renderVisitsChart(visitsData) {
+    const chartCanvas = document.getElementById('pageVisitsChart');
+    if (!chartCanvas) return;
+    const ctx = chartCanvas.getContext('2d');
+    if (!ctx) return;
+
+    const pageLabels = Object.keys(visitsData || {});
+    const visitCounts = Object.values(visitsData || {});
+    const chartColors = [
+        readThemeVar('--chart-1', 'rgba(0, 200, 255, 1)'),
+        readThemeVar('--chart-2', 'rgba(77, 139, 255, 1)'),
+        readThemeVar('--chart-3', 'rgba(24, 243, 214, 1)'),
+        readThemeVar('--chart-4', 'rgba(123, 141, 255, 1)'),
+        readThemeVar('--chart-5', 'rgba(72, 183, 255, 1)')
+    ];
+
+    const barBackgrounds = visitCounts.map((_, idx) => `${chartColors[idx % chartColors.length]}99`);
+    const barBorders = visitCounts.map((_, idx) => chartColors[idx % chartColors.length]);
+
+    const chartData = {
+        labels: pageLabels,
+        datasets: [{
+            label: '页面访问次数',
+            data: visitCounts,
+            backgroundColor: barBackgrounds,
+            borderColor: barBorders,
+            borderWidth: 1
+        }]
+    };
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { color: readThemeVar('--chart-axis', 'rgba(220, 232, 255, 1)') },
+                grid: { color: readThemeVar('--chart-grid', 'rgba(255,255,255,0.1)') }
+            },
+            x: {
+                ticks: { color: readThemeVar('--chart-axis', 'rgba(220, 232, 255, 1)') },
+                grid: { color: readThemeVar('--chart-grid', 'rgba(255,255,255,0.1)') }
+            }
+        },
+        plugins: {
+            legend: { display: false },
+            title: {
+                display: true,
+                text: '页面访问统计',
+                color: readThemeVar('--chart-title', 'rgba(255, 255, 255, 1)'),
+                font: { size: 16 }
+            }
+        }
+    };
+
+    if (pageVisitsChartInstance) {
+        pageVisitsChartInstance.destroy();
+    }
+
+    pageVisitsChartInstance = new Chart(ctx, { type: 'bar', data: chartData, options: chartOptions });
+}
 
 async function loadStats() {
     const statsContainer = document.getElementById('admin-stats');
@@ -1228,7 +1293,7 @@ async function loadStats() {
         return;
     }
     statsContainer.textContent = '正在加载统计数据...';
-    statsContainer.style.color = 'inherit'; // Reset color
+    statsContainer.classList.remove('admin-error-inline');
 
     try {
         const response = await fetch('/api/admin/stats');
@@ -1244,49 +1309,8 @@ async function loadStats() {
         totalRecipesEl.textContent = stats.totalRecipes ?? 'N/A';
         totalUsersEl.textContent = stats.totalUsers ?? 'N/A';
 
-        // --- Prepare data for Chart.js ---
-        const visitsData = stats.visits || {};
-        const pageLabels = Object.keys(visitsData);
-        const visitCounts = Object.values(visitsData);
-
-        // --- Create/Update Chart.js Chart ---
-        const chartData = {
-            labels: pageLabels,
-            datasets: [{
-                label: '页面访问次数',
-                data: visitCounts,
-                backgroundColor: [
-                    'rgba(0, 229, 255, 0.6)', 'rgba(255, 64, 129, 0.6)', 'rgba(255, 152, 0, 0.6)',
-                    'rgba(76, 175, 80, 0.6)', 'rgba(156, 39, 176, 0.6)', 'rgba(255, 235, 59, 0.6)',
-                    'rgba(120, 144, 156, 0.6)' // Add more colors if more pages are tracked
-                ],
-                borderColor: [
-                    'rgba(0, 229, 255, 1)', 'rgba(255, 64, 129, 1)', 'rgba(255, 152, 0, 1)',
-                    'rgba(76, 175, 80, 1)', 'rgba(156, 39, 176, 1)', 'rgba(255, 235, 59, 1)',
-                    'rgba(120, 144, 156, 1)'
-                ],
-                borderWidth: 1
-            }]
-        };
-
-        const chartOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#e0e0e0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                x: { ticks: { color: '#e0e0e0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
-            },
-            plugins: {
-                legend: { display: false },
-                title: { display: true, text: '页面访问统计', color: '#ffffff', font: { size: 16 } }
-            }
-        };
-
-        if (pageVisitsChartInstance) {
-            pageVisitsChartInstance.destroy();
-        }
-
-        pageVisitsChartInstance = new Chart(ctx, { type: 'bar', data: chartData, options: chartOptions });
+        latestVisitsStats = stats.visits || {};
+        renderVisitsChart(latestVisitsStats);
 
         statsContainer.textContent = ''; // Clear loading message
 
@@ -1294,7 +1318,7 @@ async function loadStats() {
         console.error('Error loading stats:', error);
         const errorMsg = `加载统计数据失败: ${error.message || '未知错误'}`;
         statsContainer.textContent = errorMsg;
-        statsContainer.style.color = 'red';
+        statsContainer.classList.add('admin-error-inline');
         totalRecipesEl.textContent = '错误';
         totalUsersEl.textContent = '错误';
         if (pageVisitsChartInstance) {
@@ -1304,8 +1328,7 @@ async function loadStats() {
         ctx.clearRect(0, 0, chartCanvas.width, chartCanvas.height);
         // Use the auth message element for general errors too if statsContainer is showing the error
         if (messageElementForAuth && messageElementForAuth !== statsContainer) {
-            messageElementForAuth.textContent = errorMsg;
-            messageElementForAuth.style.color = 'red';
+            setMessageState(messageElementForAuth, errorMsg, 'error');
         }
     }
 }
@@ -1317,9 +1340,7 @@ function handleAuthError(responseOrError, messageElement) {
          const msg = status === 401 ? '会话无效或未登录。' : '无权访问此资源。';
          const fullMsg = `${msg} 请重新登录。正在跳转...`;
          if (messageElement) {
-             messageElement.textContent = fullMsg;
-             messageElement.style.color = 'red'; // Ensure error color
-             messageElement.style.display = 'block'; // Ensure it's visible
+             setMessageState(messageElement, fullMsg, 'error');
          } else {
              alert(fullMsg); // Fallback alert
          }
