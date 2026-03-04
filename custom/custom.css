@@ -51,6 +51,54 @@
     visibility: hidden;
 }
 
+/* Keep global menu trigger shape consistent with other pages on /custom/. */
+.custom-page .global-menu-trigger {
+    pointer-events: auto;
+    display: inline-grid;
+    place-items: center;
+    width: 46px;
+    height: 38px;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    min-width: 46px;
+    min-height: 38px;
+    max-width: 46px;
+    max-height: 38px;
+    border: 1px solid var(--global-menu-outline, rgba(0, 229, 255, 0.35));
+    border-radius: 0 0 14px 14px;
+    border-top: 0;
+    background: color-mix(in srgb, var(--bg-elev-1, #0f1f43) 95%, transparent);
+    color: var(--text-secondary, #9eb0cd);
+    box-shadow: var(--shadow-soft, 0 6px 16px rgba(0, 0, 0, 0.28));
+    font-family: var(--font-ui, 'Electrolize', sans-serif);
+    font-size: var(--fs-xs, 12px);
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 14px;
+    transform: translateY(0);
+    z-index: 2;
+    transition: transform 0.24s ease, box-shadow 0.24s ease, background-color 0.24s ease;
+}
+
+.custom-page .global-menu-trigger .trigger-icon {
+    width: 20px;
+    height: 20px;
+    display: inline-grid;
+    place-items: center;
+}
+
+.custom-page .global-menu-trigger .trigger-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.custom-page .global-menu-shell.is-open .global-menu-trigger {
+    transform: translateY(calc(var(--global-menu-panel-height, 66px) - var(--global-trigger-overlap, 1px)));
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+}
+
 .custom-page .custom-main {
     max-width: 1060px;
     margin: 22px auto 34px;
@@ -832,6 +880,13 @@
 
     .custom-page .back-section {
         text-align: center;
+    }
+}
+
+@media (max-width: 767px) {
+    .custom-page .global-menu-trigger {
+        left: 8px;
+        border-radius: 0 0 12px 12px;
     }
 }
 

@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     const userStatusDiv = document.getElementById('user-status');
     const loginPrompt = document.getElementById('login-prompt');
+    const DEFAULT_AVATAR = '/uploads/avatars/test.jpg';
+    const USER_MENU_CLOSE_DELAY = 140;
 
     function isAuthPage() {
         return window.location.pathname.startsWith('/auth/');
@@ -19,11 +21,181 @@ document.addEventListener('DOMContentLoaded', () => {
             recipes: '<path d="M6 5h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 9h8M8 13h8M8 17h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
             calculator: '<path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 8.5h7M9 12h2M13 12h2M9 15.5h2M13 15.5h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
             custom: '<path d="M6 19 18 7M15 7h3v3M9 19H6v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
-            profile: '<circle cx="12" cy="9" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 20a7 7 0 0 1 14 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
             admin: '<path d="M12 4 5 7v5c0 4.2 2.4 6.9 7 8 4.6-1.1 7-3.8 7-8V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 12.5 11 14l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'
         };
 
         return `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] || ''}</svg>`;
+    }
+
+    function renderGuestStatus() {
+        if (!userStatusDiv) return;
+        userStatusDiv.classList.remove('user-status-authenticated');
+        userStatusDiv.innerHTML = '<a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>';
+    }
+
+    async function fetchCurrentUserProfile() {
+        try {
+            const response = await fetch('/api/user/current');
+            if (!response.ok) {
+                throw new Error(`User profile request failed: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.warn('Failed to fetch current user profile for header menu:', error);
+            return null;
+        }
+    }
+
+    async function logoutAndRedirect() {
+        try {
+            const response = await fetch('/api/logout', { method: 'POST' });
+            if (response.ok) {
+                window.location.href = '/auth/login/';
+                return;
+            }
+            alert('注销失败，请稍后重试。');
+        } catch (error) {
+            console.error('Error during logout:', error);
+            alert('注销时发生错误。');
+        }
+    }
+
+    function renderUserStatus({ username, role, avatar }) {
+        if (!userStatusDiv) return;
+
+        userStatusDiv.classList.add('user-status-authenticated');
+        userStatusDiv.innerHTML = '';
+
+        const displayName = username || '未知用户';
+        const roleSuffix = role === 'admin' ? ' (管理员)' : '';
+        const desktopHoverMedia = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+        const userMenu = document.createElement('div');
+        userMenu.className = 'user-menu';
+
+        const userChip = document.createElement('a');
+        userChip.className = 'user-chip';
+        userChip.href = '/profile/';
+        userChip.setAttribute('aria-haspopup', 'menu');
+        userChip.setAttribute('aria-expanded', 'false');
+
+        const userAvatar = document.createElement('img');
+        userAvatar.className = 'user-avatar';
+        userAvatar.src = avatar || DEFAULT_AVATAR;
+        userAvatar.alt = `${displayName}的头像`;
+        userAvatar.addEventListener('error', () => {
+            if (userAvatar.dataset.fallbackApplied === '1') return;
+            userAvatar.dataset.fallbackApplied = '1';
+            userAvatar.src = DEFAULT_AVATAR;
+        });
+
+        const userName = document.createElement('span');
+        userName.className = 'user-name';
+        userName.textContent = `${displayName}${roleSuffix}`;
+
+        const userDropdown = document.createElement('div');
+        userDropdown.className = 'user-dropdown';
+        userDropdown.setAttribute('role', 'menu');
+        userDropdown.setAttribute('aria-hidden', 'true');
+
+        const profileItem = document.createElement('a');
+        profileItem.className = 'user-dropdown-item';
+        profileItem.href = '/profile/';
+        profileItem.setAttribute('role', 'menuitem');
+        profileItem.textContent = '进入个人主页';
+
+        const logoutItem = document.createElement('button');
+        logoutItem.className = 'user-dropdown-item';
+        logoutItem.type = 'button';
+        logoutItem.setAttribute('role', 'menuitem');
+        logoutItem.textContent = '注销当前账号';
+
+        userChip.appendChild(userAvatar);
+        userChip.appendChild(userName);
+        userDropdown.appendChild(profileItem);
+        userDropdown.appendChild(logoutItem);
+        userMenu.appendChild(userChip);
+        userMenu.appendChild(userDropdown);
+        userStatusDiv.appendChild(userMenu);
+
+        let closeTimer = null;
+
+        function openDropdown() {
+            userMenu.classList.add('is-open');
+            userChip.setAttribute('aria-expanded', 'true');
+            userDropdown.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeDropdown() {
+            userMenu.classList.remove('is-open');
+            userChip.setAttribute('aria-expanded', 'false');
+            userDropdown.setAttribute('aria-hidden', 'true');
+        }
+
+        function clearCloseTimer() {
+            if (!closeTimer) return;
+            clearTimeout(closeTimer);
+            closeTimer = null;
+        }
+
+        function delayedClose() {
+            clearCloseTimer();
+            closeTimer = setTimeout(() => {
+                closeDropdown();
+            }, USER_MENU_CLOSE_DELAY);
+        }
+
+        userMenu.addEventListener('pointerenter', () => {
+            if (!desktopHoverMedia.matches) return;
+            clearCloseTimer();
+            openDropdown();
+        });
+
+        userMenu.addEventListener('pointerleave', () => {
+            if (!desktopHoverMedia.matches) return;
+            delayedClose();
+        });
+
+        userChip.addEventListener('click', (event) => {
+            if (desktopHoverMedia.matches) {
+                closeDropdown();
+                return;
+            }
+            event.preventDefault();
+            if (userMenu.classList.contains('is-open')) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        });
+
+        profileItem.addEventListener('click', () => {
+            closeDropdown();
+        });
+
+        logoutItem.addEventListener('click', async (event) => {
+            event.preventDefault();
+            closeDropdown();
+            await logoutAndRedirect();
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!userMenu.classList.contains('is-open')) return;
+            if (userMenu.contains(event.target)) return;
+            closeDropdown();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            if (!userMenu.classList.contains('is-open')) return;
+            closeDropdown();
+        });
+
+        window.addEventListener('resize', () => {
+            if (desktopHoverMedia.matches) {
+                closeDropdown();
+            }
+        });
     }
 
     function setupGlobalHoverMenu() {
@@ -48,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <a href="/recipes/" class="global-menu-link">${createMenuIcon('recipes')}<span>查看配方</span></a>
                     <a href="/calculator/" class="global-menu-link">${createMenuIcon('calculator')}<span>计算酒精度</span></a>
                     <a href="/custom/" class="global-menu-link menu-link-custom" hidden>${createMenuIcon('custom')}<span>新配方</span></a>
-                    <a href="/profile/" class="global-menu-link menu-link-profile" hidden>${createMenuIcon('profile')}<span>用户界面</span></a>
                     <a href="/admin/" class="global-menu-link menu-link-admin" hidden>${createMenuIcon('admin')}<span>后台管理</span></a>
                 </div>
             </nav>
@@ -61,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const panel = shell.querySelector('#global-hover-menu');
         const menuItems = shell.querySelector('.global-menu-items');
         const customLink = shell.querySelector('.menu-link-custom');
-        const profileLink = shell.querySelector('.menu-link-profile');
         const adminLink = shell.querySelector('.menu-link-admin');
 
         const hoverMedia = window.matchMedia('(hover: hover) and (pointer: fine)');
@@ -177,28 +347,25 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('resize', syncShellMetrics);
         window.addEventListener('load', syncShellMetrics);
 
-        return { customLink, profileLink, adminLink, syncShellMetrics };
+        return { customLink, adminLink, syncShellMetrics };
     }
 
     const menuRefs = setupGlobalHoverMenu();
-    const profileLink = menuRefs ? menuRefs.profileLink : document.querySelector('.profile-link');
     const customLink = menuRefs ? menuRefs.customLink : document.querySelector('.custom-link');
     const adminLink = menuRefs ? menuRefs.adminLink : document.querySelector('.admin-link');
     const syncShellMetrics = menuRefs ? menuRefs.syncShellMetrics : null;
 
     setElementVisible(loginPrompt, false);
     setElementVisible(customLink, false);
-    setElementVisible(profileLink, false);
     setElementVisible(adminLink, false);
 
     fetch('/api/auth/status')
         .then(response => response.json())
-        .then(data => {
+        .then(async (data) => {
             if (data.loggedIn) {
                 document.body.classList.add('logged-in');
                 document.body.classList.remove('logged-out');
 
-                setElementVisible(profileLink, true);
                 setElementVisible(customLink, true);
                 setElementVisible(loginPrompt, false);
 
@@ -213,49 +380,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.classList.remove('is-god');
                 if (syncShellMetrics) requestAnimationFrame(syncShellMetrics);
 
-                if (userStatusDiv) {
-                    let roleDisplay = '';
-                    if (userRole === 'admin') roleDisplay = '(管理员)';
-
-                    userStatusDiv.innerHTML = `
-                        <span>欢迎, ${data.username} ${roleDisplay}</span> |
-                        <a href="#" id="logout-link">注销</a>
-                    `;
-
-                    const logoutLink = document.getElementById('logout-link');
-                    if (logoutLink) {
-                        logoutLink.addEventListener('click', async (e) => {
-                            e.preventDefault();
-                            try {
-                                const response = await fetch('/api/logout', { method: 'POST' });
-                                if (response.ok) {
-                                    window.location.href = '/auth/login/';
-                                } else {
-                                    alert('注销失败，请稍后重试。');
-                                }
-                            } catch (error) {
-                                console.error('Error during logout:', error);
-                                alert('注销时发生错误。');
-                            }
-                        });
-                    }
-                }
+                const currentUser = await fetchCurrentUserProfile();
+                const avatar = currentUser && currentUser.avatar ? currentUser.avatar : DEFAULT_AVATAR;
+                renderUserStatus({
+                    username: data.username,
+                    role: userRole,
+                    avatar
+                });
             } else {
                 document.body.classList.add('logged-out');
                 document.body.classList.remove('logged-in', 'is-admin', 'is-god');
 
-                setElementVisible(profileLink, false);
                 setElementVisible(customLink, false);
                 setElementVisible(adminLink, false);
                 setElementVisible(loginPrompt, true);
                 if (syncShellMetrics) requestAnimationFrame(syncShellMetrics);
 
-                if (userStatusDiv) {
-                    userStatusDiv.innerHTML = `
-                        <a href="/auth/login/">登录</a> |
-                        <a href="/auth/register/">注册</a>
-                    `;
-                }
+                renderGuestStatus();
             }
 
             document.dispatchEvent(new CustomEvent('authStatusKnown', { detail: data }));
@@ -266,15 +407,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.add('logged-out');
             document.body.classList.remove('logged-in', 'is-admin', 'is-god');
 
-            setElementVisible(profileLink, false);
             setElementVisible(customLink, false);
             setElementVisible(adminLink, false);
             setElementVisible(loginPrompt, true);
             if (syncShellMetrics) requestAnimationFrame(syncShellMetrics);
 
-            if (userStatusDiv) {
-                userStatusDiv.innerHTML = '<a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>';
-            }
+            renderGuestStatus();
 
             document.dispatchEvent(new CustomEvent('authStatusKnown', { detail: { loggedIn: false } }));
         });
