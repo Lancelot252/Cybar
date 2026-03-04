@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const trigger = shell.querySelector('#global-menu-trigger');
         const panel = shell.querySelector('#global-hover-menu');
+        const menuItems = shell.querySelector('.global-menu-items');
         const customLink = shell.querySelector('.menu-link-custom');
         const profileLink = shell.querySelector('.menu-link-profile');
         const adminLink = shell.querySelector('.menu-link-admin');
@@ -69,6 +70,17 @@ document.addEventListener('DOMContentLoaded', () => {
         function syncHeaderHeight() {
             const h = header.getBoundingClientRect().height;
             document.documentElement.style.setProperty('--global-header-height', `${h}px`);
+        }
+
+        function syncMenuPanelHeight() {
+            if (!menuItems) return;
+            const panelHeight = Math.ceil(menuItems.getBoundingClientRect().height);
+            shell.style.setProperty('--global-menu-panel-height', `${panelHeight}px`);
+        }
+
+        function syncShellMetrics() {
+            syncHeaderHeight();
+            syncMenuPanelHeight();
         }
 
         function openMenu() {
@@ -161,16 +173,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        syncHeaderHeight();
-        window.addEventListener('resize', syncHeaderHeight);
+        syncShellMetrics();
+        window.addEventListener('resize', syncShellMetrics);
+        window.addEventListener('load', syncShellMetrics);
 
-        return { customLink, profileLink, adminLink };
+        return { customLink, profileLink, adminLink, syncShellMetrics };
     }
 
     const menuRefs = setupGlobalHoverMenu();
     const profileLink = menuRefs ? menuRefs.profileLink : document.querySelector('.profile-link');
     const customLink = menuRefs ? menuRefs.customLink : document.querySelector('.custom-link');
     const adminLink = menuRefs ? menuRefs.adminLink : document.querySelector('.admin-link');
+    const syncShellMetrics = menuRefs ? menuRefs.syncShellMetrics : null;
 
     setElementVisible(loginPrompt, false);
     setElementVisible(customLink, false);
@@ -197,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     setElementVisible(adminLink, false);
                 }
                 document.body.classList.remove('is-god');
+                if (syncShellMetrics) requestAnimationFrame(syncShellMetrics);
 
                 if (userStatusDiv) {
                     let roleDisplay = '';
@@ -233,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setElementVisible(customLink, false);
                 setElementVisible(adminLink, false);
                 setElementVisible(loginPrompt, true);
+                if (syncShellMetrics) requestAnimationFrame(syncShellMetrics);
 
                 if (userStatusDiv) {
                     userStatusDiv.innerHTML = `
@@ -254,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setElementVisible(customLink, false);
             setElementVisible(adminLink, false);
             setElementVisible(loginPrompt, true);
+            if (syncShellMetrics) requestAnimationFrame(syncShellMetrics);
 
             if (userStatusDiv) {
                 userStatusDiv.innerHTML = '<a href="/auth/login/">登录</a> | <a href="/auth/register/">注册</a>';

@@ -10,6 +10,7 @@
 
 .global-menu-shell {
     --global-menu-panel-height: 66px;
+    --global-trigger-overlap: 1px;
     position: fixed;
     top: calc(var(--global-header-height, 72px) - 1px);
     left: 0;
@@ -72,7 +73,7 @@
 }
 
 .global-menu-shell.is-open .global-menu-trigger {
-    transform: translateY(var(--global-menu-panel-height));
+    transform: translateY(calc(var(--global-menu-panel-height) - var(--global-trigger-overlap)));
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
 }
 
