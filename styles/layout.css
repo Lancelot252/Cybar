@@ -11,6 +11,7 @@
 .global-menu-shell {
     --global-menu-panel-height: 66px;
     --global-trigger-overlap: 1px;
+    --global-menu-outline: color-mix(in srgb, var(--accent-primary) 38%, var(--line-muted));
     position: fixed;
     top: calc(var(--global-header-height, 72px) - 1px);
     left: 0;
@@ -28,7 +29,7 @@
     margin: 0;
     padding: 0;
     border-radius: 0 0 14px 14px;
-    border: 1px solid color-mix(in srgb, var(--accent-primary) 38%, var(--line-muted));
+    border: 1px solid var(--global-menu-outline);
     border-top: 0;
     background: color-mix(in srgb, var(--bg-elev-1) 95%, transparent);
     color: var(--text-secondary);
@@ -82,7 +83,7 @@
     margin: 0;
     padding: 10px 16px;
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    border: 1px solid var(--border-soft);
+    border: 1px solid var(--global-menu-outline);
     border-left: 0;
     border-right: 0;
     background: color-mix(in srgb, var(--bg-elev-1) 92%, transparent);
