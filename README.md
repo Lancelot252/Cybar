@@ -15,18 +15,10 @@ Cybar是一个功能丰富的鸡尾酒配方管理和酒精度计算平台，集
 
 **在使用AI智能推荐功能之前，您需要配置Deepseek API密钥：**
 
-### 快速配置（推荐）
-```bash
-# Windows用户 - 运行配置脚本
-setup-api-key.bat
-
-# 或者使用PowerShell
-powershell -ExecutionPolicy Bypass -File setup-api-key.ps1
-```
-
-### 手动配置
-1. 访问 [Deepseek平台](https://platform.deepseek.com) 获取API密钥
-2. 创建 `config.json` 文件：
+### 配置步骤
+1. 访问 [Deepseek平台](https://platform.deepseek.com) 注册并获取API密钥
+2. 将项目根目录的 `config.json.example` 重命名（或复制）为 `config.json`
+3. 编辑 `config.json`，将 API 密钥填入对应字段：
 ```json
 {
   "DEEPSEEK_API_KEY": "sk-your-real-api-key-here"
@@ -34,11 +26,9 @@ powershell -ExecutionPolicy Bypass -File setup-api-key.ps1
 ```
 
 ### 验证配置
-运行服务器后查看输出：
+运行服务器后查看控制台输出：
 - ✅ `🤖 AI功能: ✅ 已配置` - 配置成功
-- ❌ `🤖 AI功能: ❌ 未配置 (演示模式)` - 需要配置
-
-📖 详细配置指南请查看：[AI_CONFIG_SETUP.md](AI_CONFIG_SETUP.md)
+- ❌ `🤖 AI功能: ❌ 未配置 (演示模式)` - 需要检查配置
 
 ## ✨ 核心功能特点
 
@@ -183,28 +173,16 @@ const dbPool = mysql.createPool({
 2. 注册/登录账户
 3. 在控制台中创建API密钥
 
-**4.2 配置API密钥（推荐方法）**
-```bash
-# Windows用户 - 运行自动配置脚本
-setup-api-key.bat
+**4.2 配置API密钥**
 
-# 或手动创建配置文件
-echo {> config.json
-echo   "DEEPSEEK_API_KEY": "sk-your-real-api-key-here">> config.json
-echo }>> config.json
+将项目根目录的 `config.json.example` 复制为 `config.json`，然后填入您的真实API密钥：
+```json
+{
+  "DEEPSEEK_API_KEY": "sk-your-real-api-key-here"
+}
 ```
 
-**4.3 环境变量方式配置（可选）**
-```bash
-# Windows PowerShell
-$env:DEEPSEEK_API_KEY="sk-your-real-api-key-here"
-
-# Windows CMD  
-set DEEPSEEK_API_KEY=sk-your-real-api-key-here
-
-# Linux/Mac
-export DEEPSEEK_API_KEY="sk-your-real-api-key-here"
-```
+> **注意：** `config.json` 已被 `.gitignore` 排除，不会意外提交到代码仓库，请妥善保管您的密钥。
 
 #### 第五步：启动服务器
 
@@ -345,7 +323,7 @@ sudo firewall-cmd --reload
 - [ ] 数据库`cybar`已创建并导入数据
 - [ ] `server.js`中数据库连接配置正确
 - [ ] 项目依赖已安装（`npm install`）
-- [ ] AI API密钥已配置（可选）
+- [ ] `config.json` 已创建并填入AI API密钥（可选）
 - [ ] 防火墙端口8080已开放
 - [ ] 服务器启动成功，控制台显示正常日志
 - [ ] 浏览器可正常访问 http://localhost:8080
@@ -401,7 +379,7 @@ npm install --registry https://registry.npmmirror.com
 
 如果遇到部署问题，请：
 1. 查阅详细的错误日志
-2. 参考 [AI_CONFIG_SETUP.md](AI_CONFIG_SETUP.md) 获取AI配置帮助
+2. 参考本文档的 [AI密钥配置](#-重要ai密钥配置) 章节
 3. 在GitHub Issues中反馈问题
 
 ## 🧮 酒精度计算器功能详解
