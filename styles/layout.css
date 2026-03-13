@@ -244,6 +244,13 @@
     align-items: start;
 }
 
+#recipes-container .feed-column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
 #recipes-container .feed-card {
     display: block;
     width: 100%;

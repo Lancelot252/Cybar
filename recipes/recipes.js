@@ -19,10 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
         isEnd: false,
         activeSearch: '',
         activeSort: sortSelect ? sortSelect.value : 'default',
-        requestId: 0
+        requestId: 0,
+        columnCount: 0
     };
 
     let feedObserver = null;
+    let resizeTimer = null;
 
     function setFeedStatus(type, text, withRetry = false) {
         if (!feedStatusArea) return;
@@ -140,12 +142,66 @@ document.addEventListener('DOMContentLoaded', () => {
         return article;
     }
 
-    function appendRecipes(recipes) {
+    function getColumnCount() {
+        if (window.innerWidth <= 767) return 1;
+        if (window.innerWidth <= 900) return 2;
+        if (window.innerWidth <= 1199) return 3;
+        return 4;
+    }
+
+    function ensureFeedColumns(force = false) {
+        const nextColumnCount = getColumnCount();
+        const currentColumns = Array.from(recipesContainer.querySelectorAll('.feed-column'));
+
+        if (!force && state.columnCount === nextColumnCount && currentColumns.length === nextColumnCount) {
+            return currentColumns;
+        }
+
+        state.columnCount = nextColumnCount;
+        recipesContainer.innerHTML = '';
+
         const fragment = document.createDocumentFragment();
-        recipes.forEach(recipe => {
-            fragment.appendChild(createRecipeCard(recipe));
-        });
+        for (let index = 0; index < nextColumnCount; index += 1) {
+            const column = document.createElement('div');
+            column.className = 'feed-column';
+            column.dataset.columnIndex = String(index);
+            fragment.appendChild(column);
+        }
         recipesContainer.appendChild(fragment);
+
+        return Array.from(recipesContainer.querySelectorAll('.feed-column'));
+    }
+
+    function appendRecipeToShortestColumn(recipe, columns) {
+        if (!columns.length) return;
+
+        const card = createRecipeCard(recipe);
+        let targetColumn = columns[0];
+        let minHeight = columns[0].offsetHeight;
+
+        for (let index = 1; index < columns.length; index += 1) {
+            const height = columns[index].offsetHeight;
+            if (height < minHeight) {
+                minHeight = height;
+                targetColumn = columns[index];
+            }
+        }
+
+        targetColumn.appendChild(card);
+    }
+
+    function appendRecipes(recipes) {
+        const columns = ensureFeedColumns();
+        recipes.forEach(recipe => {
+            appendRecipeToShortestColumn(recipe, columns);
+        });
+    }
+
+    function rerenderRecipes() {
+        const columns = ensureFeedColumns(true);
+        state.recipes.forEach(recipe => {
+            appendRecipeToShortestColumn(recipe, columns);
+        });
     }
 
     function updateFeedStateView() {
@@ -202,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (nextPage === 1) {
                 recipesContainer.innerHTML = '';
                 state.recipes = [];
+                state.columnCount = 0;
             }
 
             state.recipes = state.recipes.concat(incoming);
@@ -241,6 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.isLoading = false;
         state.isEnd = false;
         recipesContainer.innerHTML = '';
+        state.columnCount = 0;
 
         if (loadingMessage) {
             loadingMessage.textContent = '正在加载配方...';
@@ -267,6 +325,18 @@ document.addEventListener('DOMContentLoaded', () => {
         feedObserver.observe(feedSentinel);
     }
 
+    function setupResponsiveMasonry() {
+        window.addEventListener('resize', () => {
+            window.clearTimeout(resizeTimer);
+            resizeTimer = window.setTimeout(() => {
+                const nextColumnCount = getColumnCount();
+                if (nextColumnCount !== state.columnCount && state.recipes.length > 0) {
+                    rerenderRecipes();
+                }
+            }, 120);
+        });
+    }
+
     function setupControls() {
         if (searchButton) {
             searchButton.addEventListener('click', () => reloadFeed(true));
@@ -286,5 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupControls();
     setupInfiniteScroll();
+    setupResponsiveMasonry();
     reloadFeed(true);
 });
