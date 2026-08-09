@@ -191,3 +191,17 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2025-12-27 17:39:12
+
+-- AI 风味分析持久缓存（部署时亦可单独执行 migrations/001_ai_analysis_cache.sql）
+CREATE TABLE IF NOT EXISTS `ai_analysis_cache` (
+  `cache_key` char(64) NOT NULL,
+  `model` varchar(100) NOT NULL,
+  `prompt_version` varchar(50) NOT NULL,
+  `normalized_input` json NOT NULL,
+  `response_json` json NOT NULL,
+  `analyzed_at` datetime(3) NOT NULL,
+  `expires_at` datetime(3) NOT NULL,
+  PRIMARY KEY (`cache_key`),
+  KEY `idx_ai_analysis_cache_expires_at` (`expires_at`),
+  KEY `idx_ai_analysis_cache_analyzed_at` (`analyzed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

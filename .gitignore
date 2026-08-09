@@ -41,7 +41,10 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+test-results/
+playwright-report/
+uploads/ai-temp/
 
 # 备份文件
 *.bak
-*.backup 
+*.backup

@@ -9,6 +9,7 @@ const adminUserLimit = 10; // Number of users per page
 // --- Add Global Variables for Comment Pagination ---
 let currentCommentPage = 1;
 const adminCommentLimit = 15; // Number of comments per page
+const DEFAULT_AVATAR = '/uploads/avatars/default-avatar.svg';
 // --- Comment Filter State ---
 let commentFilterMode = 'all'; // all | recipe | user
 let commentFilterValue = '';
@@ -470,7 +471,12 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
             
             // 创建头像 img 元素
             const avatarImg = document.createElement('img');
-            avatarImg.src = user.avatar || '/uploads/avatars/default-avatar.png';
+            avatarImg.src = user.avatar || DEFAULT_AVATAR;
+            avatarImg.addEventListener('error', () => {
+                if (avatarImg.dataset.fallbackApplied === '1') return;
+                avatarImg.dataset.fallbackApplied = '1';
+                avatarImg.src = DEFAULT_AVATAR;
+            });
             avatarImg.alt = '头像';
             avatarImg.className = 'admin-inline-avatar';
             
@@ -711,7 +717,12 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
             const creatorCell = document.createElement('td');
             creatorCell.className = 'admin-inline-creator';
             const creatorAvatar = document.createElement('img');
-            creatorAvatar.src = recipe.creatorAvatar || '/uploads/avatars/default-avatar.png';
+            creatorAvatar.src = recipe.creatorAvatar || DEFAULT_AVATAR;
+            creatorAvatar.addEventListener('error', () => {
+                if (creatorAvatar.dataset.fallbackApplied === '1') return;
+                creatorAvatar.dataset.fallbackApplied = '1';
+                creatorAvatar.src = DEFAULT_AVATAR;
+            });
             creatorAvatar.alt = '头像';
             creatorAvatar.className = 'admin-inline-avatar';
             creatorCell.appendChild(creatorAvatar);

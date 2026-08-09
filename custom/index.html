@@ -1,339 +1,128 @@
-<!DOCTYPE html>
-<html lang="zh-cn">
-
+<!doctype html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="/js/theme.js"></script>
-    <link rel="stylesheet" href="/styles/theme-tokens.css">
-    <link rel="stylesheet" href="/styles/theme-neon.css">
-    <link rel="stylesheet" href="/styles/components.css">
-    <link rel="stylesheet" href="/styles/layout.css">
-    <title>自定义鸡尾酒创建器 - Cybar</title>
-    <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="/custom/custom.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/styles/theme-tokens.css">
+  <link rel="stylesheet" href="/styles/theme-neon.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/layout.css">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/custom/custom.css">
+  <title>新配方 · Cybar</title>
 </head>
-
 <body class="custom-page">
-    <svg class="icon-sprite" aria-hidden="true" focusable="false">
-        <symbol id="icon-cocktail" viewBox="0 0 24 24">
-            <path d="M4 5h16l-6.5 7.5V20h-3v-7.5L4 5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-            <path d="M10 16h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </symbol>
-        <symbol id="icon-target" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8" />
-            <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8" />
-            <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-        </symbol>
-        <symbol id="icon-scene" viewBox="0 0 24 24">
-            <rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
-            <path d="M7 14l3-3 3 3 3-4 2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </symbol>
-        <symbol id="icon-strength" viewBox="0 0 24 24">
-            <rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" />
-            <rect x="6.5" y="8.5" width="2.8" height="7" fill="currentColor" />
-            <rect x="10.6" y="10" width="2.8" height="5.5" fill="currentColor" opacity="0.75" />
-            <rect x="14.7" y="11.5" width="2.8" height="4" fill="currentColor" opacity="0.55" />
-        </symbol>
-        <symbol id="icon-ai" viewBox="0 0 24 24">
-            <rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="currentColor" stroke-width="1.8" />
-            <path d="M9 9v6M15 9v6M9 12h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </symbol>
-        <symbol id="icon-list" viewBox="0 0 24 24">
-            <path d="M8 7h11M8 12h11M8 17h11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            <circle cx="5" cy="7" r="1" fill="currentColor" />
-            <circle cx="5" cy="12" r="1" fill="currentColor" />
-            <circle cx="5" cy="17" r="1" fill="currentColor" />
-        </symbol>
-        <symbol id="icon-steps" viewBox="0 0 24 24">
-            <path d="M6 6h12M6 12h12M6 18h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            <path d="M4 6h.01M4 12h.01M4 18h.01" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
-        </symbol>
-        <symbol id="icon-chart" viewBox="0 0 24 24">
-            <path d="M5 19V5M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            <path d="M9 16v-4M13 16V8M17 16v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </symbol>
-        <symbol id="icon-tip" viewBox="0 0 24 24">
-            <path d="M12 4a6 6 0 0 0-3.5 10.9c.7.5 1.2 1.2 1.4 2.1h4.2c.2-.9.7-1.6 1.4-2.1A6 6 0 0 0 12 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
-            <path d="M10 20h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </symbol>
-        <symbol id="icon-apply" viewBox="0 0 24 24">
-            <path d="M6 12h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-            <path d="m13 8 4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </symbol>
-        <symbol id="icon-refresh" viewBox="0 0 24 24">
-            <path d="M19 7v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M5 17v-5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M7 9a7 7 0 0 1 11-1M17 15a7 7 0 0 1-11 1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-        </symbol>
-        <symbol id="icon-trash" viewBox="0 0 24 24">
-            <path d="M5 7h14M9 7V5h6v2M9 10v7M12 10v7M15 10v7M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </symbol>
-        <symbol id="icon-chevron" viewBox="0 0 24 24">
-            <path d="m8 10 4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-        </symbol>
-    </svg>
+  <header>
+    <h1><a href="/">Cybar</a></h1>
+    <div id="user-status"><a href="/auth/login/">登录</a></div>
+  </header>
 
-    <header>
-        <h1><a href="/">Cybar</a></h1>
-        <div id="user-status">
-            <a href="/auth/login/">登录</a> |
-            <a href="/auth/register/">注册</a>
-        </div>
-    </header>
+  <main class="creator-shell">
+    <div id="draft-notice" class="notice" hidden role="status"><span>已恢复上次未完成的草稿</span><button type="button" data-dismiss-notice aria-label="关闭提示">×</button></div>
+    <div id="alert-container" class="alert" hidden role="status" aria-live="polite"></div>
 
-    <main class="custom-main">
-        <div id="login-prompt" class="login-prompt" hidden>
-            <h3>需要登录</h3>
-            <p>请 <a href="/auth/login/">登录</a> 以保存您的自定义鸡尾酒。</p>
-        </div>
+    <ol class="step-track" aria-label="配方创建进度">
+      <li class="active" data-track-step="1"><span class="track-label"><b>1</b><span>灵感与基础信息</span></span></li>
+      <li data-track-step="2"><span class="track-label"><b>2</b><span>选择原料</span></span></li>
+      <li data-track-step="3"><span class="track-label"><b>3</b><span>制作步骤</span></span></li>
+      <li data-track-step="4"><span class="track-label"><b>4</b><span>预览并创建</span></span></li>
+    </ol>
 
-        <section class="ai-bartender-section ui-section" aria-label="AI智能调酒师">
-            <button type="button" class="section-toggle" id="ai-toggle-btn" aria-expanded="false" aria-controls="ai-bartender-panel">
-                <span class="icon-label">
-                    <svg class="ui-icon" aria-hidden="true"><use href="#icon-cocktail"></use></svg>
-                    <span>AI 智能调酒师</span>
-                </span>
-                <span class="toggle-meta">
-                    <span class="toggle-hint">点击展开</span>
-                    <svg class="ui-icon chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
-                </span>
-            </button>
+    <button type="button" class="mobile-preview" id="mobile-preview-toggle" aria-expanded="false" aria-controls="mobile-preview-detail">
+      <img src="/custom/assets/empty-coupe.png" alt="配方预览">
+      <span><strong data-preview-name>未命名配方</strong><small>ABV&nbsp; <span data-preview-abv>0.0%</span>　·　<span data-preview-volume>0 ml</span></small></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+    </button>
+    <div id="mobile-preview-detail" class="mobile-preview-detail" hidden></div>
 
-            <div class="section-header">
-                <p class="section-subtitle">没有灵感？描述想要的风味和场景，让 AI 先给出可落地配方建议。</p>
-            </div>
-
-            <div class="ai-collapsible" id="ai-bartender-panel" hidden>
-                <div class="ai-bartender-form">
-                    <div class="form-group">
-                        <label for="taste-description" class="label-with-icon">
-                            <svg class="ui-icon" aria-hidden="true"><use href="#icon-target"></use></svg>
-                            <span>口味描述</span>
-                        </label>
-                        <textarea id="taste-description" placeholder="例如：我想要一款清爽的夏日鸡尾酒，带有柑橘香味，不要太甜，酒精度适中..." rows="3"></textarea>
-                    </div>
-
-                    <div class="form-row two-columns">
-                        <div class="form-group column">
-                            <label for="occasion-select" class="label-with-icon">
-                                <svg class="ui-icon" aria-hidden="true"><use href="#icon-scene"></use></svg>
-                                <span>适用场合</span>
-                            </label>
-                            <select id="occasion-select">
-                                <option value="">请选择（可选）</option>
-                                <option value="休闲聚会">休闲聚会</option>
-                                <option value="浪漫约会">浪漫约会</option>
-                                <option value="商务宴请">商务宴请</option>
-                                <option value="夏日清爽">夏日清爽</option>
-                                <option value="冬日温暖">冬日温暖</option>
-                                <option value="开胃酒">开胃酒</option>
-                                <option value="餐后酒">餐后酒</option>
-                                <option value="深夜小酌">深夜小酌</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group column">
-                            <label for="strength-select" class="label-with-icon">
-                                <svg class="ui-icon" aria-hidden="true"><use href="#icon-strength"></use></svg>
-                                <span>酒精强度</span>
-                            </label>
-                            <select id="strength-select">
-                                <option value="">请选择（可选）</option>
-                                <option value="低度">低度（易入口）</option>
-                                <option value="中度">中度（平衡感）</option>
-                                <option value="高度">高度（够劲道）</option>
-                                <option value="无酒精">无酒精（mocktail）</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <button type="button" class="ai-generate-btn" id="ai-generate-btn">
-                        <span class="btn-content">
-                            <svg class="ui-icon" aria-hidden="true"><use href="#icon-ai"></use></svg>
-                            <span class="btn-text">生成 AI 配方</span>
-                        </span>
-                        <span class="loading-spinner" aria-hidden="true"></span>
-                    </button>
+    <div class="creator-layout">
+      <form id="custom-cocktail-form" class="workflow" novalidate>
+        <section class="workflow-step open" data-step="1">
+          <button class="step-heading" type="button" aria-expanded="true" aria-controls="step-panel-1">
+            <span class="step-number">1</span><span><strong>灵感与基础信息</strong><small data-step-summary="1">开始构思你的新配方</small></span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="step-panel" id="step-panel-1">
+            <div class="step-intro"><h1>构思你的新配方</h1><p>从你的灵感开始，我们将一步步帮你创建专属鸡尾酒配方。</p></div>
+            <div class="ai-panel">
+              <button type="button" class="ai-panel-heading" id="ai-panel-toggle" aria-expanded="true" aria-controls="ai-panel-body"><span>✣　AI 智能调酒师</span><svg viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg></button>
+              <div id="ai-panel-body">
+                <label for="taste-description">描述你的灵感</label>
+                <div class="textarea-wrap"><textarea id="taste-description" maxlength="200" rows="3" placeholder="描述你想要的风味、场景或记忆"></textarea><span><i id="taste-count">0</i>/200</span></div>
+                <div class="field-grid">
+                  <label>场合<select id="occasion-select"><option value="">选择场合</option><option>休闲聚会</option><option>浪漫约会</option><option>餐后小酌</option><option>夏日清爽</option></select></label>
+                  <label>酒精强度<select id="strength-select"><option value="">选择酒精强度</option><option>低度</option><option>中度</option><option>高度</option><option>无酒精</option></select></label>
                 </div>
-
-                <div class="ai-recipe-result" id="ai-recipe-result" hidden>
-                    <div class="recipe-header">
-                        <h3 id="generated-recipe-name"></h3>
-                        <p id="generated-recipe-description"></p>
-                    </div>
-
-                    <div class="recipe-content">
-                        <div class="recipe-ingredients card-block">
-                            <h4 class="heading-with-icon">
-                                <svg class="ui-icon" aria-hidden="true"><use href="#icon-list"></use></svg>
-                                <span>原料清单</span>
-                            </h4>
-                            <div id="generated-ingredients"></div>
-                        </div>
-
-                        <div class="recipe-steps card-block">
-                            <h4 class="heading-with-icon">
-                                <svg class="ui-icon" aria-hidden="true"><use href="#icon-steps"></use></svg>
-                                <span>制作步骤</span>
-                            </h4>
-                            <ol id="generated-steps"></ol>
-                        </div>
-
-                        <div class="recipe-details">
-                            <div class="recipe-info card-block">
-                                <h4 class="heading-with-icon">
-                                    <svg class="ui-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
-                                    <span>口味特征</span>
-                                </h4>
-                                <div id="taste-profile"></div>
-                            </div>
-
-                            <div class="recipe-tips card-block">
-                                <h4 class="heading-with-icon">
-                                    <svg class="ui-icon" aria-hidden="true"><use href="#icon-tip"></use></svg>
-                                    <span>小贴士</span>
-                                </h4>
-                                <div id="recipe-tips"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="recipe-actions">
-                        <button type="button" class="apply-recipe-btn" id="apply-recipe-btn">
-                            <svg class="ui-icon" aria-hidden="true"><use href="#icon-apply"></use></svg>
-                            <span>应用到下方表单</span>
-                        </button>
-                        <button type="button" class="regenerate-btn" id="regenerate-btn">
-                            <svg class="ui-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg>
-                            <span>重新生成</span>
-                        </button>
-                    </div>
+                <button type="button" class="primary wide" id="ai-generate-btn">✣　生成 AI 配方</button>
+                <p class="ai-availability" id="ai-availability">登录后可生成 AI 配方与配图</p>
+                <div class="ai-result" id="ai-recipe-result" hidden>
+                  <div><strong id="generated-recipe-name"></strong><p id="generated-recipe-description"></p></div>
+                  <div class="ai-result-actions"><button type="button" id="regenerate-btn">重新生成</button><button type="button" class="primary" id="apply-recipe-btn">应用到配方</button></div>
                 </div>
+              </div>
             </div>
+            <label class="field">配方名称<input id="cocktail-name" maxlength="80" required placeholder="输入配方名称"></label>
+            <label class="field">描述 <span>（可选）</span><div class="textarea-wrap"><textarea id="cocktail-description" maxlength="200" rows="2" placeholder="简要描述这款鸡尾酒的风味、灵感或特点（选填）"></textarea><span><i id="description-count">0</i>/200</span></div></label>
+          </div>
         </section>
 
-        <section class="manual-form-section ui-section" aria-label="手动创建配方">
-            <h2 id="custom-form-title">自定义鸡尾酒创建器</h2>
-            <p class="section-intro">创建您独特的鸡尾酒配方，展示您的创意。</p>
-
-            <div id="alert-container" class="alert-banner" role="status" aria-live="polite"></div>
-
-            <form id="custom-cocktail-form">
-                <div class="form-section">
-                    <h3>基本信息</h3>
-                    <div class="form-group">
-                        <label for="cocktail-name">鸡尾酒名称</label>
-                        <input type="text" id="cocktail-name" name="cocktail-name" required placeholder="给您的鸡尾酒起个名字">
-                    </div>
-                    <div class="form-group">
-                        <label>上传成品图（可选）</label>
-                        <input type="file" id="cocktail-image" accept="image/*" hidden>
-
-                        <div id="image-preview-container" class="image-preview-container">
-                            <div id="image-preview" class="image-preview" hidden>
-                                <img id="preview-img" src="" alt="预览">
-                                <div class="image-preview-hint">点击图片更换</div>
-                            </div>
-                            <button type="button" id="upload-image-btn" class="secondary-action-btn">选择图片</button>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="cocktail-description">描述</label>
-                        <textarea id="cocktail-description" name="cocktail-description" placeholder="描述您的鸡尾酒口感特色"></textarea>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h3>选择原料</h3>
-                    <div class="two-columns">
-                        <div class="column">
-                            <div class="form-group">
-                                <label>可用原料</label>
-                                <div class="search-bar">
-                                    <input type="text" id="ingredient-search" placeholder="搜索原料...">
-                                </div>
-                                <div class="categories-tabs" id="ingredient-categories"></div>
-                                <div class="ingredient-list" id="ingredients-list">
-                                    <div class="loading">加载原料中...</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="column">
-                            <div class="form-group">
-                                <label>已选原料（<span id="selected-count">0</span>）</label>
-                                <div class="selected-ingredients" id="selected-ingredients-list">
-                                    <p class="empty-message">尚未选择任何原料</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section" id="abv-calculation-section">
-                    <h3>酒精含量计算</h3>
-                    <div class="abv-display">估计酒精度: <span id="calculated-abv">0.0%</span></div>
-                </div>
-
-                <div class="form-section">
-                    <h3>制作步骤</h3>
-                    <div class="create-steps">
-                        <button type="button" class="add-step-btn" id="add-step-btn">添加步骤</button>
-                        <div class="step-list" id="steps-container"></div>
-                    </div>
-                </div>
-
-                <div class="ai-analysis-section">
-                    <h3 class="heading-with-icon">
-                        <svg class="ui-icon" aria-hidden="true"><use href="#icon-ai"></use></svg>
-                        <span>AI 口味分析</span>
-                    </h3>
-                    <p>让 AI 分析您的配方，获得专业的口味评价和改进建议。</p>
-
-                    <button type="button" class="ai-analyze-btn" id="ai-analyze-btn" disabled>
-                        <span class="btn-content">
-                            <svg class="ui-icon" aria-hidden="true"><use href="#icon-ai"></use></svg>
-                            <span class="btn-text">分析口味特征</span>
-                        </span>
-                        <span class="loading-spinner" aria-hidden="true"></span>
-                    </button>
-
-                    <div class="ai-analysis-result" id="ai-analysis-result" hidden>
-                        <h4 class="heading-with-icon">
-                            <svg class="ui-icon" aria-hidden="true"><use href="#icon-chart"></use></svg>
-                            <span>AI 分析结果</span>
-                        </h4>
-                        <div class="analysis-content" id="analysis-content"></div>
-                        <div class="analysis-meta" id="analysis-meta"></div>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <h3>预览与创建</h3>
-                    <div class="summary-section">
-                        <h4>配方摘要</h4>
-                        <div id="recipe-summary">
-                            <p>完成上述步骤后，这里将显示配方摘要。</p>
-                        </div>
-
-                        <button type="button" class="submit-btn" id="create-cocktail-btn" disabled>创建鸡尾酒</button>
-                    </div>
-                </div>
-            </form>
+        <section class="workflow-step" data-step="2">
+          <button class="step-heading" type="button" aria-expanded="false" aria-controls="step-panel-2"><span class="step-number">2</span><span><strong>选择原料</strong><small data-step-summary="2">尚未选择</small></span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="step-panel" id="step-panel-2" hidden>
+            <div class="step-intro"><h2>选择原料</h2><p>搜索原料并设置用量；也可以添加自定义原料。</p></div>
+            <div class="ingredient-tools"><input id="ingredient-search" type="search" placeholder="搜索原料"><button type="button" id="add-custom-ingredient">＋ 自定义原料</button></div>
+            <div class="ingredient-columns">
+              <div class="selected-ingredients-section">
+                <h3>已选原料 <span id="selected-count">0</span></h3>
+                <p class="selected-entry-help">请填写每种原料的用量和酒精度，系统将据此计算配方总容量与 ABV。</p>
+                <div class="selected-column-labels" aria-hidden="true"><span>原料</span><span>用量（ml）</span><span>酒精度（%）</span><span></span></div>
+                <div id="selected-ingredients-list" class="selected-list"><p class="empty">尚未选择任何原料</p></div>
+              </div>
+              <div class="available-ingredients-section">
+                <h3>可用原料</h3>
+                <div id="ingredient-categories" class="category-tabs" role="tablist" aria-label="原料分类"></div>
+                <div id="ingredients-list" class="ingredient-list"></div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <div class="back-section">
-            <a href="/" class="back-link">返回主页</a>
+        <section class="workflow-step" data-step="3">
+          <button class="step-heading" type="button" aria-expanded="false" aria-controls="step-panel-3"><span class="step-number">3</span><span><strong>制作步骤</strong><small data-step-summary="3">尚未添加</small></span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="step-panel" id="step-panel-3" hidden>
+            <div class="step-intro"><h2>制作步骤</h2><p>步骤为可选项，可随时返回补充或调整顺序。</p></div>
+            <div id="steps-container" class="steps-list"></div><button type="button" id="add-step-btn" class="secondary">＋ 添加步骤</button>
+          </div>
+        </section>
+
+        <section class="workflow-step" data-step="4">
+          <button class="step-heading" type="button" aria-expanded="false" aria-controls="step-panel-4"><span class="step-number">4</span><span><strong>预览并创建</strong><small data-step-summary="4">等待完成</small></span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+          <div class="step-panel" id="step-panel-4" hidden>
+            <div class="step-intro"><h2>预览并创建</h2><p>确认配方信息。配图可选，生成失败不会影响配方创建。</p></div>
+            <div class="finish-grid">
+              <div><h3>AI 口味分析</h3><button type="button" id="ai-analyze-btn" class="secondary" disabled>分析口味特征</button><div id="ai-analysis-result" class="analysis-result" hidden></div></div>
+            </div>
+            <button type="button" id="create-cocktail-btn" class="primary wide" disabled>创建鸡尾酒</button>
+          </div>
+        </section>
+      </form>
+
+      <aside class="live-preview" aria-label="实时预览">
+        <div class="preview-image"><img id="preview-img" src="/custom/assets/empty-coupe.png" alt="当前配方预览"></div>
+        <h2 data-preview-name>未命名配方</h2>
+        <div class="preview-metrics"><span><small>ABV</small><strong data-preview-abv>0.0%</strong></span><span><small>总容量</small><strong data-preview-volume>0 ml</strong></span></div>
+        <div class="preview-ingredients" id="preview-ingredients"><p>添加原料后将在这里预览</p></div>
+        <div class="preview-image-actions">
+          <input id="cocktail-image" type="file" accept="image/*" hidden>
+          <button type="button" id="preview-upload-btn" class="secondary">上传配图</button>
+          <button type="button" id="ai-image-btn" class="primary" disabled>✣　AI 生成配图</button>
         </div>
-    </main>
+        <p id="image-status">可选择本地图片，或由 AI 生成配图。</p>
+      </aside>
+    </div>
+  </main>
 
-    <footer>
-        <p>&copy; 2025 Cybar<br>made by 252</p>
-    </footer>
-
-    <script src="/js/global.js"></script>
-    <script src="custom.js"></script>
+  <div class="mobile-actions"><button type="button" id="clear-draft-btn">清空草稿</button><button type="button" id="next-step-btn" class="primary">下一步：选择原料</button></div>
+  <script src="/js/global.js"></script><script src="/custom/custom.js"></script>
 </body>
-
 </html>

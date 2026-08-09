@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const PAGE_LIMIT = 10;
     const DEFAULT_RECIPE_IMAGE = '/uploads/cocktails/jiu.jpg';
-    const DEFAULT_AVATAR = '/uploads/avatars/default-avatar.png';
+    const DEFAULT_AVATAR = '/uploads/avatars/default-avatar.svg';
 
     const recipesContainer = document.getElementById('recipes-container');
     const loadingMessage = document.getElementById('loading-message');

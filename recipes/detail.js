@@ -1,3 +1,5 @@
+const DEFAULT_AVATAR = '/uploads/avatars/default-avatar.svg';
+
 document.addEventListener('DOMContentLoaded', () => {
     const errorMessageElement = document.getElementById('error-message');
     const urlParams = new URLSearchParams(window.location.search);
@@ -111,9 +113,15 @@ function displayRecipeDetail(recipe) {
     const creatorInfo = document.createElement('p');
     creatorInfo.className = 'recipe-creator-detail';
     creatorInfo.innerHTML = `
-        <img class="creator-avatar" src="${recipe.creatorAvatar || '/uploads/avatars/default-avatar.png'}" alt="头像">
+        <img class="creator-avatar" src="${recipe.creatorAvatar || DEFAULT_AVATAR}" alt="头像">
         <span><strong>创建者:</strong> ${recipe.createdBy || '未知用户'}</span>
     `;
+    const creatorAvatar = creatorInfo.querySelector('.creator-avatar');
+    creatorAvatar?.addEventListener('error', () => {
+        if (creatorAvatar.dataset.fallbackApplied === '1') return;
+        creatorAvatar.dataset.fallbackApplied = '1';
+        creatorAvatar.src = DEFAULT_AVATAR;
+    });
     contentContainer.appendChild(creatorInfo);
 
     if (recipe.description) {
@@ -473,8 +481,7 @@ async function startAITasteAnalysis(recipe) {
         const response = await fetch('/api/custom/analyze-flavor', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Cache-Control': 'no-cache'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(analysisData)
         });
@@ -483,8 +490,8 @@ async function startAITasteAnalysis(recipe) {
         if (requestVersion !== aiAnalysisRequestVersion) return;
         hideElement(loadingElement);
 
-        if (response.ok && result.success) {
-            displayAIAnalysisResult(result.analysis, result.analyzedAt);
+        if (response.ok && result.analysis) {
+            displayAIAnalysisResult(result.analysis, result.analyzedAt, result.tasteProfile, result.cache);
             return;
         }
 
@@ -505,7 +512,7 @@ async function startAITasteAnalysis(recipe) {
     }
 }
 
-function displayAIAnalysisResult(analysis, analyzedAt) {
+function displayAIAnalysisResult(analysis, analyzedAt, tasteProfile, cache) {
     const contentElement = document.getElementById('ai-analysis-content');
     const metaElement = document.getElementById('ai-analysis-meta');
     const resultsElement = document.getElementById('ai-analysis-results');
@@ -521,11 +528,14 @@ function displayAIAnalysisResult(analysis, analyzedAt) {
             hour: '2-digit',
             minute: '2-digit'
         });
-        metaElement.innerHTML = `<i class="fas fa-clock"></i> 分析时间: ${analysisTime}`;
+        const cacheLabel = cache?.hit ? ` · ${cache.layer}${cache.stale ? ' 过期回退' : ' 缓存'}` : '';
+        metaElement.textContent = `分析时间：${analysisTime}${cacheLabel}`;
         showElement(metaElement);
     }
 
-    const tasteData = extractTasteDataFromAnalysis(analysis) || generateDefaultTasteData(window.currentRecipe || {});
+    const tasteData = tasteProfile
+        ? Object.fromEntries(Object.entries(tasteProfile).map(([key, value]) => [key, Number(value) / 2]))
+        : generateDefaultTasteData(window.currentRecipe || {});
     displayTasteVisualization(tasteData);
     showElement(resultsElement);
 }

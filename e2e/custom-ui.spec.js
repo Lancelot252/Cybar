@@ -1,0 +1,64 @@
+const { test, expect } = require('@playwright/test');
+
+test.use({ baseURL: 'http://localhost:3000', viewport: { width: 1440, height: 1000 } });
+
+test('四步导航、配方校验和草稿恢复', async ({ page }) => {
+  await page.goto('/custom/');
+  await expect(page.getByRole('heading', { name: '构思你的新配方' })).toBeVisible();
+  await expect(page.locator('#preview-upload-btn')).toBeVisible();
+  await expect(page.locator('#ai-image-btn')).toBeVisible();
+  await page.locator('#ai-panel-toggle').click();
+  await expect(page.locator('#ai-panel-body')).toBeHidden();
+  const collapsedAiPanel = await page.locator('.ai-panel').evaluate(element => { const panel = element.getBoundingClientRect(); const heading = element.querySelector('#ai-panel-toggle').getBoundingClientRect(); return { top: heading.top - panel.top, right: panel.right - heading.right, bottom: panel.bottom - heading.bottom, left: heading.left - panel.left }; });
+  expect(collapsedAiPanel.top).toBeGreaterThanOrEqual(6);
+  expect(Math.abs(collapsedAiPanel.top - collapsedAiPanel.bottom)).toBeLessThan(1);
+  expect(collapsedAiPanel.left).toBeGreaterThan(10);
+  expect(collapsedAiPanel.right).toBeGreaterThan(10);
+  const stepOneUnderline = await page.locator('[data-track-step="1"] .track-label').evaluate(element => ({ label: element.getBoundingClientRect().width, line: Number.parseFloat(getComputedStyle(element, '::before').width), bottom: getComputedStyle(element, '::before').bottom }));
+  expect(Math.abs(stepOneUnderline.label - stepOneUnderline.line)).toBeLessThan(1);
+  expect(stepOneUnderline.bottom).toBe('-6px');
+  await page.getByLabel('配方名称').fill('自动化海风');
+  await page.locator('[data-step="2"] .step-heading').click();
+  const collapsedFirstStepGap = await page.locator('.workflow').evaluate(element => { const workflow = element.getBoundingClientRect(); const first = element.querySelector('[data-step="1"]').getBoundingClientRect(); return { top: first.top - workflow.top, left: first.left - workflow.left }; });
+  expect(Math.abs(collapsedFirstStepGap.top - collapsedFirstStepGap.left)).toBeLessThan(1);
+  const stepTwoUnderline = await page.locator('[data-track-step="2"] .track-label').evaluate(element => ({ label: element.getBoundingClientRect().width, line: Number.parseFloat(getComputedStyle(element, '::before').width) }));
+  expect(Math.abs(stepTwoUnderline.label - stepTwoUnderline.line)).toBeLessThan(1);
+  expect(stepTwoUnderline.line).not.toBe(stepOneUnderline.line);
+  await expect(page.locator('#ingredient-categories')).not.toContainText(/liqueurs|vermouth_wine|bitters|soda_mixer|dairy_cream/);
+  await expect(page.locator('.ingredient-columns > div').first()).toHaveClass(/selected-ingredients-section/);
+  await expect(page.locator('.ingredient-columns > div').last()).toHaveClass(/available-ingredients-section/);
+  await expect(page.locator('.selected-entry-help')).toContainText('用量和酒精度');
+  await expect(page.locator('.selected-column-labels')).toContainText('用量（ml）');
+  await expect(page.locator('.selected-column-labels')).toContainText('酒精度（%）');
+  await expect(page.locator('.available-ingredients-section #ingredient-categories')).toBeVisible();
+  await expect(page.locator('#ingredients-list')).toHaveCSS('grid-template-columns', /\S+ \S+/);
+  await page.locator('[data-add]').first().click();
+  await expect(page.locator('#selected-count')).toHaveText('1');
+  await expect(page.locator('.selected-column-labels')).toHaveCSS('font-size', '13px');
+  await expect(page.locator('.selected-value-field > span').nth(0)).toHaveText('ml');
+  await expect(page.locator('.selected-value-field > span').nth(1)).toHaveText('%');
+  await page.locator('[data-step="3"] .step-heading').click();
+  await page.getByRole('button', { name: '＋ 添加步骤' }).click();
+  await page.locator('[data-step-input="0"]').fill('加入冰块后轻轻搅拌');
+  await page.locator('[data-step="4"] .step-heading').click();
+  await expect(page.locator('#upload-image-btn')).toHaveCount(0);
+  await expect(page.locator('#create-cocktail-btn')).toBeEnabled();
+  await page.waitForTimeout(500);
+  await page.reload();
+  await expect(page.locator('#draft-notice')).toBeVisible();
+  await expect(page.locator('#cocktail-name')).toHaveValue('自动化海风');
+});
+
+test('移动端预览、固定操作与键盘折叠可用', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/custom/');
+  await expect(page.locator('.mobile-actions')).toBeVisible();
+  await page.locator('#mobile-preview-toggle').press('Enter');
+  await expect(page.locator('#mobile-preview-detail')).toBeVisible();
+  await page.locator('[data-track-step="2"]').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#step-panel-2')).toBeVisible();
+  const textButtonsHavePadding = await page.locator('button').evaluateAll(buttons => buttons.filter(button => button.getClientRects().length && button.textContent.trim()).every(button => { const style = getComputedStyle(button); return [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft].every(value => Number.parseFloat(value) > 0); }));
+  expect(textButtonsHavePadding).toBe(true);
+  await expect(page.locator('body')).not.toHaveCSS('overflow-x', 'scroll');
+});
