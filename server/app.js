@@ -15,6 +15,11 @@ const ROOT_DIR = path.join(__dirname, '..');
 const app = express();
 
 app.disable('x-powered-by');
+if (process.env.NODE_ENV === 'production') {
+    // HTTPS is terminated by the first reverse proxy (for example Nginx).
+    // Trust its X-Forwarded-Proto header so secure session cookies are issued.
+    app.set('trust proxy', 1);
+}
 app.use(express.static(ROOT_DIR));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
