@@ -163,7 +163,7 @@ router.post('/api/custom/generate-image', isAuthenticated, imageLimit, async (re
     if (!recipe.name || !recipe.ingredients.length) return res.status(400).json({ message: '名称和至少一种原料完整后才能生成配图', code: 'INVALID_INPUT' });
     try {
         const ingredients = recipe.ingredients.map(item => `${item.name} ${item.volume}ml`).join('、');
-        const prompt = `专业鸡尾酒产品摄影。一杯名为“${recipe.name}”的成品鸡尾酒，配方包含${ingredients}。深海军蓝酒吧背景，冷色轮廓光，真实玻璃与液体质感，竖幅居中构图，无人物、无文字、无商标、无水印。`;
+        const prompt = `专业鸡尾酒产品摄影。以“${recipe.name}”配方为视觉灵感，成品鸡尾酒包含${ingredients}。深海军蓝酒吧背景，冷色轮廓光，真实玻璃与液体质感，竖幅居中构图，只呈现饮品、杯具、装饰和环境。画面中严禁出现任何文字或字符，包括中文、英文字母、数字、符号、酒标、瓶标、菜单、招牌、字幕、商标、Logo 和水印；杯具与背景必须保持无字、无标签。`;
         const providerUrl = await ai.generateImage(prompt);
         const stored = await downloadTemporaryImage(providerUrl, req.session.userId);
         res.json({ previewUrl: `/api/custom/generated-image/${encodeURIComponent(stored.token)}`, token: stored.token, expiresAt: stored.expiresAt });
