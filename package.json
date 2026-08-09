@@ -1,11 +1,13 @@
 {
   "name": "cybar",
   "version": "1.0.0",
-  "description": "鸡尾酒配方管理和酒精度计算工具",
+  "description": "鸡尾酒配方管理、AI 创作与酒精度计算工具",
   "main": "server.js",
   "scripts": {
     "start": "node server/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "migrate": "node server/scripts/migrate.js",
+    "test": "node --test",
+    "test:ui": "playwright test e2e"
   },
   "keywords": [
     "cocktail",
@@ -17,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.6.0",
+    "ajv": "^8.17.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.5.0",
@@ -25,5 +28,9 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "mysql2": "^3.6.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "supertest": "^7.1.4"
   }
 }

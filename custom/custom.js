@@ -1,1005 +1,218 @@
-// 自定义鸡尾酒创建器的JavaScript逻辑
-document.addEventListener('DOMContentLoaded', function () {
-    // --- 1. 全局变量 & 编辑模式检测 ---
-    let allIngredients = {}; 
-    let selectedIngredients = []; 
-    let currentCategoryTab = 'base_alcohol';
-    let originalImagePath = null; // 保存原图片路径 
-    let lastGeneratePayload = null;
-    let generatedRecipe = null;
-    let lastAnalysisAt = null;
-
-    // [核心] 检查 URL 是否包含 ?id=xxx
-    const urlParams = new URLSearchParams(window.location.search);
-    const editRecipeId = urlParams.get('id'); 
-    const isEditMode = !!editRecipeId; // 转换为布尔值 (true/false)
-
-    // 分类配置
-    const CATEGORY_ORDER = ['base_alcohol', 'liqueurs', 'vermouth_wine', 'bitters', 'juice', 'syrup', 'soda_mixer', 'dairy_cream', 'other'];
-    const CATEGORY_NAMES = {
-        'base_alcohol': '基酒', 'liqueurs': '力娇酒/利口酒', 'vermouth_wine': '味美思/加强葡萄酒',
-        'bitters': '苦精', 'juice': '果汁', 'syrup': '糖浆',
-        'soda_mixer': '碳酸/调配饮料', 'dairy_cream': '奶制品', 'other': '其他'
-    };
-    const TRASH_ICON_SVG = `
-        <svg class="ui-icon" aria-hidden="true" viewBox="0 0 24 24">
-            <path d="M5 7h14M9 7V5h6v2M9 10v7M12 10v7M15 10v7M7 7l1 12h8l1-12"
-                fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-    `;
-
-    // --- 2. 初始化函数 ---
-    async function initialize() {
-        try {
-            console.log(isEditMode ? `进入修改模式 (ID: ${editRecipeId})` : '进入创建模式');
-
-            // 2.1 如果是编辑模式，修改界面标题
-            if (isEditMode) {
-                const titleEl = document.getElementById('custom-form-title');
-                if (titleEl) titleEl.textContent = '修改配方';
-                const saveBtn = document.getElementById('save-cocktail-btn');
-                if (saveBtn) saveBtn.textContent = '保存修改';
-            }
-
-            // 2.2 获取原料库 (必须先有原料库，才能做回显匹配)
-            const response = await fetch('/api/custom/ingredients');
-            if (!response.ok) throw new Error('原料数据加载失败');
-            const responseText = await response.text();
-            allIngredients = JSON.parse(responseText);
-
-            // 2.3 初始化基础界面
-            loadIngredientsForCategory('base_alcohol');
-            renderCategoryTabs();
-            setupEventListeners();
-            setupAiCollapsible();
-            updateAbvCalculation();
-            updateSubmitState(); // Call updateSubmitState after initializing
-
-            // 2.4 [关键] 如果是编辑模式，去后台拉取旧数据并填入
-            if (isEditMode) {
-                await loadRecipeForEdit(editRecipeId);
-            }
-
-        } catch (error) {
-            console.error('初始化错误:', error);
-            showErrorMessage('加载失败: ' + error.message);
-        }
-    }
-
-    // --- 3. [新增] 加载并回显旧数据 ---
-    async function loadRecipeForEdit(id) {
-        try {
-            const res = await fetch(`/api/recipes/${id}`);
-            if (!res.ok) throw new Error('无法获取原配方数据');
-            const recipe = await res.json();
-
-            // >>> 回显名称 <<<
-            const nameInput = document.getElementById('cocktail-name');
-            if (nameInput) nameInput.value = recipe.name;
-            const descInput = document.getElementById('cocktail-description');
-            if (descInput) descInput.value = recipe.description || '';
-
-            // >>> 回显步骤 <<<
-            const stepsContainer = document.getElementById('steps-container');
-            if (stepsContainer) {
-                stepsContainer.innerHTML = ''; // 清空默认空行
-                
-                let steps = [];
-                // 兼容性处理：步骤可能是数组，也可能是字符串
-                if (Array.isArray(recipe.instructions)) {
-                    steps = recipe.instructions;
-                } else if (typeof recipe.instructions === 'string') {
-                    steps = recipe.instructions.split('\n');
-                }
-
-                if (steps.length > 0) {
-                    steps.forEach(stepText => addPreparationStep(stepText));
-                }
-            }
-
-            // >>> 回显原料 (最关键部分) <<<
-            if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
-                selectedIngredients = []; // 先清空
-
-                recipe.ingredients.forEach(savedIng => {
-                    let matchedItem = null;
-                    let matchedCategory = 'other';
-
-                    // 尝试在原料库中找到匹配项 (忽略大小写)
-                    if (allIngredients.ingredients) {
-                        for (const cat of allIngredients.ingredients) {
-                            const found = cat.items.find(item => 
-                                item.name.toLowerCase() === savedIng.name.toLowerCase()
-                            );
-                            if (found) {
-                                matchedItem = found;
-                                matchedCategory = cat.category;
-                                break;
-                            }
-                        }
-                    }
-
-                    // [强力回显] 即使原料库里找不到(比如是旧数据)，也强行显示，防止数据丢失
-                    selectedIngredients.push({
-                        id: matchedItem ? matchedItem.id : ('legacy_' + Math.random().toString(36).substr(2, 9)),
-                        name: savedIng.name,
-                        volume: parseFloat(savedIng.volume) || 30,
-                        abv: parseFloat(savedIng.abv) || 0,
-                        category: matchedCategory,
-                        unit: matchedItem ? matchedItem.unit : 'ml'
-                    });
-                });
-
-                // 渲染回显结果
-                renderSelectedIngredients();
-                updateAbvCalculation();
-                updateSubmitState(); // Call updateSubmitState after loading edit recipe
-                
-                // 高亮左侧列表 (如果匹配到了)
-                highlightSelectedItemsInList();
-            }
-
-            // >>> 回显图片提示 <<<
-            if (recipe.image) {
-                originalImagePath = recipe.image; // 保存原图片路径
-                showImagePreview(recipe.image); // 显示图片预览
-            }
-
-        } catch (error) {
-            console.error('回显失败:', error);
-            showErrorMessage('无法加载旧数据，请刷新重试');
-        }
-    }
-
-    // --- 4. 保存/更新逻辑 ---
-    async function saveCustomCocktail() {
-        const nameInput = document.getElementById('cocktail-name');
-        const imageInput = document.getElementById('cocktail-image');
-        
-        const name = nameInput ? nameInput.value.trim() : '';
-        if (!name) return showErrorMessage('请输入鸡尾酒名称');
-        if (selectedIngredients.length === 0) return showErrorMessage('请至少选择一种原料');
-
-        // 收集步骤（只从 steps-container 里收集，不包括输入框）
-        const stepsContainer = document.getElementById('steps-container');
-        const stepInputs = stepsContainer ? stepsContainer.querySelectorAll('.step-input') : [];
-        const steps = Array.from(stepInputs).map(input => input.value.trim()).filter(step => step);
-
-        // 计算ABV
-        let totalVol = 0, totalAlc = 0;
-        selectedIngredients.forEach(i => {
-            totalVol += (i.volume || 0);
-            totalAlc += (i.volume || 0) * (i.abv || 0) / 100;
-        });
-        const estimatedAbv = totalVol > 0 ? Math.round((totalAlc / totalVol) * 1000) / 10 : 0;
-
-        // 构建 FormData
-        const formData = new FormData();
-        formData.append('name', name);
-        
-        // 添加描述
-        const descInput = document.getElementById('cocktail-description');
-        if (descInput) {
-            formData.append('description', descInput.value.trim());
-        }
-        
-        formData.append('estimatedAbv', estimatedAbv);
-        
-        // 序列化原料 (只传必要字段)
-        const ingredientsData = selectedIngredients.map(ing => ({
-            name: ing.name,
-            volume: ing.volume,
-            abv: ing.abv
-        }));
-        formData.append('ingredients', JSON.stringify(ingredientsData));
-        formData.append('steps', JSON.stringify(steps));
-
-        // 图片处理
-        if (imageInput && imageInput.files[0]) {
-            formData.append('image', imageInput.files[0]);
-        } else if (isEditMode && originalImagePath) {
-            // 编辑模式下，如果没有上传新图但有原图，告诉后端保留原图
-            formData.append('keepOriginalImage', 'true');
-        }
-
-        try {
-            // [智能判断] 是更新还是新建？
-            // 鸿蒙前端使用 POST 方法（PUT 可能有兼容性问题）
-            const url = isEditMode ? `/api/custom/cocktails/${editRecipeId}/update` : '/api/custom/cocktails';
-            const method = 'POST'; // 统一使用 POST
-
-            console.log(`正在提交... URL: ${url}, Method: ${method}`);
-
-            const response = await fetch(url, {
-                method: method,
-                body: formData
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || '操作失败');
-            }
-
-            showSuccessMessage(isEditMode ? '修改成功，正在返回个人中心...' : '创建成功，正在返回个人中心...');
-            setTimeout(() => {
-                window.location.href = '/profile/';
-            }, 900); // 完成后返回个人中心
-
-        } catch (error) {
-            console.error('保存失败:', error);
-            showErrorMessage(error.message);
-        }
-    }
-
-    // --- 5. 辅助功能函数 ---
-
-    // 渲染分类标签
-    function renderCategoryTabs() {
-        const container = document.getElementById('ingredient-categories');
-        if (!container) return;
-        container.innerHTML = '';
-
-        const allBtn = document.createElement('button');
-        allBtn.type = 'button';
-        allBtn.className = 'category-tab';
-        allBtn.dataset.category = 'all';
-        allBtn.textContent = '全部';
-        container.appendChild(allBtn);
-
-        CATEGORY_ORDER.forEach(catKey => {
-            // 只渲染存在的分类
-            const hasCat = allIngredients.ingredients && allIngredients.ingredients.some(c => c.category === catKey);
-            if (hasCat) {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'category-tab';
-                btn.dataset.category = catKey;
-                btn.textContent = CATEGORY_NAMES[catKey] || catKey;
-                container.appendChild(btn);
-            }
-        });
-        updateTabStyles();
-    }
-
-    // 加载对应分类原料
-    function loadIngredientsForCategory(category) {
-        const list = document.getElementById('ingredients-list');
-        if(!list) return;
-        list.innerHTML = '';
-        
-        let itemsToShow = [];
-        if (category === 'all') {
-            if(allIngredients.ingredients) {
-                allIngredients.ingredients.forEach(c => {
-                    if(c.items) itemsToShow.push(...c.items.map(i => ({...i, _cat: c.category})));
-                });
-            }
-        } else if (allIngredients.ingredients) {
-            const catObj = allIngredients.ingredients.find(c => c.category === category);
-            if(catObj) itemsToShow = catObj.items;
-        }
-
-        if (itemsToShow.length === 0) {
-            list.innerHTML = '<div class="no-ingredients-message">该分类暂无原料</div>';
-            return;
-        }
-
-        const grid = document.createElement('div');
-        grid.className = 'ingredients-grid';
-
-        itemsToShow.forEach(ing => {
-            const item = document.createElement('div');
-            item.className = 'ingredient-item';
-            item.dataset.id = ing.id;
-            
-            // 检查是否已选，如果是，加高亮
-            if (selectedIngredients.some(s => s.id === ing.id)) {
-                item.classList.add('selected');
-            }
-
-            const catKey = ing._cat || category;
-
-            item.innerHTML = `
-                <div class="ingredient-card">
-                    <div class="ingredient-icon" data-category="${catKey}">${ing.name.charAt(0)}</div>
-                    <div class="ingredient-details">
-                        <div class="ingredient-name">${ing.name}</div>
-                        <div class="ingredient-abv">${ing.abv > 0 ? ing.abv + '%' : (ing.unit||'ml')}</div>
-                    </div>
-                    <button type="button" class="add-ingredient-btn">+</button>
-                </div>
-            `;
-            grid.appendChild(item);
-        });
-        list.appendChild(grid);
-        currentCategoryTab = category;
-        updateTabStyles();
-    }
-
-    function setupEventListeners() {
-        // 分类点击
-        document.getElementById('ingredient-categories')?.addEventListener('click', e => {
-            const tab = e.target.closest('.category-tab');
-            if (tab) {
-                e.preventDefault();
-                loadIngredientsForCategory(tab.dataset.category);
-            }
-        });
-        // 添加原料 (+)
-        document.getElementById('ingredients-list')?.addEventListener('click', e => {
-            const btn = e.target.closest('.add-ingredient-btn');
-            if (btn) addIngredientToSelection(btn.closest('.ingredient-item').dataset.id);
-        });
-        // 添加步骤 (支持传参)
-        document.getElementById('add-step-btn')?.addEventListener('click', () => addPreparationStep());
-        // 删除步骤
-        document.getElementById('steps-container')?.addEventListener('click', e => {
-            const removeBtn = e.target.closest('.remove-step-btn');
-            if (removeBtn) {
-                removeBtn.closest('.step-item').remove();
-                renumberSteps();
-                updateAiAnalyzeState();
-            }
-        });
-        // 表单提交与按钮点击：统一走 saveCustomCocktail，阻止默认提交刷新
-        const form = document.getElementById('custom-cocktail-form');
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                saveCustomCocktail();
-            });
-        }
-        document.getElementById('create-cocktail-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            saveCustomCocktail();
-        });
-        // 兼容旧的保存按钮 ID（如果存在）
-        document.getElementById('save-cocktail-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            saveCustomCocktail();
-        });
-        // 取消
-        document.getElementById('cancel-btn')?.addEventListener('click', () => {
-            if(confirm('确定要离开吗？未保存的内容将丢失。')) window.location.href = '/profile/';
-        });
-        // 右侧已选列表：删除和修改体积
-        const selList = document.getElementById('selected-ingredients-list');
-        if (selList) {
-            selList.addEventListener('click', e => {
-                const btn = e.target.closest('.remove-selected-btn');
-                if (btn) removeIngredientFromSelection(btn.closest('.selected-ingredient-item').dataset.id);
-            });
-            selList.addEventListener('input', e => {
-                if (e.target.classList.contains('volume-input')) {
-                    const id = e.target.closest('.selected-ingredient-item').dataset.id;
-                    const idx = selectedIngredients.findIndex(i => i.id == id);
-                    if (idx !== -1) {
-                        selectedIngredients[idx].volume = parseFloat(e.target.value) || 0;
-                        updateAbvCalculation();
-                    }
-                }
-            });
-        }
-        // 搜索
-        document.getElementById('ingredient-search')?.addEventListener('input', function() {
-            const v = this.value.toLowerCase();
-            document.querySelectorAll('.ingredient-item').forEach(i => {
-                const n = i.querySelector('.ingredient-name').textContent.toLowerCase();
-                i.style.display = n.includes(v) ? '' : 'none';
-            });
-        });
-
-        // 名称输入变更时更新提交按钮状态
-        document.getElementById('cocktail-name')?.addEventListener('input', updateSubmitState);
-        
-        // 图片上传相关事件
-        setupImageUpload();
-
-        // AI智能调酒师
-        document.getElementById('ai-generate-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            generateAiRecipe();
-        });
-
-        document.getElementById('regenerate-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            generateAiRecipe(true);
-        });
-
-        document.getElementById('apply-recipe-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            applyGeneratedRecipeToForm();
-        });
-
-        document.getElementById('ai-analyze-btn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            analyzeCurrentRecipeFlavor();
-        });
-
-        document.getElementById('cocktail-description')?.addEventListener('input', updateAiAnalyzeState);
-        document.getElementById('steps-container')?.addEventListener('input', updateAiAnalyzeState);
-    }
-
-    function setupAiCollapsible() {
-        const toggleBtn = document.getElementById('ai-toggle-btn');
-        const panel = document.getElementById('ai-bartender-panel');
-        if (!toggleBtn || !panel) return;
-
-        setAiPanelExpanded(false);
-        toggleBtn.addEventListener('click', () => {
-            const expanded = toggleBtn.getAttribute('aria-expanded') === 'true';
-            setAiPanelExpanded(!expanded);
-        });
-    }
-
-    function setAiPanelExpanded(expanded) {
-        const toggleBtn = document.getElementById('ai-toggle-btn');
-        const panel = document.getElementById('ai-bartender-panel');
-        const hintEl = toggleBtn?.querySelector('.toggle-hint');
-        if (!toggleBtn || !panel) return;
-
-        toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        if (hintEl) hintEl.textContent = expanded ? '点击收起' : '点击展开';
-        panel.hidden = !expanded;
-    }
-
-    async function analyzeCurrentRecipeFlavor() {
-        if (selectedIngredients.length === 0) {
-            return showErrorMessage('请先添加至少一种原料，再进行AI口味分析');
-        }
-
-        const payload = buildAnalyzePayload();
-        setAiAnalyzeLoading(true);
-
-        try {
-            const response = await fetch('/api/custom/analyze-flavor', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            let data = null;
-            try {
-                data = await response.json();
-            } catch (_) {
-                data = null;
-            }
-
-            if (!response.ok) {
-                throw new Error(data?.message || 'AI口味分析失败，请稍后重试');
-            }
-
-            if (!data || !data.analysis) {
-                throw new Error('AI分析结果为空，请重试');
-            }
-
-            lastAnalysisAt = data.analyzedAt || new Date().toISOString();
-            renderAiAnalysisResult(data.analysis, lastAnalysisAt);
-        } catch (error) {
-            console.error('AI口味分析失败:', error);
-            showErrorMessage(error.message || 'AI口味分析失败，请稍后重试');
-        } finally {
-            setAiAnalyzeLoading(false);
-            updateAiAnalyzeState();
-        }
-    }
-
-    function buildAnalyzePayload() {
-        const name = document.getElementById('cocktail-name')?.value?.trim() || '';
-        const description = document.getElementById('cocktail-description')?.value?.trim() || '';
-        const stepsContainer = document.getElementById('steps-container');
-        const stepInputs = stepsContainer ? stepsContainer.querySelectorAll('.step-input') : [];
-        const steps = Array.from(stepInputs).map(input => input.value.trim()).filter(Boolean);
-
-        return {
-            name,
-            description,
-            ingredients: selectedIngredients.map(ing => ({
-                name: ing.name,
-                volume: Number.parseFloat(ing.volume) || 0,
-                abv: Number.parseFloat(ing.abv) || 0
-            })),
-            steps
-        };
-    }
-
-    function setAiAnalyzeLoading(isLoading) {
-        const analyzeBtn = document.getElementById('ai-analyze-btn');
-        const spinner = analyzeBtn?.querySelector('.loading-spinner');
-        const btnText = analyzeBtn?.querySelector('.btn-text');
-
-        if (analyzeBtn) {
-            analyzeBtn.disabled = isLoading;
-            analyzeBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
-        }
-        if (spinner) {
-            spinner.classList.toggle('is-visible', isLoading);
-        }
-        if (btnText) {
-            btnText.textContent = isLoading ? '分析中...' : '分析口味特征';
-        }
-    }
-
-    function renderAiAnalysisResult(analysisText, analyzedAt) {
-        const resultEl = document.getElementById('ai-analysis-result');
-        const contentEl = document.getElementById('analysis-content');
-        const metaEl = document.getElementById('analysis-meta');
-
-        if (contentEl) {
-            const escaped = String(analysisText)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/\n/g, '<br>');
-            contentEl.innerHTML = escaped;
-        }
-
-        if (metaEl) {
-            const timeLabel = analyzedAt ? new Date(analyzedAt).toLocaleString() : new Date().toLocaleString();
-            metaEl.textContent = `分析时间：${timeLabel}`;
-        }
-
-        if (resultEl) {
-            resultEl.hidden = false;
-            resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
-
-    function updateAiAnalyzeState() {
-        const analyzeBtn = document.getElementById('ai-analyze-btn');
-        if (!analyzeBtn) return;
-
-        const hasIngredients = selectedIngredients.length > 0;
-        analyzeBtn.disabled = !hasIngredients;
-    }
-
-    async function generateAiRecipe(isRegenerate = false) {
-        const payload = buildGeneratePayload();
-
-        if (!payload.tasteDescription) {
-            return showErrorMessage('请先输入口味描述，再生成AI配方');
-        }
-
-        if (!isRegenerate || !lastGeneratePayload) {
-            lastGeneratePayload = payload;
-        }
-
-        setAiGenerateLoading(true);
-
-        try {
-            const response = await fetch('/api/custom/generate-recipe', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(lastGeneratePayload)
-            });
-
-            let data = null;
-            try {
-                data = await response.json();
-            } catch (_) {
-                data = null;
-            }
-
-            if (!response.ok) {
-                throw new Error(data?.message || 'AI配方生成失败，请稍后重试');
-            }
-
-            if (!data || !data.recipe) {
-                throw new Error('AI服务返回数据不完整，请重试');
-            }
-
-            generatedRecipe = data.recipe;
-            renderGeneratedRecipe(generatedRecipe);
-
-        } catch (error) {
-            console.error('生成AI配方失败:', error);
-            showErrorMessage(error.message || '生成AI配方失败，请稍后重试');
-        } finally {
-            setAiGenerateLoading(false);
-        }
-    }
-
-    function buildGeneratePayload() {
-        const tasteDescription = document.getElementById('taste-description')?.value?.trim() || '';
-        const occasion = document.getElementById('occasion-select')?.value || '';
-        const alcoholStrength = document.getElementById('strength-select')?.value || '';
-
-        return {
-            tasteDescription,
-            occasion,
-            alcoholStrength
-        };
-    }
-
-    function setAiGenerateLoading(isLoading) {
-        const generateBtn = document.getElementById('ai-generate-btn');
-        const regenerateBtn = document.getElementById('regenerate-btn');
-        const applyBtn = document.getElementById('apply-recipe-btn');
-        const spinner = generateBtn?.querySelector('.loading-spinner');
-        const btnText = generateBtn?.querySelector('.btn-text');
-
-        if (generateBtn) generateBtn.disabled = isLoading;
-        if (regenerateBtn) regenerateBtn.disabled = isLoading;
-        if (applyBtn) applyBtn.disabled = isLoading;
-        if (generateBtn) generateBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
-        if (spinner) spinner.classList.toggle('is-visible', isLoading);
-        if (btnText) btnText.textContent = isLoading ? '生成中...' : '生成 AI 配方';
-    }
-
-    function renderGeneratedRecipe(recipe) {
-        const resultEl = document.getElementById('ai-recipe-result');
-        const nameEl = document.getElementById('generated-recipe-name');
-        const descriptionEl = document.getElementById('generated-recipe-description');
-        const ingredientsEl = document.getElementById('generated-ingredients');
-        const stepsEl = document.getElementById('generated-steps');
-        const tasteProfileEl = document.getElementById('taste-profile');
-        const tipsEl = document.getElementById('recipe-tips');
-
-        if (nameEl) nameEl.textContent = recipe.name || 'AI推荐配方';
-        if (descriptionEl) descriptionEl.textContent = recipe.description || '已为您生成配方建议';
-
-        if (ingredientsEl) {
-            ingredientsEl.innerHTML = '';
-            const ingredients = Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
-            if (ingredients.length === 0) {
-                ingredientsEl.textContent = '暂无原料信息';
-            } else {
-                ingredients.forEach((ing) => {
-                    const item = document.createElement('div');
-                    const volume = Number.isFinite(Number(ing.volume)) ? Number(ing.volume) : 0;
-                    const abv = Number.isFinite(Number(ing.abv)) ? Number(ing.abv) : 0;
-                    item.textContent = `${ing.name || '未命名原料'} - ${volume}ml${abv > 0 ? ` (${abv}%)` : ''}`;
-                    ingredientsEl.appendChild(item);
-                });
-            }
-        }
-
-        if (stepsEl) {
-            stepsEl.innerHTML = '';
-            const steps = Array.isArray(recipe.steps) ? recipe.steps : [];
-            if (steps.length === 0) {
-                const emptyStep = document.createElement('li');
-                emptyStep.textContent = '暂无制作步骤';
-                stepsEl.appendChild(emptyStep);
-            } else {
-                steps.forEach((step) => {
-                    const li = document.createElement('li');
-                    li.textContent = step;
-                    stepsEl.appendChild(li);
-                });
-            }
-        }
-
-        if (tasteProfileEl) {
-            tasteProfileEl.innerHTML = '';
-            const profile = recipe.taste_profile && typeof recipe.taste_profile === 'object' ? recipe.taste_profile : {};
-            const profileMap = [
-                ['sweetness', '甜度'],
-                ['sourness', '酸度'],
-                ['bitterness', '苦度'],
-                ['strength', '烈度']
-            ];
-
-            let hasProfile = false;
-            profileMap.forEach(([key, label]) => {
-                if (profile[key] !== undefined && profile[key] !== null && profile[key] !== '') {
-                    hasProfile = true;
-                    const row = document.createElement('div');
-                    row.textContent = `${label}: ${profile[key]}`;
-                    tasteProfileEl.appendChild(row);
-                }
-            });
-
-            if (!hasProfile) {
-                tasteProfileEl.textContent = '暂无口味特征数据';
-            }
-        }
-
-        if (tipsEl) tipsEl.textContent = recipe.tips || '可根据个人口味微调原料比例';
-
-        if (resultEl) {
-            resultEl.hidden = false;
-            resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
-
-    function applyGeneratedRecipeToForm() {
-        if (!generatedRecipe) {
-            return showErrorMessage('请先生成AI配方，再应用到表单');
-        }
-
-        const nameInput = document.getElementById('cocktail-name');
-        const descInput = document.getElementById('cocktail-description');
-        const stepsContainer = document.getElementById('steps-container');
-
-        if (nameInput && generatedRecipe.name) {
-            nameInput.value = generatedRecipe.name;
-        }
-
-        if (descInput && generatedRecipe.description) {
-            descInput.value = generatedRecipe.description;
-        }
-
-        const aiIngredients = Array.isArray(generatedRecipe.ingredients) ? generatedRecipe.ingredients : [];
-        selectedIngredients = aiIngredients.map((ing, index) => {
-            const matched = findIngredientInLibrary(ing.name);
-            const parsedVolume = Number.parseFloat(ing.volume);
-            const parsedAbv = Number.parseFloat(ing.abv);
-
-            return {
-                id: matched ? matched.id : `ai_${Date.now()}_${index}`,
-                name: ing.name || `AI原料${index + 1}`,
-                volume: Number.isFinite(parsedVolume) ? parsedVolume : 30,
-                abv: Number.isFinite(parsedAbv) ? parsedAbv : (matched ? matched.abv : 0),
-                category: matched ? matched.category : (ing.category || 'other'),
-                unit: matched ? matched.unit : 'ml'
-            };
-        });
-
-        renderSelectedIngredients();
-        updateAbvCalculation();
-        updateSubmitState();
-        updateAiAnalyzeState();
-        highlightSelectedItemsInList();
-
-        if (stepsContainer) {
-            stepsContainer.innerHTML = '';
-            const aiSteps = Array.isArray(generatedRecipe.steps) ? generatedRecipe.steps : [];
-            if (aiSteps.length === 0) {
-                addPreparationStep('');
-            } else {
-                aiSteps.forEach(step => addPreparationStep(step));
-            }
-        }
-
-        showSuccessMessage('AI配方已应用到下方表单，您可以继续微调后保存。');
-    }
-
-    function findIngredientInLibrary(name) {
-        if (!name || !allIngredients.ingredients) return null;
-        const normalizedName = String(name).trim().toLowerCase();
-
-        for (const category of allIngredients.ingredients) {
-            const match = category.items.find(item => item.name.toLowerCase() === normalizedName);
-            if (match) {
-                return {
-                    ...match,
-                    category: category.category
-                };
-            }
-        }
-
-        return null;
-    }
-
-    // 添加原料逻辑
-    function addIngredientToSelection(id) {
-        if (selectedIngredients.some(i => i.id == id)) return showErrorMessage('已添加该原料');
-        
-        let item = null;
-        let cat = 'other';
-        // 在所有分类里找这个ID
-        if(allIngredients.ingredients) {
-            for(const c of allIngredients.ingredients) {
-                const f = c.items.find(i => i.id == id);
-                if(f) { item = f; cat = c.category; break; }
-            }
-        }
-        if (!item) return;
-
-        selectedIngredients.push({
-            id: item.id,
-            name: item.name,
-            volume: 30,
-            abv: item.abv,
-            category: cat,
-            unit: item.unit
-        });
-        renderSelectedIngredients();
-        updateAbvCalculation();
-        updateSubmitState();
-        
-        // 高亮左侧
-        const el = document.querySelector(`.ingredient-item[data-id="${id}"]`);
-        if(el) el.classList.add('selected');
-    }
-
-    function removeIngredientFromSelection(id) {
-        selectedIngredients = selectedIngredients.filter(i => i.id != id);
-        renderSelectedIngredients();
-        updateAbvCalculation();
-        updateSubmitState();
-        const el = document.querySelector(`.ingredient-item[data-id="${id}"]`);
-        if(el) el.classList.remove('selected');
-    }
-
-    function renderSelectedIngredients() {
-        const list = document.getElementById('selected-ingredients-list');
-        const count = document.getElementById('selected-count');
-        if(!list) return;
-        
-        count.textContent = selectedIngredients.length;
-        list.innerHTML = '';
-        
-        if (selectedIngredients.length === 0) {
-            list.innerHTML = '<div class="empty-selection-message">请选择原料</div>';
-            return;
-        }
-
-        // 简单分组渲染逻辑 (为了代码简洁，这里不按分类分组了，直接列出)
-        // 如果您希望按分类分组，可以参考之前的逻辑，或者直接平铺显示
-        selectedIngredients.forEach(ing => {
-            const div = document.createElement('div');
-            div.className = 'selected-ingredient-item';
-            div.dataset.id = ing.id;
-            div.innerHTML = `
-                <div class="selected-ingredient-name">${ing.name}</div>
-                <div class="selected-ingredient-volume">
-                    <input type="number" class="volume-input" value="${ing.volume}" min="0" step="5">
-                    <span class="volume-unit">${ing.unit||'ml'}</span>
-                </div>
-                <button type="button" class="remove-selected-btn" aria-label="移除原料">
-                    ${TRASH_ICON_SVG}
-                </button>
-            `;
-            list.appendChild(div);
-        });
-    }
-
-    // [新增] 辅助高亮函数
-    function highlightSelectedItemsInList() {
-        const currentItems = document.querySelectorAll('.ingredient-item');
-        currentItems.forEach(item => {
-            if (selectedIngredients.some(sel => sel.id === item.dataset.id)) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
-        });
-    }
-
-    // [修改] 添加步骤 (支持默认值)
-    function addPreparationStep(defaultValue = '') {
-        const stepsContainer = document.getElementById('steps-container');
-        if (!stepsContainer) return;
-        
-        const stepItems = stepsContainer.querySelectorAll('.step-item');
-        const newStepNumber = stepItems.length + 1;
-
-        const newStep = document.createElement('div');
-        newStep.className = 'step-item';
-        newStep.dataset.step = newStepNumber;
-
-        newStep.innerHTML = `
-            <div class="step-number">${newStepNumber}</div>
-            <input type="text" class="step-input" placeholder="输入步骤说明" value="${defaultValue}">
-            <button type="button" class="remove-step-btn" title="删除步骤" aria-label="删除步骤">
-                ${TRASH_ICON_SVG}
-            </button>
-        `;
-        stepsContainer.appendChild(newStep);
-    }
-
-    function updateAbvCalculation() {
-        const abvEl = document.getElementById('calculated-abv');
-        const descEl = document.getElementById('abv-description');
-        const anim = document.querySelector('.cocktail-glass');
-        if(!abvEl) return;
-
-        let totalVol = 0, totalAlc = 0;
-        selectedIngredients.forEach(i => {
-            totalVol += i.volume;
-            totalAlc += i.volume * (i.abv||0) / 100;
-        });
-        
-        const abv = totalVol > 0 ? (totalAlc/totalVol)*100 : 0;
-        abvEl.textContent = abv.toFixed(1) + '%';
-        
-        let desc = '无酒精';
-        if (anim) anim.className = 'cocktail-glass'; 
-        if (abv > 0 && abv < 10) { desc = '低度微醺'; if(anim) anim.classList.add('abv-low'); }
-        else if (abv >= 10 && abv < 30) { desc = '中等烈度'; if(anim) anim.classList.add('abv-medium'); }
-        else if (abv >= 30) { desc = '高烈度'; if(anim) anim.classList.add('abv-high'); }
-        
-        if(descEl) descEl.textContent = desc;
-        abvEl.classList.toggle('abv-value-high', abv > 20);
-        abvEl.classList.toggle('abv-value-low', abv <= 20);
-    }
-
-    function renumberSteps() {
-        document.querySelectorAll('.step-item').forEach((item, idx) => {
-            item.querySelector('.step-number').textContent = idx + 1;
-        });
-    }
-
-    function updateTabStyles() {
-        document.querySelectorAll('.category-tab').forEach(t => {
-            t.classList.toggle('active', t.dataset.category === currentCategoryTab);
-        });
-    }
-
-    // 控制提交按钮的可用状态
-    function updateSubmitState() {
-        const submitBtn = document.getElementById('create-cocktail-btn');
-        const nameInput = document.getElementById('cocktail-name');
-        if (!submitBtn || !nameInput) return;
-
-        const hasName = nameInput.value.trim().length > 0;
-        const hasIngredients = selectedIngredients.length > 0;
-        submitBtn.disabled = !(hasName && hasIngredients);
-        updateAiAnalyzeState();
-    }
-
-    function showErrorMessage(msg) {
-        showAlert(msg, 'error');
-    }
-
-    function showSuccessMessage(msg) {
-        showAlert(msg, 'success');
-    }
-
-    function showAlert(msg, type = 'error') {
-        const alertEl = document.getElementById('alert-container');
-        if (!alertEl) {
-            if (type === 'error') alert(msg);
-            return;
-        }
-
-        alertEl.textContent = msg;
-        alertEl.classList.remove('alert-success', 'alert-error');
-        alertEl.classList.add(type === 'success' ? 'alert-success' : 'alert-error', 'show');
-
-        window.clearTimeout(showAlert.timerId);
-        showAlert.timerId = window.setTimeout(() => {
-            alertEl.classList.remove('show');
-        }, 3600);
-    }
-
-    // --- 图片上传相关功能 ---
-    function setupImageUpload() {
-        const fileInput = document.getElementById('cocktail-image');
-        const uploadBtn = document.getElementById('upload-image-btn');
-        const previewImg = document.getElementById('preview-img');
-
-        // 点击上传按钮 -> 触发文件选择
-        uploadBtn?.addEventListener('click', () => {
-            fileInput?.click();
-        });
-
-        // 点击预览图片 -> 触发文件选择
-        previewImg?.addEventListener('click', () => {
-            fileInput?.click();
-        });
-
-        // 文件选择后 -> 显示预览
-        fileInput?.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    showImagePreview(event.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-
-    function showImagePreview(imageSrc) {
-        const previewContainer = document.getElementById('image-preview');
-        const uploadBtn = document.getElementById('upload-image-btn');
-        const previewImg = document.getElementById('preview-img');
-
-        if (previewImg && previewContainer && uploadBtn) {
-            previewImg.src = imageSrc;
-            previewContainer.hidden = false;
-            uploadBtn.hidden = true;
-        }
-    }
-
-    // 启动
-    initialize();
+document.addEventListener('DOMContentLoaded', () => {
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = selector => [...document.querySelectorAll(selector)];
+  const params = new URLSearchParams(location.search);
+  const editId = params.get('id');
+  const DRAFT_VERSION = 2;
+  const DRAFT_KEY = `cybar:recipe-draft:v${DRAFT_VERSION}:${editId || 'new'}`;
+  const analysisMemory = new Map();
+  let allIngredients = [];
+  let activeCategory = 'all';
+  let selected = [];
+  let steps = [];
+  let currentStep = 1;
+  let aiRecipe = null;
+  let generatedImageToken = null;
+  let generatedImageExpiresAt = null;
+  let localImageFile = null;
+  let isLoggedIn = false;
+  let saveTimer;
+
+  const categoryNames = {
+    all: '全部',
+    base_alcohol: '基酒',
+    liqueur: '利口酒',
+    liqueurs: '利口酒',
+    vermouth_wine: '味美思与葡萄酒',
+    bitters: '苦精',
+    juice: '果汁',
+    syrup: '糖浆',
+    mixer: '调和饮料',
+    soda_mixer: '苏打与调和饮料',
+    dairy_cream: '乳制品与奶油',
+    garnish: '装饰',
+    other: '其他'
+  };
+  const tasteNames = { sweetness: '甜度', sourness: '酸度', bitterness: '苦度', strength: '烈度', freshness: '清爽' };
+
+  function alert(message, type = 'error') {
+    const box = $('#alert-container'); box.textContent = message; box.className = `alert ${type}`; box.hidden = false;
+    window.clearTimeout(box._timer); box._timer = window.setTimeout(() => { box.hidden = true; }, 5000);
+  }
+  async function request(url, options = {}) {
+    const response = await fetch(url, options);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) { const error = new Error(data.message || '请求失败'); error.status = response.status; error.code = data.code; throw error; }
+    return data;
+  }
+  function valid() { return $('#cocktail-name').value.trim() && selected.some(item => item.name.trim() && Number(item.volume) > 0); }
+  function abv() {
+    const total = selected.reduce((sum, item) => sum + Number(item.volume || 0), 0);
+    const alcohol = selected.reduce((sum, item) => sum + Number(item.volume || 0) * Number(item.abv || 0) / 100, 0);
+    return total ? alcohol / total * 100 : 0;
+  }
+  function totalVolume() { return selected.reduce((sum, item) => sum + Number(item.volume || 0), 0); }
+  function recipePayload() { return { name: $('#cocktail-name').value.trim(), description: $('#cocktail-description').value.trim(), ingredients: selected.map(({ name, volume, abv }) => ({ name, volume: Number(volume), abv: Number(abv) })), steps: [...steps] }; }
+  function analysisKey() { return JSON.stringify(recipePayload()); }
+
+  function updatePreview() {
+    const name = $('#cocktail-name').value.trim() || '未命名配方';
+    $$('[data-preview-name]').forEach(el => { el.textContent = name; });
+    $$('[data-preview-abv]').forEach(el => { el.textContent = `${abv().toFixed(1)}%`; });
+    $$('[data-preview-volume]').forEach(el => { el.textContent = `${Math.round(totalVolume())} ml`; });
+    $('#preview-ingredients').innerHTML = selected.length ? `<ul>${selected.map(item => `<li>${escapeHtml(item.name)} · ${Number(item.volume) || 0} ml</li>`).join('')}</ul>` : '<p>添加原料后将在这里预览</p>';
+    $('#mobile-preview-detail').innerHTML = selected.length ? selected.map(item => `${escapeHtml(item.name)} ${Number(item.volume) || 0}ml`).join(' · ') : '添加原料后将在这里预览';
+    $('#create-cocktail-btn').disabled = !valid();
+    $('#ai-analyze-btn').disabled = !selected.length;
+    $('#ai-image-btn').disabled = !isLoggedIn || !valid();
+    $('[data-step-summary="1"]').textContent = $('#cocktail-name').value.trim() || '开始构思你的新配方';
+    $('[data-step-summary="2"]').textContent = selected.length ? `已选 ${selected.length} 种 · ${Math.round(totalVolume())} ml` : '尚未选择';
+    $('[data-step-summary="3"]').textContent = steps.length ? `已添加 ${steps.length} 步` : '尚未添加';
+    $('[data-step-summary="4"]').textContent = valid() ? '可以创建' : '等待完成';
+    scheduleDraft();
+  }
+  function escapeHtml(value) { const node = document.createElement('span'); node.textContent = value; return node.innerHTML; }
+
+  function setStep(step, focus = false) {
+    currentStep = Math.max(1, Math.min(4, Number(step)));
+    $$('.workflow-step').forEach(section => {
+      const open = Number(section.dataset.step) === currentStep;
+      section.classList.toggle('open', open);
+      const button = $('.step-heading', section); if (button) button.setAttribute('aria-expanded', String(open));
+      const panel = $('.step-panel', section); panel.hidden = !open;
+    });
+    $$('[data-track-step]').forEach(item => item.classList.toggle('active', Number(item.dataset.trackStep) === currentStep));
+    const nextLabels = ['下一步：选择原料', '下一步：制作步骤', '下一步：预览并创建', valid() ? (editId ? '保存修改' : '创建鸡尾酒') : '请先完善配方'];
+    $('#next-step-btn').textContent = nextLabels[currentStep - 1];
+    $('#next-step-btn').disabled = currentStep === 4 && !valid();
+    if (focus) $(`.workflow-step[data-step="${currentStep}"]`).scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    scheduleDraft();
+  }
+  function renderCategories() {
+    const categories = ['all', ...new Set(allIngredients.map(item => item.category))];
+    $('#ingredient-categories').innerHTML = categories.map(category => `<button type="button" role="tab" aria-selected="${category === activeCategory}" class="${category === activeCategory ? 'active' : ''}" data-category="${escapeHtml(category)}">${categoryNames[category] || category}</button>`).join('');
+  }
+  function renderAvailable() {
+    const query = $('#ingredient-search').value.trim().toLowerCase();
+    const matches = allIngredients.filter(item => (activeCategory === 'all' || item.category === activeCategory) && item.name.toLowerCase().includes(query));
+    $('#ingredients-list').innerHTML = matches.length ? matches.map(item => `<div class="ingredient-item"><span>${escapeHtml(item.name)} <small>${Number(item.abv) || 0}%</small></span><button type="button" data-add="${escapeHtml(item.id)}">添加</button></div>`).join('') : '<p class="empty">没有匹配的原料</p>';
+  }
+  function renderSelected() {
+    $('#selected-count').textContent = selected.length;
+    $('#selected-ingredients-list').innerHTML = selected.length ? selected.map((item, index) => `<div class="selected-row"><span>${escapeHtml(item.name)}</span><label class="selected-value-field"><input inputmode="decimal" aria-label="${escapeHtml(item.name)}用量（毫升）" data-volume="${index}" type="number" min="0" step="1" value="${item.volume}"><span>ml</span></label><label class="selected-value-field"><input inputmode="decimal" aria-label="${escapeHtml(item.name)}酒精度（百分比）" data-abv="${index}" type="number" min="0" max="100" step="0.1" value="${item.abv}"><span>%</span></label><button type="button" aria-label="移除${escapeHtml(item.name)}" data-remove="${index}">×</button></div>`).join('') : '<p class="empty">尚未选择任何原料</p>';
+    updatePreview();
+  }
+  function renderSteps() {
+    $('#steps-container').innerHTML = steps.map((step, index) => `<div class="step-row"><b>${index + 1}</b><textarea rows="2" data-step-input="${index}" aria-label="步骤 ${index + 1}" placeholder="描述这一步如何制作">${escapeHtml(step)}</textarea><button type="button" data-remove-step="${index}" aria-label="删除步骤 ${index + 1}">×</button></div>`).join('');
+    updatePreview();
+  }
+  function applyRecipe(recipe) {
+    $('#cocktail-name').value = recipe.name || '';
+    $('#cocktail-description').value = recipe.description || '';
+    selected = (recipe.ingredients || []).map((item, index) => ({ id: `ai-${Date.now()}-${index}`, name: item.name, volume: Number(item.volume), abv: Number(item.abv) }));
+    steps = (recipe.steps || []).map(String);
+    renderSelected(); renderSteps(); updateCounters();
+    alert('AI 配方已应用，你仍可以自由修改。', 'success');
+  }
+  function updateCounters() { $('#taste-count').textContent = $('#taste-description').value.length; $('#description-count').textContent = $('#cocktail-description').value.length; }
+
+  function draftData() { return { version: DRAFT_VERSION, savedAt: new Date().toISOString(), currentStep, taste: $('#taste-description').value, occasion: $('#occasion-select').value, strength: $('#strength-select').value, ...recipePayload(), generatedImageToken: generatedImageExpiresAt && Date.parse(generatedImageExpiresAt) > Date.now() ? generatedImageToken : null, generatedImageExpiresAt: generatedImageExpiresAt && Date.parse(generatedImageExpiresAt) > Date.now() ? generatedImageExpiresAt : null, generatedPreviewUrl: generatedImageToken ? $('#preview-img').src : null }; }
+  function scheduleDraft() { window.clearTimeout(saveTimer); saveTimer = window.setTimeout(() => localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData())), 400); }
+  function restoreDraft() {
+    try {
+      const draft = JSON.parse(localStorage.getItem(DRAFT_KEY)); if (!draft || draft.version !== DRAFT_VERSION) return false;
+      $('#taste-description').value = draft.taste || ''; $('#occasion-select').value = draft.occasion || ''; $('#strength-select').value = draft.strength || '';
+      $('#cocktail-name').value = draft.name || ''; $('#cocktail-description').value = draft.description || '';
+      selected = Array.isArray(draft.ingredients) ? draft.ingredients.map((item, index) => ({ id: `draft-${index}`, ...item })) : [];
+      steps = Array.isArray(draft.steps) ? draft.steps : [];
+      if (draft.generatedImageToken && Date.parse(draft.generatedImageExpiresAt) > Date.now()) { generatedImageToken = draft.generatedImageToken; generatedImageExpiresAt = draft.generatedImageExpiresAt; $('#preview-img').src = draft.generatedPreviewUrl; }
+      setStep(draft.currentStep || 1); $('#draft-notice').hidden = false; return true;
+    } catch { localStorage.removeItem(DRAFT_KEY); return false; }
+  }
+  function clearDraft(reset = true) {
+    localStorage.removeItem(DRAFT_KEY);
+    if (!reset) return;
+    $('#custom-cocktail-form').reset(); selected = []; steps = []; aiRecipe = null; generatedImageToken = null; generatedImageExpiresAt = null; localImageFile = null;
+    $('#preview-img').src = '/custom/assets/empty-coupe.png'; $('#ai-recipe-result').hidden = true; $('#ai-analysis-result').hidden = true; renderSelected(); renderSteps(); updateCounters(); setStep(1); alert('草稿已清空。', 'success');
+  }
+
+  async function generateRecipe() {
+    const taste = $('#taste-description').value.trim(); if (!taste) return alert('请先描述你想要的风味、场景或记忆。');
+    const button = $('#ai-generate-btn'); button.disabled = true; button.textContent = '正在构思配方…';
+    try {
+      const data = await request('/api/custom/generate-recipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tasteDescription: taste, occasion: $('#occasion-select').value, alcoholStrength: $('#strength-select').value }) });
+      aiRecipe = data.recipe; $('#generated-recipe-name').textContent = aiRecipe.name; $('#generated-recipe-description').textContent = `${aiRecipe.description} · ${aiRecipe.ingredients.length} 种原料`; $('#ai-recipe-result').hidden = false;
+    } catch (error) { alert(error.status === 401 ? '请先登录再使用 AI 配方生成。' : error.message); }
+    finally { button.disabled = false; button.textContent = '✣　生成 AI 配方'; }
+  }
+  async function analyze() {
+    const key = analysisKey(); const button = $('#ai-analyze-btn'); button.disabled = true; button.textContent = '分析中…';
+    try {
+      const data = analysisMemory.get(key) || await request('/api/custom/analyze-flavor', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(recipePayload()) });
+      analysisMemory.set(key, data); renderAnalysis(data);
+    } catch (error) { alert(error.message); }
+    finally { button.disabled = !selected.length; button.textContent = '分析口味特征'; }
+  }
+  function renderAnalysis(data) {
+    const profile = data.tasteProfile || {};
+    const bars = Object.entries(tasteNames).map(([key, label]) => `<div><span>${label}</span><i style="--score:${Math.max(0, Math.min(10, Number(profile[key]) || 0)) * 10}%"></i><b>${Number(profile[key] || 0).toFixed(1)}</b></div>`).join('');
+    $('#ai-analysis-result').innerHTML = `<div class="taste-bars">${bars}</div><p>${escapeHtml(data.analysis)}</p><small>${data.cache?.hit ? `${data.cache.layer} 缓存${data.cache.stale ? '（过期回退）' : ''}` : `由 ${escapeHtml(data.model || 'AI')} 新分析`}</small>`;
+    $('#ai-analysis-result').hidden = false;
+  }
+  async function generateImage() {
+    const button = $('#ai-image-btn'); button.disabled = true; button.textContent = '正在生成，不影响继续编辑…'; $('#image-status').textContent = '正在生成配图，请稍候。';
+    try {
+      const data = await request('/api/custom/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(recipePayload()) });
+      generatedImageToken = data.token; generatedImageExpiresAt = data.expiresAt; localImageFile = null; $('#cocktail-image').value = ''; $('#preview-img').src = data.previewUrl; $('#image-status').textContent = `AI 配图已生成，令牌有效至 ${new Date(data.expiresAt).toLocaleString()}`; scheduleDraft();
+    } catch (error) { $('#image-status').textContent = `生成失败：${error.message}。可重试，配方内容未受影响。`; }
+    finally { button.disabled = !isLoggedIn || !valid(); button.textContent = '✣　AI 生成配图'; }
+  }
+  async function submit() {
+    if (!valid()) return alert('请填写配方名称并添加至少一种有效原料。');
+    const button = $('#create-cocktail-btn'); button.disabled = true; button.textContent = editId ? '保存中…' : '创建中…';
+    const form = new FormData(); const payload = recipePayload();
+    form.set('name', payload.name); form.set('description', payload.description); form.set('ingredients', JSON.stringify(payload.ingredients)); form.set('steps', JSON.stringify(payload.steps)); form.set('estimatedAbv', abv().toFixed(2));
+    if (localImageFile) form.set('image', localImageFile); else if (generatedImageToken) form.set('generatedImageToken', generatedImageToken);
+    try {
+      const url = editId ? `/api/custom/cocktails/${encodeURIComponent(editId)}` : '/api/custom/cocktails';
+      const data = await request(url, { method: editId ? 'PUT' : 'POST', body: form }); clearDraft(false); location.href = `/recipes/detail.html?id=${encodeURIComponent(data.id)}`;
+    } catch (error) { alert(error.status === 401 ? '请先登录再创建配方。' : error.message); button.disabled = false; button.textContent = editId ? '保存修改' : '创建鸡尾酒'; }
+  }
+  async function loadEdit() {
+    if (!editId) return;
+    try {
+      const recipe = await request(`/api/custom/cocktails/${encodeURIComponent(editId)}`);
+      $('#cocktail-name').value = recipe.name || ''; $('#cocktail-description').value = recipe.description || '';
+      selected = (recipe.ingredients || []).map(item => ({ id: `stored-${item.id}`, name: item.name, volume: Number(item.volume), abv: Number(item.abv) }));
+      steps = String(recipe.instructions || '').split(/\r?\n/).filter(Boolean); if (recipe.image) $('#preview-img').src = recipe.image;
+    } catch (error) { alert(error.message); }
+  }
+
+  $$('.step-heading').forEach(button => button.addEventListener('click', () => setStep(button.closest('.workflow-step').dataset.step, true)));
+  $$('[data-track-step]').forEach(item => { item.tabIndex = 0; item.addEventListener('click', () => setStep(item.dataset.trackStep, true)); item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStep(item.dataset.trackStep, true); } }); });
+  $('#ai-panel-toggle').addEventListener('click', () => { const body = $('#ai-panel-body'); body.hidden = !body.hidden; $('#ai-panel-toggle').setAttribute('aria-expanded', String(!body.hidden)); });
+  $('#mobile-preview-toggle').addEventListener('click', () => { const detail = $('#mobile-preview-detail'); detail.hidden = !detail.hidden; $('#mobile-preview-toggle').setAttribute('aria-expanded', String(!detail.hidden)); });
+  $('#ingredient-categories').addEventListener('click', e => { const button = e.target.closest('[data-category]'); if (!button) return; activeCategory = button.dataset.category; renderCategories(); renderAvailable(); });
+  $('#ingredients-list').addEventListener('click', e => { const button = e.target.closest('[data-add]'); if (!button) return; const item = allIngredients.find(i => i.id === button.dataset.add); if (!item) return; const existing = selected.find(i => i.id === item.id); if (existing) existing.volume += 30; else selected.push({ ...item, volume: 30 }); renderSelected(); });
+  $('#selected-ingredients-list').addEventListener('input', e => { const index = Number(e.target.dataset.volume ?? e.target.dataset.abv); if (Number.isNaN(index)) return; if (e.target.dataset.volume !== undefined) selected[index].volume = Number(e.target.value); else selected[index].abv = Number(e.target.value); updatePreview(); });
+  $('#selected-ingredients-list').addEventListener('click', e => { const button = e.target.closest('[data-remove]'); if (!button) return; selected.splice(Number(button.dataset.remove), 1); renderSelected(); });
+  $('#add-custom-ingredient').addEventListener('click', () => { const name = window.prompt('自定义原料名称'); if (!name?.trim()) return; selected.push({ id: `custom-${Date.now()}`, name: name.trim(), volume: 30, abv: 0 }); renderSelected(); });
+  $('#add-step-btn').addEventListener('click', () => { steps.push(''); renderSteps(); $(`[data-step-input="${steps.length - 1}"]`)?.focus(); });
+  $('#steps-container').addEventListener('input', e => { if (e.target.dataset.stepInput === undefined) return; steps[Number(e.target.dataset.stepInput)] = e.target.value; updatePreview(); });
+  $('#steps-container').addEventListener('click', e => { const button = e.target.closest('[data-remove-step]'); if (!button) return; steps.splice(Number(button.dataset.removeStep), 1); renderSteps(); });
+  ['#cocktail-name','#cocktail-description','#taste-description'].forEach(selector => $(selector).addEventListener('input', () => { updateCounters(); updatePreview(); }));
+  ['#occasion-select','#strength-select'].forEach(selector => $(selector).addEventListener('change', scheduleDraft));
+  $('#ingredient-search').addEventListener('input', renderAvailable); $('#ai-generate-btn').addEventListener('click', generateRecipe); $('#regenerate-btn').addEventListener('click', generateRecipe); $('#apply-recipe-btn').addEventListener('click', () => aiRecipe && applyRecipe(aiRecipe));
+  $('#ai-analyze-btn').addEventListener('click', analyze); $('#ai-image-btn').addEventListener('click', generateImage); $('#create-cocktail-btn').addEventListener('click', submit); $('#clear-draft-btn').addEventListener('click', () => clearDraft(true));
+  $('#next-step-btn').addEventListener('click', () => currentStep < 4 ? setStep(currentStep + 1, true) : submit()); $('[data-dismiss-notice]').addEventListener('click', () => { $('#draft-notice').hidden = true; });
+  $('#preview-upload-btn').addEventListener('click', () => $('#cocktail-image').click()); $('#cocktail-image').addEventListener('change', e => { localImageFile = e.target.files[0] || null; if (!localImageFile) return; generatedImageToken = null; generatedImageExpiresAt = null; $('#preview-img').src = URL.createObjectURL(localImageFile); $('#image-status').textContent = '已选择本地图片；保存时将优先使用。'; });
+
+  (async () => {
+    try { const status = await request('/api/auth/status'); isLoggedIn = Boolean(status.loggedIn); $('#ai-availability').textContent = isLoggedIn ? 'AI 配方不会覆盖手动内容，确认后再应用。' : '登录后可生成 AI 配方与配图'; }
+    catch { isLoggedIn = false; }
+    try { const data = await request('/api/custom/ingredients'); allIngredients = (data.ingredients || []).flatMap(group => (group.items || []).map(item => ({ ...item, category: group.category }))); }
+    catch (error) { alert(error.message); }
+    await loadEdit(); const restored = restoreDraft(); if (!restored) setStep(1); renderCategories(); renderAvailable(); renderSelected(); renderSteps(); updateCounters(); updatePreview();
+    if (editId) { $('#create-cocktail-btn').textContent = '保存修改'; document.title = '编辑配方 · Cybar'; }
+  })();
 });
