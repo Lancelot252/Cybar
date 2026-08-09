@@ -51,6 +51,9 @@
 }
 
 .recipe-image-wrap {
+    align-self: center;
+    width: fit-content;
+    max-width: 100%;
     margin: 0;
     border-radius: var(--radius-lg);
     overflow: hidden;
@@ -59,9 +62,9 @@
 }
 
 .recipe-main-image {
-    width: 100%;
-    height: clamp(320px, 52vw, 620px);
-    object-fit: contain;
+    width: auto;
+    height: auto;
+    max-width: 100%;
     display: block;
     cursor: zoom-in;
 }
@@ -408,10 +411,6 @@
 }
 
 @media (max-width: 767px) {
-    .recipe-main-image {
-        height: min(110vw, 520px);
-    }
-
     .social-interaction-bar {
         flex-direction: column;
         align-items: stretch;
