@@ -304,8 +304,7 @@ router.get('/api/recommendations', async (req, res) => {
     } catch (error) {
         console.error('生成推荐失败:', error);
         return res.status(500).json({
-            message: '生成推荐时出错',
-            error: error.message
+            message: '生成推荐时出错'
         });
     }
 });

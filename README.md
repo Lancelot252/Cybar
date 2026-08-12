@@ -123,16 +123,16 @@ DB_POOL_SIZE=10
 
 ```bash
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS cybar CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p cybar < cybar2.sql
+mysql -u root -p < database/schema.sql
 ```
 
 上面的导入命令适用于 Bash；Windows PowerShell 可改用：
 
 ```powershell
-cmd /c "mysql -u root -p cybar < cybar2.sql"
+cmd /c "mysql -u root -p < database/schema.sql"
 ```
 
-`cybar2.sql` 是完整快照，包含演示配方、互动和用户数据，仅适合本地开发或演示。它会删除并重建已有同名业务表，且当前演示用户密码为明文；请勿直接导入生产环境。
+`database/schema.sql` 只包含数据库结构，不包含账号、密码、评论或其他用户数据。首个管理员应通过正常注册创建，再由数据库管理员执行一次参数化的角色提升操作。
 
 若数据库已由旧版本项目创建，请先备份，再执行可重复迁移：
 
@@ -140,7 +140,7 @@ cmd /c "mysql -u root -p cybar < cybar2.sql"
 npm run migrate
 ```
 
-该命令会补充 `cocktails`、`users` 的兼容字段，并创建 `ai_analysis_cache`。它不会创建缺失的基础业务表；全新环境仍需先导入 `cybar2.sql`。
+该命令会补充兼容字段，扩展密码列，禁用旧明文密码，并创建缓存及会话表。它不会创建缺失的基础业务表；全新环境仍需先导入 `database/schema.sql`。
 
 ### 4. 启动应用
 
@@ -237,7 +237,7 @@ Cybar-2/
 ├─ styles/                # 全局主题、布局和组件样式
 ├─ test/                  # node:test / Supertest 测试
 ├─ uploads/               # 头像、配方图和 AI 临时图
-├─ cybar2.sql             # 完整 MySQL 开发快照
+├─ database/schema.sql    # 不含用户数据的安全数据库结构
 └─ server/index.js        # 应用入口
 ```
 
@@ -246,5 +246,7 @@ Cybar-2/
 - 设置 `NODE_ENV=production` 后，会话 Cookie 会启用 `secure`；应用信任第一层反向代理，因此生产环境应通过 HTTPS 反向代理访问。
 - [`ecosystem.config.cjs`](ecosystem.config.cjs) 提供 PM2 配置，但其中的 `cwd` 是示例服务器路径，部署前必须改成实际项目绝对路径。
 - `uploads/` 使用本地磁盘持久化，部署、备份或多实例运行时需要单独规划共享存储。
-- 当前会话使用 `express-session` 默认内存存储，当前登录密码也以明文保存。正式对外部署前应接入持久化会话存储、密码哈希、CSRF 防护和更严格的上传文件校验。
+- 生产环境默认使用 MySQL `sessions` 表保存会话；运行前必须执行 `npm run migrate`，并配置至少 32 字符的随机 `SESSION_SECRET`。
+- 密码使用 bcrypt 保存；`npm run migrate` 会禁用旧数据库中的全部明文密码。使用 `$env:CYBAR_NEW_PASSWORD='足够长的新密码'; npm run user:set-password -- 用户名` 逐一安全重置。
+- 所有写请求使用会话绑定的 CSRF 令牌，上传内容仅接受经过文件签名验证的 JPEG、PNG 和 WebP。
 - 不要提交 `.env`、API Key 或数据库凭据；相关文件已在 `.gitignore` 中排除。

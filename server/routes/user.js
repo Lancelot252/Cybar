@@ -2,42 +2,15 @@ const express = require('express');
 const router = express.Router();
 const dbPool = require('../config/db');
 const path = require('path');
-const fs = require('fs');
-const multer = require('multer'); // 引入刚安装的 multer
 const { isAuthenticated } = require('../middleware/auth');
+const { createImageUpload, persistImage } = require('../services/imageUpload');
 
 // 项目根目录
 const ROOT_DIR = path.join(__dirname, '..', '..');
 
 // --- 配置 Multer (图片存储策略) ---
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        // 确保路径存在
-        const uploadPath = path.join(ROOT_DIR, 'uploads', 'avatars');
-        if (!fs.existsSync(uploadPath)){
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: function (req, file, cb) {
-        // 重命名文件: avatar-用户ID-时间戳.后缀
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, `avatar-${req.session.userId}-${uniqueSuffix}${ext}`);
-    }
-});
-
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 限制 5MB
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('只允许上传图片文件！'));
-        }
-    }
-});
+const upload = createImageUpload('avatar');
+const AVATAR_DIR = path.join(ROOT_DIR, 'uploads', 'avatars');
 
 // --- 路由 ---
 
@@ -49,6 +22,8 @@ router.get('/profile/', isAuthenticated, (req, res) => {
 router.get('/profile/settings/', isAuthenticated, (req, res) => {
     res.sendFile(path.join(ROOT_DIR, 'profile', 'settings.html'));
 });
+router.get('/profile/index.html', isAuthenticated, (req, res) => res.sendFile(path.join(ROOT_DIR, 'profile', 'index.html')));
+router.get('/profile/settings.html', isAuthenticated, (req, res) => res.sendFile(path.join(ROOT_DIR, 'profile', 'settings.html')));
 
 // [修改] 获取当前用户信息 (增加了 avatar 和 signature)
 router.get('/api/user/current', isAuthenticated, async (req, res) => {
@@ -77,15 +52,16 @@ router.get('/api/user/current', isAuthenticated, async (req, res) => {
 });
 
 // API: 头像上传接口
-router.post('/api/user/avatar', isAuthenticated, upload.single('avatar'), async (req, res) => {
+router.post('/api/user/avatar', isAuthenticated, upload, async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: '请选择一张图片' });
         }
 
         const userId = req.session.userId;
+        const stored = await persistImage(req.file, AVATAR_DIR, `avatar-${String(userId).replace(/[^a-zA-Z0-9_-]/g, '_')}`);
         // 生成网页可访问的路径 (注意：Web路径用正斜杠 /)
-        let webPath = '/uploads/avatars/' + req.file.filename;
+        let webPath = '/uploads/avatars/' + stored.filename;
         
         // 更新数据库路径
         await dbPool.query(
@@ -96,7 +72,7 @@ router.post('/api/user/avatar', isAuthenticated, upload.single('avatar'), async 
         res.json({ message: '头像上传成功', avatarUrl: webPath });
     } catch (error) {
         console.error('Upload error:', error);
-        res.status(500).json({ message: '上传失败: ' + error.message });
+        res.status(error.status || 500).json({ message: error.status ? error.message : '头像上传失败' });
     }
 });
 
@@ -173,17 +149,22 @@ module.exports = router;
 // 更新用户个人资料
 router.put('/api/user/profile', isAuthenticated, async (req, res) => {
     const userId = req.session.userId;
-    const { nickname, bio } = req.body;
+    const { nickname } = req.body;
+    const normalizedNickname = String(nickname || '').trim();
 
-    if (!nickname) {
+    if (!normalizedNickname) {
         return res.status(400).json({ message: '昵称不能为空' });
     }
+    if (normalizedNickname.length < 2 || normalizedNickname.length > 32 || /[<>\x00-\x1f\x7f]/u.test(normalizedNickname)) {
+        return res.status(400).json({ message: '昵称须为 2 到 32 个字符，且不能包含 HTML 或控制字符' });
+    }
 
+    let connection;
     try {
         // 检查昵称是否已被其他用户使用
         const [existing] = await dbPool.query(
             'SELECT id FROM users WHERE username = ? AND id != ?',
-            [nickname, userId]
+            [normalizedNickname, userId]
         );
 
         if (existing.length > 0) {
@@ -191,21 +172,25 @@ router.put('/api/user/profile', isAuthenticated, async (req, res) => {
         }
 
         // 更新用户名 (数据库中没有 bio 字段，暂时忽略 bio)
-        await dbPool.query(
-            'UPDATE users SET username = ? WHERE id = ?',
-            [nickname, userId]
-        );
+        connection = await dbPool.getConnection();
+        await connection.beginTransaction();
+        await connection.query('UPDATE users SET username = ? WHERE id = ?', [normalizedNickname, userId]);
+        await connection.query('UPDATE cocktails SET created_by = ? WHERE created_by = ?', [normalizedNickname, req.session.username]);
+        await connection.commit();
 
         // 更新 Session 中的用户名
-        req.session.username = nickname;
+        req.session.username = normalizedNickname;
 
         res.json({ 
             message: '个人资料已更新', 
-            username: nickname
+            username: normalizedNickname
         });
     } catch (error) {
+        if (connection) await connection.rollback();
         console.error('Error updating user profile:', error);
         res.status(500).json({ message: '更新个人资料失败' });
+    } finally {
+        connection?.release();
     }
 });
 

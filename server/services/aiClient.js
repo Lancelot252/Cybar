@@ -2,7 +2,11 @@ const axios = require('axios');
 const { parseRecipe, parseAnalysis } = require('./aiSchemas');
 
 const TEXT_MODEL = () => process.env.AI_TEXT_MODEL || 'qwen3.7-flash';
-const BASE_URL = () => (process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com').replace(/\/$/, '');
+const BASE_URL = () => {
+    const url = new URL(process.env.DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com');
+    if (url.protocol !== 'https:') throw new Error('DASHSCOPE_BASE_URL 必须使用 HTTPS');
+    return url.toString().replace(/\/$/, '');
+};
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 function configured() {

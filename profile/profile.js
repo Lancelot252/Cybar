@@ -385,7 +385,11 @@ function renderListError(containerId, message) {
         return;
     }
 
-    container.innerHTML = `<div class="state-error">${message}</div>`;
+    container.innerHTML = '';
+    const error = document.createElement('div');
+    error.className = 'state-error';
+    error.textContent = message;
+    container.appendChild(error);
 }
 
 async function handleCreatedRecipeActions(event) {
