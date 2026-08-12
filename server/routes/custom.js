@@ -2,13 +2,13 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
+const multer = require('multer');
 const dbPool = require('../config/db');
 const { isAuthenticated } = require('../middleware/auth');
 const ai = require('../services/aiClient');
 const { getAnalysis, cleanupOldEntries, normalizeRecipe } = require('../services/analysisCache');
 const { downloadTemporaryImage, verifyToken, promoteGeneratedImage, cleanupTemporaryImages } = require('../services/generatedImages');
 const { createRateLimit } = require('../services/rateLimit');
-const { createImageUpload, persistImage } = require('../services/imageUpload');
 
 const router = express.Router();
 const ROOT_DIR = path.join(__dirname, '..', '..');
@@ -16,13 +16,14 @@ const INGREDIENTS_FILE = path.join(ROOT_DIR, 'custom', 'ingredients.json');
 const UPLOAD_DIR = path.join(ROOT_DIR, 'uploads', 'cocktails');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-const upload = createImageUpload('image');
-
-function localCocktailImage(webPath) {
-    if (!String(webPath || '').startsWith('/uploads/cocktails/')) return null;
-    const target = path.resolve(UPLOAD_DIR, path.basename(String(webPath)));
-    return path.dirname(target) === path.resolve(UPLOAD_DIR) ? target : null;
-}
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
+        filename: (req, file, cb) => cb(null, `recipe-${String(req.session.userId).replace(/[^\w-]/g, '_')}-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`)
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => cb(file.mimetype.startsWith('image/') ? null : new Error('只允许上传图片文件'), file.mimetype.startsWith('image/'))
+});
 
 const analysisLimit = createRateLimit({
     name: 'analysis', limit: Number(process.env.AI_ANALYSIS_RATE_LIMIT || 60),
@@ -56,10 +57,9 @@ function parseForm(req) {
 
 async function saveCocktail(req, res, recipeId = null) {
     let data;
-    try { data = parseForm(req); } catch (error) { return apiError(res, error); }
+    try { data = parseForm(req); } catch (error) { if (req.file) await fsp.rm(req.file.path, { force: true }); return apiError(res, error); }
     const isUpdate = Boolean(recipeId);
     let current = null;
-    let storedFile = null;
     try {
         if (isUpdate) {
             const [rows] = await dbPool.query('SELECT created_by, image FROM cocktails WHERE id = ?', [recipeId]);
@@ -67,10 +67,7 @@ async function saveCocktail(req, res, recipeId = null) {
             current = rows[0];
             if (current.created_by !== req.session.username && req.session.role !== 'admin') { const error = new Error('无权修改此配方'); error.status = 403; throw error; }
         }
-        if (req.file) {
-            storedFile = await persistImage(req.file, UPLOAD_DIR, `recipe-${String(req.session.userId).replace(/[^a-zA-Z0-9_-]/g, '_')}`);
-        }
-        let imagePath = storedFile ? `/uploads/cocktails/${storedFile.filename}` : current?.image || null;
+        let imagePath = req.file ? `/uploads/cocktails/${req.file.filename}` : current?.image || null;
         if (!req.file && req.body.generatedImageToken) imagePath = await promoteGeneratedImage(req.body.generatedImageToken, req.session.userId);
         const id = recipeId || `${Date.now()}${Math.floor(Math.random() * 1000)}`;
         const connection = await dbPool.getConnection();
@@ -84,15 +81,11 @@ async function saveCocktail(req, res, recipeId = null) {
             }
             for (const ingredient of data.ingredients) await connection.query('INSERT INTO ingredients (cocktail_id,name,volume,abv) VALUES (?,?,?,?)', [id, ingredient.name, ingredient.volume, ingredient.abv]);
             await connection.commit();
-            if (storedFile && current?.image && current.image !== imagePath) {
-                const previousImage = localCocktailImage(current.image);
-                if (previousImage) await fsp.rm(previousImage, { force: true }).catch(error => console.warn('Old image cleanup failed:', error.message));
-            }
             return res.status(isUpdate ? 200 : 201).json({ message: isUpdate ? '修改成功' : '创建成功', id });
         } catch (error) { await connection.rollback(); throw error; }
         finally { connection.release(); }
     } catch (error) {
-        if (storedFile) await fsp.rm(storedFile.path, { force: true });
+        if (req.file) await fsp.rm(req.file.path, { force: true });
         return apiError(res, error, isUpdate ? '更新配方失败' : '创建配方失败');
     }
 }
@@ -102,9 +95,9 @@ router.get('/api/custom/ingredients', async (_req, res) => {
     catch (error) { apiError(res, error, '加载原料数据失败'); }
 });
 
-router.post('/api/custom/cocktails', isAuthenticated, upload, (req, res) => saveCocktail(req, res));
-router.put('/api/custom/cocktails/:id', isAuthenticated, upload, (req, res) => saveCocktail(req, res, req.params.id));
-router.post('/api/custom/cocktails/:id/update', isAuthenticated, upload, (req, res) => saveCocktail(req, res, req.params.id));
+router.post('/api/custom/cocktails', isAuthenticated, upload.single('image'), (req, res) => saveCocktail(req, res));
+router.put('/api/custom/cocktails/:id', isAuthenticated, upload.single('image'), (req, res) => saveCocktail(req, res, req.params.id));
+router.post('/api/custom/cocktails/:id/update', isAuthenticated, upload.single('image'), (req, res) => saveCocktail(req, res, req.params.id));
 
 async function deleteCocktail(req, res) {
     try {
@@ -121,17 +114,12 @@ async function deleteCocktail(req, res) {
             await connection.query('DELETE FROM cocktails WHERE id=?', [req.params.id]);
             await connection.commit();
         } catch (error) { await connection.rollback(); throw error; } finally { connection.release(); }
-        const imagePath = localCocktailImage(rows[0].image);
-        if (imagePath) await fsp.rm(imagePath, { force: true });
+        if (rows[0].image?.startsWith('/uploads/cocktails/')) await fsp.rm(path.join(ROOT_DIR, rows[0].image), { force: true });
         res.json({ message: '删除成功' });
     } catch (error) { apiError(res, error, '删除配方失败'); }
 }
 router.delete('/api/custom/cocktails/:id', isAuthenticated, deleteCocktail);
 router.post('/api/custom/cocktails/:id/delete', isAuthenticated, deleteCocktail);
-
-router.get(['/custom/', '/custom/index.html'], isAuthenticated, (_req, res) => {
-    res.sendFile(path.join(ROOT_DIR, 'custom', 'index.html'));
-});
 
 router.get('/api/custom/cocktails', async (_req, res) => {
     try {
@@ -195,7 +183,8 @@ const cleanupTimer = setInterval(() => { Promise.allSettled([cleanupTemporaryIma
 cleanupTimer.unref?.();
 
 router.use((error, req, res, _next) => {
-    apiError(res, error, error.name === 'MulterError' ? '图片上传失败' : '请求处理失败');
+    if (req.file) fsp.rm(req.file.path, { force: true }).catch(() => {});
+    apiError(res, error, error instanceof multer.MulterError ? '图片上传失败' : '请求处理失败');
 });
 
 module.exports = router;

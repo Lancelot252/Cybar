@@ -51,9 +51,6 @@ router.getVisitCounts = () => pageVisitCounts;
 router.get('/admin/', isAuthenticated, isAdmin, (req, res) => {
     res.sendFile(path.join(ROOT_DIR, 'admin', 'index.html'));
 });
-router.get('/admin/index.html', isAuthenticated, isAdmin, (req, res) => {
-    res.sendFile(path.join(ROOT_DIR, 'admin', 'index.html'));
-});
 
 // --- Admin API Routes (Require isAdmin) ---
 
@@ -144,8 +141,8 @@ router.get('/api/admin/stats', isAuthenticated, isAdmin, async (req, res) => { /
 
 // --- New API Route to get all users (Admin only - MODIFIED FOR PAGINATION) ---
 router.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
-    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 10));
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     try {
         const [users] = await dbPool.query(
@@ -163,11 +160,11 @@ router.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
     }
 });
 
-// API Route to get non-sensitive user detail (Admin only)
+// API Route to get full user detail (Admin only, includes password as requested)
 router.get('/api/admin/users/:userId', isAuthenticated, isAdmin, async (req, res) => {
     const userId = req.params.userId;
     try {
-        const [users] = await dbPool.query('SELECT id, username, role, avatar, signature FROM users WHERE id = ? LIMIT 1', [userId]);
+        const [users] = await dbPool.query('SELECT * FROM users WHERE id = ? LIMIT 1', [userId]);
         if (!users.length) {
             return res.status(404).json({ message: '未找到该用户' });
         }
@@ -180,8 +177,8 @@ router.get('/api/admin/users/:userId', isAuthenticated, isAdmin, async (req, res
 
 // --- New API Route to get ALL comments (Admin only - MODIFIED FOR PAGINATION) ---
 router.get('/api/admin/comments', isAuthenticated, isAdmin, async (req, res) => {
-    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 15));
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
     const offset = (page - 1) * limit;
     const recipeId = (req.query.recipeId || '').trim();
     const userQuery = (req.query.userQuery || '').trim(); // 可为 user_id 或 username

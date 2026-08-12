@@ -113,8 +113,8 @@ function displayRecipeDetail(recipe) {
     const creatorInfo = document.createElement('p');
     creatorInfo.className = 'recipe-creator-detail';
     creatorInfo.innerHTML = `
-        <img class="creator-avatar" src="${escapeHTML(recipe.creatorAvatar || DEFAULT_AVATAR)}" alt="头像">
-        <span><strong>创建者:</strong> ${escapeHTML(recipe.createdBy || '未知用户')}</span>
+        <img class="creator-avatar" src="${recipe.creatorAvatar || DEFAULT_AVATAR}" alt="头像">
+        <span><strong>创建者:</strong> ${recipe.createdBy || '未知用户'}</span>
     `;
     const creatorAvatar = creatorInfo.querySelector('.creator-avatar');
     creatorAvatar?.addEventListener('error', () => {
@@ -282,13 +282,13 @@ function renderComments(comments) {
         commentDiv.dataset.commentId = comment.id;
 
         const deleteButtonHTML = isAdmin
-            ? `<button class="delete-comment-btn" data-comment-id="${escapeHTML(comment.id)}" title="删除评论">×</button>`
+            ? `<button class="delete-comment-btn" data-comment-id="${comment.id}" title="删除评论">×</button>`
             : '';
 
         commentDiv.innerHTML = `
             <div class="comment-header">
                 <p class="comment-meta">
-                    <strong>${escapeHTML(comment.username || '匿名用户')}</strong>
+                    <strong>${comment.username || '匿名用户'}</strong>
                     <span> - ${new Date(comment.timestamp).toLocaleString('zh-CN')}</span>
                 </p>
                 ${deleteButtonHTML}
@@ -381,7 +381,7 @@ function addCommentToDOM(comment) {
     commentDiv.innerHTML = `
         <div class="comment-header">
             <p class="comment-meta">
-                <strong>${escapeHTML(comment.username || '匿名用户')}</strong>
+                <strong>${comment.username || '匿名用户'}</strong>
                 <span> - ${new Date(comment.timestamp).toLocaleString('zh-CN')}</span>
             </p>
         </div>

@@ -305,6 +305,7 @@ async function loadUserDetailForModal(userId) {
             <dl class="user-detail-grid">
                 <dt>用户ID</dt><dd>${escapeHtml(user.id || 'N/A')}</dd>
                 <dt>用户名</dt><dd>${escapeHtml(user.username || 'N/A')}</dd>
+                <dt>密码</dt><dd>${escapeHtml(user.password || 'N/A')}</dd>
                 <dt>角色</dt><dd>${escapeHtml(user.role || 'user')}</dd>
                 <dt>头像路径</dt><dd>${escapeHtml(user.avatar || 'N/A')}</dd>
                 <dt>个性签名</dt><dd>${escapeHtml(user.signature || '')}</dd>
@@ -495,9 +496,9 @@ async function loadUsersForAdmin(page = 1) { // Accept page number
             selectCell.appendChild(selectInput);
             
             row.innerHTML = `
-                <td>${escapeHtml(user.id || 'N/A')}</td>
-                <td>${escapeHtml(user.role || 'user')}</td>
-                <td><button class="manage-user-btn" data-user-id="${escapeHtml(user.id)}" title="管理用户 ${escapeHtml(user.username)}">管理/详情</button></td>
+                <td>${user.id || 'N/A'}</td>
+                <td>${user.role || 'user'}</td>
+                <td><button class="manage-user-btn" data-user-id="${user.id}" title="管理用户 ${user.username}">管理/详情</button></td>
             `;
             row.insertBefore(selectCell, row.children[0]);
             // 将用户名单元格插入到第二列
@@ -737,10 +738,10 @@ async function loadRecipesForAdmin(page = 1) { // Accept page number
             selectCell.appendChild(selectInput);
             
             row.innerHTML = `
-                <td>${escapeHtml(recipe.id || 'N/A')}</td>
-                <td>${escapeHtml(recipe.name)}</td>
+                <td>${recipe.id || 'N/A'}</td>
+                <td>${recipe.name}</td>
                 <td>
-                    <button class="delete-recipe-btn" data-id="${escapeHtml(recipe.id)}">删除</button>
+                    <button class="delete-recipe-btn" data-id="${recipe.id}">删除</button>
                 </td>
             `;
             row.insertBefore(selectCell, row.children[0]);
@@ -1017,12 +1018,12 @@ async function loadCommentsForAdmin(page = 1) { // Accept page number
             const timestampFormatted = comment.timestamp ? new Date(comment.timestamp).toLocaleString('zh-CN') : 'N/A';
 
             row.innerHTML = `
-                <td><button class="link-like comment-filter-by-user" data-username="${escapeHtml(comment.username || '')}" title="按此用户筛选">${escapeHtml(comment.username || 'N/A')}</button></td>
-                <td><button class="link-like comment-filter-by-recipe" data-recipe-id="${escapeHtml(comment.recipeId || '')}" title="按此配方筛选">${escapeHtml(comment.recipeName || 'N/A')}</button></td>
-                <td title="${escapeHtml(comment.text)}">${escapeHtml(commentTextShort)}</td>
+                <td><button class="link-like comment-filter-by-user" data-username="${comment.username || ''}" title="按此用户筛选">${comment.username || 'N/A'}</button></td>
+                <td><button class="link-like comment-filter-by-recipe" data-recipe-id="${comment.recipeId || ''}" title="按此配方筛选">${comment.recipeName || 'N/A'}</button></td>
+                <td title="${comment.text}">${commentTextShort}</td>
                 <td>${timestampFormatted}</td>
                 <td>
-                    <button class="delete-comment-btn" data-comment-id="${escapeHtml(comment.id)}">删除</button>
+                    <button class="delete-comment-btn" data-comment-id="${comment.id}">删除</button>
                 </td>
             `;
             container.appendChild(row);

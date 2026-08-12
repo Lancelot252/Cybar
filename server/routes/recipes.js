@@ -20,9 +20,9 @@ router.get('/calculator/', (req, res) => {
 
 // API to get recipes with pagination & sorting
 router.get('/api/recipes', async (req, res) => {
-    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 10));
-    const search = req.query.search ? String(req.query.search).trim().slice(0, 100) : '';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search ? req.query.search.trim() : '';
     const sort = req.query.sort || 'default';
     const offset = (page - 1) * limit;
 
@@ -164,9 +164,6 @@ router.post('/api/recipes/:id/comments', isAuthenticated, async (req, res) => {
     if (!commentText || commentText.trim() === '') {
         return res.status(400).json({ message: '评论内容不能为空' });
     }
-    if (String(commentText).length > 1000) {
-        return res.status(400).json({ message: '评论不能超过 1000 个字符' });
-    }
 
     try {
         const commentId = Date.now().toString() + Math.floor(Math.random() * 1000);
@@ -189,14 +186,8 @@ router.post('/api/recipes', isAuthenticated, async (req, res) => {
     const newRecipe = req.body;
     const creatorUsername = req.session.username;
 
-    if (!newRecipe || !String(newRecipe.name || '').trim()) {
+    if (!newRecipe || !newRecipe.name) {
         return res.status(400).json({ message: '无效的配方数据' });
-    }
-    const name = String(newRecipe.name).trim();
-    const instructions = String(newRecipe.instructions || '');
-    const estimatedAbv = Number(newRecipe.estimatedAbv || 0);
-    if (name.length > 120 || instructions.length > 10000 || !Number.isFinite(estimatedAbv) || estimatedAbv < 0 || estimatedAbv > 100) {
-        return res.status(400).json({ message: '配方字段超出允许范围' });
     }
     if (!creatorUsername) {
         return res.status(401).json({ message: '无法确定创建者，请重新登录' });
@@ -209,10 +200,10 @@ router.post('/api/recipes', isAuthenticated, async (req, res) => {
              VALUES (?, ?, ?, ?, ?)`,
             [
                 recipeId,
-                name,
+                newRecipe.name,
                 creatorUsername,
-                instructions,
-                estimatedAbv,
+                newRecipe.instructions || '',
+                newRecipe.estimatedAbv || 0,
             ]
         );
         res.status(201).json({ message: '配方添加成功', recipe: { id: recipeId, ...newRecipe, createdBy: creatorUsername } });
